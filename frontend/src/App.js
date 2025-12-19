@@ -405,11 +405,11 @@ const App = () => {
       });
     getPublicSetting("appName")
       .then((name) => {
-        setAppName(name || "wChat");
+        setAppName(name || "AtendeChat");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
-        setAppName("wChat");
+        setAppName("AtendeChat");
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
