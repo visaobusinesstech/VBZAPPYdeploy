@@ -903,7 +903,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   onClick={handleMenu}
                 >
                   <Avatar
-                    alt="wChat"
+                    alt="AtendeChat"
                     className={classes.avatar2}
                     src={profileUrl}
                   />
