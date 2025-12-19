@@ -411,7 +411,7 @@ export default function Whitelabel(props) {
                       }}
                       onBlur={async (_) => {
                         await handleSaveSetting("appName", appName);
-                        colorMode.setAppName(appName || "wChat");
+                        colorMode.setAppName(appName || "AtendeChat");
                       }}
                       size="small"
                     />
