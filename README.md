@@ -133,14 +133,14 @@ O **AtendeChat** é uma plataforma completa de atendimento multicanal que integr
 ### Mínimos
 - **CPU:** 2 vCPUs
 - **RAM:** 4 GB
-- **Disco:** 40 GB SSD
-- **OS:** Ubuntu 22.04/24.04 LTS
+- **Disco:** 100 GB SSD
+- **OS:** Ubuntu 22.04
 
 ### Recomendados (Produção)
 - **CPU:** 4+ vCPUs
 - **RAM:** 8+ GB
-- **Disco:** 80+ GB SSD
-- **OS:** Ubuntu 24.04 LTS
+- **Disco:** 200+ GB SSD
+- **OS:** Ubuntu 22.04 LTS
 
 ### Portas Necessárias
 | Porta | Serviço |
