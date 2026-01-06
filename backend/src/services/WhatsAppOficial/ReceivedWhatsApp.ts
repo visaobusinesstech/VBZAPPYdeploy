@@ -979,8 +979,7 @@ export class ReceibedWhatsAppService {
 
           if (
             integrations.type === "SGP" ||
-            cfg?.sgpUrl ||
-            cfg?.tipoIntegracao
+            ((cfg?.sgpUrl || cfg?.tipoIntegracao) && integrations.type !== "typebot")
           ) {
             console.log(
               "[SGP OFICIAL] SGP detectado via WhatsApp.integrationId: aguardando CPF do cliente"
@@ -1111,8 +1110,7 @@ export class ReceibedWhatsAppService {
 
           if (
             integrations.type === "SGP" ||
-            cfg?.sgpUrl ||
-            cfg?.tipoIntegracao
+            ((cfg?.sgpUrl || cfg?.tipoIntegracao) && integrations.type !== "typebot")
           ) {
             console.log(
               "[SGP OFICIAL] Processando mensagem para integração SGP no ticket"
