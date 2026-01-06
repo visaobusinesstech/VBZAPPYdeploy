@@ -3219,8 +3219,7 @@ export const handleMessageIntegration = async (
       cfg = queueIntegration?.jsonContent ? JSON.parse(queueIntegration.jsonContent) : {};
       if (
         queueIntegration.type === "SGP" ||
-        cfg?.sgpUrl ||
-        cfg?.tipoIntegracao
+        ((cfg?.sgpUrl || cfg?.tipoIntegracao) && queueIntegration.type !== "typebot")
       ) {
         console.error(`queueIntegration.type 3: ${queueIntegration.type}`);
         const simulatedMsg = {
