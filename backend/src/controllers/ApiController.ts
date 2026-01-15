@@ -214,9 +214,9 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
   // @ts-ignore: Unreachable code error
   if (sendSignature && !isNil(user)) {
-    bodyMessage = `*${user.name}:*\n${body.trim()}`
+    bodyMessage = `*${user.name}:*\n${body ? body.trim() : ''}`
   } else {
-    bodyMessage = body.trim();
+    bodyMessage = body ? body.trim() : '';
   }
 
   const dtschedule = req.body.schedule
