@@ -1564,7 +1564,7 @@ const verifyQueue = async (
     if (enableQueuePosition) {
       // Lógica para enviar posição da fila de atendimento
       const qtd = count.count === 0 ? 1 : count.count;
-      const msgFila = `${settings.sendQueuePositionMessage} *${qtd}*`;
+      const msgFila = `Você está na fila *${queues[0].name}*. Em breve será atendido!`;
       // const msgFila = `*Assistente Virtual:*\n{{ms}} *{{name}}*, sua posição na fila de atendimento é: *${qtd}*`;
       const bodyFila = formatBody(`${msgFila}`, ticket);
       const debouncedSentMessagePosicao = debounce(
