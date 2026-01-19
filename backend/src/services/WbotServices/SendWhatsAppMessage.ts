@@ -1,272 +1,532 @@
-import { WAMessage } from "baileys";
-import delay from "../../utils/delay";
+import { WAMessage, AnyMessageContent } from "baileys";
 import * as Sentry from "@sentry/node";
-import AppError from "../../errors/AppError";
-import GetTicketWbot from "../../helpers/GetTicketWbot";
-import Message from "../../models/Message";
-import Ticket from "../../models/Ticket";
-import Contact from "../../models/Contact";
-import { isNil } from "lodash";
+import fs, { unlinkSync } from "fs";
 
+import path from "path";
+import ffmpeg from "fluent-ffmpeg";
+import ffmpegStatic from "ffmpeg-static";
+
+import AppError from "../../errors/AppError";
+import Ticket from "../../models/Ticket";
+import mime from "mime-types";
+import Contact from "../../models/Contact";
+import { getWbot } from "../../libs/wbot";
+import CreateMessageService from "../MessageServices/CreateMessageService";
 import formatBody from "../../helpers/Mustache";
 import logger from "../../utils/logger";
 import { ENABLE_LID_DEBUG } from "../../config/debug";
 import { normalizeJid } from "../../utils";
+import { getJidOf } from "./getJidOf";
+
+ffmpeg.setFfmpegPath(ffmpegStatic!);
+
+(() => {
+  try {
+    const resolvedPath: string | undefined =
+      typeof ffmpegStatic === "string"
+        ? (ffmpegStatic as unknown as string)
+        : undefined;
+    if (resolvedPath) {
+      ffmpeg.setFfmpegPath(resolvedPath);
+    } else {
+      logger.warn(
+        "ffmpeg não encontrado via ffmpeg-static; usando PATH do sistema."
+      );
+    }
+  } catch (e) {
+    logger.warn({ e }, "Falha ao configurar ffmpeg; tentando PATH do SO");
+  }
+})();
+
+const convertToOggOpus = async (inputFile: string): Promise<string> => {
+  const parsed = path.parse(inputFile);
+  const outputFile = path.join(parsed.dir, `${parsed.name}-${Date.now()}.ogg`);
+
+  await new Promise<void>((resolve, reject) => {
+    ffmpeg(inputFile)
+      .audioChannels(1)
+      .audioFrequency(16000)
+      .audioCodec("libopus")
+      .audioBitrate("18k")
+      .addOption(["-vbr", "off"])
+      .addOption(["-avoid_negative_ts", "make_zero"])
+      .format("ogg")
+      .on("end", () => resolve())
+      .on("error", err => reject(err))
+      .save(outputFile);
+  });
+
+  return outputFile;
+};
+
+const getMediaTypeFromMimeType = (mimetype: string): string => {
+  const documentMimeTypes = [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.oasis.opendocument.text",
+    "application/vnd.oasis.opendocument.spreadsheet",
+    "application/vnd.oasis.opendocument.presentation",
+    "application/vnd.oasis.opendocument.graphics",
+    "application/rtf",
+    "text/plain",
+    "text/csv",
+    "text/html",
+    "text/xml",
+    "application/xml",
+    "application/json",
+    "application/ofx",
+    "application/vnd.ms-outlook",
+    "application/vnd.apple.keynote",
+    "application/vnd.apple.numbers",
+    "application/vnd.apple.pages",
+    "application/x-msdownload",
+    "application/x-executable",
+    "application/x-msdownload",
+    "application/acad",
+    "application/x-pkcs12",
+    "application/x-ret"
+  ];
+
+  const archiveMimeTypes = [
+    "application/zip",
+    "application/x-rar-compressed",
+    "application/x-7z-compressed",
+    "application/x-tar",
+    "application/gzip",
+    "application/x-bzip2"
+  ];
+
+  if (mimetype === "audio/webm") {
+    return "audio";
+  }
+
+  if (documentMimeTypes.includes(mimetype)) {
+    return "document";
+  }
+
+  if (archiveMimeTypes.includes(mimetype)) {
+    return "document";
+  }
+
+  return mimetype.split("/")[0];
+};
 
 interface Request {
-  body: string;
+  media: Express.Multer.File;
   ticket: Ticket;
-  quotedMsg?: Message;
-  msdelay?: number;
-  vCard?: Contact;
+  companyId?: number;
+  body?: string;
+  isPrivate?: boolean;
   isForwarded?: boolean;
 }
 
-const SendWhatsAppMessage = async ({
-  body,
-  ticket,
-  quotedMsg,
-  msdelay,
-  vCard,
-  isForwarded = false
-}: Request): Promise<WAMessage> => {
-  let options = {};
+const publicFolder = path.resolve(__dirname, "..", "..", "..", "public");
 
-  console.error(`Chegou SendWhatsAppMessage - ticketId: ${ticket.id} - contactId: ${ticket.contactId}`);
+// ✅ CORREÇÃO: Função de conversão de áudio otimizada
 
-  const wbot = await GetTicketWbot(ticket);
-  const contactNumber = await Contact.findByPk(ticket.contactId);
-  if (!contactNumber) {
-    throw new AppError("Contato do ticket não encontrado");
-  }
-
-  // Sempre envie para o JID tradicional
-  let jid = `${contactNumber.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"
-    }`;
-  jid = normalizeJid(jid);
-
-  if (ENABLE_LID_DEBUG) {
-    logger.info(
-      `[RDS-LID] SendMessage - Enviando para JID tradicional: ${jid}`
-    );
-    logger.info(`[RDS-LID] SendMessage - Contact lid: ${contactNumber.lid}`);
-    logger.info(
-      `[RDS-LID] SendMessage - Contact remoteJid: ${contactNumber.remoteJid}`
-    );
-    logger.info(
-      `[RDS-LID] SendMessage - QuotedMsg: ${quotedMsg ? "SIM" : "NÃO"}`
-    );
-  }
-
-  if (quotedMsg) {
-    // quotedMsg pode vir como objeto ou apenas um id/string
-    const quotedId: any = (quotedMsg as any)?.id ?? quotedMsg;
-    let chatMessages: Message | null = null;
-    if (quotedId !== undefined && quotedId !== null && String(quotedId).trim() !== "") {
-      chatMessages = await Message.findOne({
-        where: {
-          id: quotedId
-        }
-      });
-    }
-
-    if (chatMessages) {
-      const msgFound = JSON.parse(chatMessages.dataJson);
-
-      if (msgFound.message.extendedTextMessage !== undefined) {
-        options = {
-          quoted: {
-            key: msgFound.key,
-            message: {
-              extendedTextMessage: msgFound.message.extendedTextMessage
-            }
-          }
-        };
-      } else {
-        options = {
-          quoted: {
-            key: msgFound.key,
-            message: {
-              conversation: msgFound.message.conversation
-            }
-          }
-        };
-      }
-
-      if (ENABLE_LID_DEBUG) {
-        logger.info(
-          `[RDS-LID] SendMessage - ContextInfo configurado para resposta`
-        );
-      }
-    }
-  }
-
-  if (!isNil(vCard)) {
-    const numberContact = vCard.number;
-    const firstName = vCard.name.split(" ")[0];
-    const lastName = String(vCard.name).replace(vCard.name.split(" ")[0], "");
-
-    const vcard =
-      `BEGIN:VCARD\n` +
-      `VERSION:3.0\n` +
-      `N:${lastName};${firstName};;;\n` +
-      `FN:${vCard.name}\n` +
-      `TEL;type=CELL;waid=${numberContact}:+${numberContact}\n` +
-      `END:VCARD`;
-
+export const convertAudioToOgg = async (
+  inputPath: string,
+  companyId: number
+): Promise<string> => {
+  return new Promise<string>((resolve, reject) => {
     try {
-      await delay(msdelay);
-      const sentMessage = await wbot.sendMessage(jid, {
-        contacts: {
-          displayName: `${vCard.name}`,
-          contacts: [{ vcard }]
-        }
-      });
-
-      wbot.store(sentMessage);
-
-      await ticket.update({
-        lastMessage: formatBody(vcard, ticket),
-        imported: null
-      });
-
-      // Log detalhado de vCard enviado com sucesso
-      logger.info(
-        `[RDS-BAILEYS] vCard enviado com sucesso para contato ID=${contactNumber.id}, number=${contactNumber.number}, jid=${jid}`
+      const newMediaFileName = `${new Date().getTime()}.ogg`;
+      const outputFile = path.join(
+        publicFolder,
+        `company${companyId}`,
+        newMediaFileName
       );
 
-      return sentMessage;
-    } catch (err) {
-      // Log detalhado do erro de envio de vCard
-      logger.error(
-        `[RDS-BAILEYS] ERRO ao enviar vCard para contato ID=${contactNumber.id}, number=${contactNumber.number}, jid=${jid}: ${err.message}`
-      );
+      console.log("🔄 Convertendo áudio:", {
+        input: inputPath,
+        output: outputFile
+      });
 
-      Sentry.captureException(err);
-      console.log(err);
-      throw new AppError("ERR_SENDING_WAPP_MSG");
+      const converter = ffmpeg(inputPath);
+
+      converter
+        .outputFormat("ogg")
+        .noVideo()
+        .audioCodec("libopus")
+        .audioChannels(1)
+        .audioFrequency(16000)
+        .audioBitrate("64k")
+        .addOutputOptions("-avoid_negative_ts make_zero")
+        .on("end", () => {
+          console.log("✅ Conversão de áudio concluída:", outputFile);
+          resolve(outputFile);
+        })
+        .on("error", (err: Error) => {
+          console.error("❌ Erro na conversão de áudio:", err);
+          reject(err);
+        })
+        .save(outputFile);
+    } catch (error) {
+      console.error("❌ Erro ao configurar conversão:", error);
+      reject(error);
     }
-  }
+  });
+};
+
+// ✅ Função para converter PNG/WebP para JPG usando ffmpeg
+export const convertPngToJpg = async (
+  inputPath: string,
+  companyId: number
+): Promise<Buffer> => {
   try {
-    await delay(msdelay);
-    const sentMessage = await wbot.sendMessage(
-      jid,
-      {
-        text: formatBody(body, ticket),
-        contextInfo: {
-          forwardingScore: isForwarded ? 2 : 0,
-          isForwarded: isForwarded ? true : false
-        }
-      },
-      {
-        ...options,
+    console.log("🔄 Convertendo imagem para JPG:", inputPath);
 
-      }
+    const outputPath = path.join(
+      publicFolder,
+      `company${companyId}`,
+      `temp_${new Date().getTime()}.jpg`
     );
-    wbot.store(sentMessage);
 
-    await ticket.update({
-      lastMessage: formatBody(body, ticket),
-      imported: null
+    // Usar ffmpeg para converter qualquer formato de imagem para JPG
+    await new Promise<void>((resolve, reject) => {
+      ffmpeg(inputPath)
+        .outputFormat('mjpeg')
+        .outputOptions('-q:v', '2') // Qualidade alta
+        .on('end', () => {
+          console.log("✅ Conversão para JPG concluída");
+          resolve();
+        })
+        .on('error', (err) => {
+          console.error("❌ Erro na conversão para JPG:", err);
+          reject(err);
+        })
+        .save(outputPath);
     });
 
-    // Log detalhado de mensagem enviada com sucesso
-    logger.info(
-      `[RDS-BAILEYS] Mensagem enviada com sucesso para contato ID=${contactNumber.id}, number=${contactNumber.number}, jid=${jid}`
-    );
+    // Ler o arquivo JPG convertido
+    const imageBuffer = fs.readFileSync(outputPath);
 
-    return sentMessage;
-  } catch (err) {
-    // Log detalhado do erro de envio para facilitar diagnóstico
-    logger.error(
-      `[RDS-BAILEYS] ERRO ao enviar mensagem para contato ID=${contactNumber.id}, number=${contactNumber.number}, jid=${jid}: ${err.message}`
-    );
-
-    console.log(
-      `erro ao enviar mensagem na company ${ticket.companyId} - `,
-      body,
-      ticket,
-      quotedMsg,
-      msdelay,
-      vCard,
-      isForwarded
-    );
-
-    if (ENABLE_LID_DEBUG) {
-      logger.error(`[RDS-LID] Erro ao enviar mensagem para ${jid}: ${err.message}`);
-
-      if (contactNumber.number?.includes("@lid")) {
-        logger.error(`[RDS-LID] Contato com formato @lid detectado: ${contactNumber.number}`);
-
-        try {
-          const parts = contactNumber.number.split('@');
-          if (parts.length > 0 && /^\d+$/.test(parts[0])) {
-            const correctNumber = parts[0];
-            logger.info(`[RDS-LID] Tentando corrigir número: ${contactNumber.number} -> ${correctNumber}`);
-
-            await contactNumber.update({
-              number: correctNumber,
-              remoteJid: `${correctNumber}@s.whatsapp.net`
-            });
-
-            logger.info(`[RDS-LID] Contato atualizado com sucesso: ${correctNumber}`);
-          }
-        } catch (updateError) {
-          logger.error(`[RDS-LID] Erro ao atualizar contato: ${updateError.message}`);
-        }
-      }
+    // Limpar arquivo temporário
+    if (fs.existsSync(outputPath)) {
+      fs.unlinkSync(outputPath);
     }
 
-    if (err.message && err.message.includes("senderMessageKeys")) {
+    console.log("✅ Conversão concluída e buffer retornado");
+    return imageBuffer;
+  } catch (error) {
+    console.error("❌ Erro na conversão para JPG:", error);
+    throw error;
+  }
+};
+
+export const getMessageOptions = async (
+  fileName: string,
+  pathMedia: string,
+  companyId: string,
+  body: string = " "
+): Promise<any> => {
+  const mimeType = mime.lookup(pathMedia);
+  const typeMessage = mimeType ? mimeType.split("/")[0] : "application";
+
+  console.log("🔍 Processando mídia:", {
+    fileName,
+    pathMedia,
+    mimeType,
+    typeMessage
+  });
+
+  try {
+    if (!mimeType) {
+      throw new Error("Invalid mimetype");
+    }
+
+    let options: AnyMessageContent;
+
+    if (typeMessage === "video") {
+      options = {
+        video: fs.readFileSync(pathMedia),
+        caption: body ? body : null,
+        fileName: fileName
+      };
+    } else if (typeMessage === "audio") {
+      // ✅ CORREÇÃO: Verificar se o arquivo já está em formato adequado
+      const isAlreadyOgg = pathMedia.toLowerCase().endsWith(".ogg");
+      let audioPath = pathMedia;
+
+      if (!isAlreadyOgg) {
+        console.log("🔄 Arquivo não é OGG, convertendo...");
+        audioPath = await convertAudioToOgg(pathMedia, +companyId);
+      } else {
+        console.log("✅ Arquivo já é OGG, usando diretamente");
+      }
+
+      options = {
+        audio: fs.readFileSync(audioPath),
+        mimetype: "audio/ogg; codecs=opus",
+        ptt: true
+      };
+
+      // Limpar arquivo temporário se foi convertido
+      if (audioPath !== pathMedia && fs.existsSync(audioPath)) {
+        fs.unlinkSync(audioPath);
+      }
+    } else if (typeMessage === "document" || typeMessage === "application") {
+      options = {
+        document: fs.readFileSync(pathMedia),
+        caption: body ? body : null,
+        fileName: fileName,
+        mimetype: mimeType
+      };
+    } else {
+      options = {
+        image: fs.readFileSync(pathMedia),
+        caption: body ? body : null
+      };
+    }
+
+    return options;
+  } catch (e) {
+    Sentry.captureException(e);
+    console.error("❌ Erro ao processar mídia:", e);
+    return null;
+  }
+};
+
+const SendWhatsAppMedia = async ({
+  media,
+  ticket,
+  body = "",
+  isPrivate = false,
+  isForwarded = false
+}: Request): Promise<WAMessage> => {
+  try {
+    const wbot = await getWbot(ticket.whatsappId);
+    const companyId = ticket.companyId.toString();
+
+    // Construir o caminho absoluto baseado no companyId
+    let pathMedia;
+
+    // Verificar se media.path já é um caminho absoluto ou relativo
+    if (media.path.startsWith('/') && !media.path.includes('public')) {
+      // Caminho relativo como /company1/fileList/4/arquivo.pdf
+      pathMedia = path.join(publicFolder, media.path);
+    } else if (media.path.includes('public')) {
+      // Caminho já absoluto, usar diretamente
+      pathMedia = media.path;
+    } else if (media.path.startsWith('company')) {
+      // Caminho que começa com company (ex: company1/fileList/4/arquivo.pdf)
+      pathMedia = path.join(publicFolder, media.path);
+    } else {
+      // Caminho relativo sem barra inicial
+      pathMedia = path.join(publicFolder, media.path);
+    }
+
+    // Debug: verificar se o arquivo existe
+    console.log("🔍 Verificando arquivo de mídia:", {
+      originalPath: media.path,
+      publicFolder,
+      fullPath: pathMedia,
+      exists: fs.existsSync(pathMedia)
+    });
+
+    if (!fs.existsSync(pathMedia)) {
+      throw new Error(`Arquivo de mídia não encontrado: ${pathMedia}`);
+    }
+
+    // ✅ CORREÇÃO: Detectar mimetype correto pela extensão se vier como octet-stream
+    let realMimetype = media.mimetype;
+    if (media.mimetype === "application/octet-stream") {
+      const detectedMime = mime.lookup(pathMedia);
+      if (detectedMime) {
+        realMimetype = detectedMime;
+        console.log("🔄 Mimetype corrigido:", { original: media.mimetype, detected: realMimetype });
+      }
+    }
+    const typeMessage = realMimetype.split("/")[0];
+
+    let options: AnyMessageContent;
+    let bodyTicket = "";
+    const bodyMedia = ticket ? formatBody(body, ticket) : body;
+
+    console.log("📤 Enviando mídia:", {
+      originalname: media.originalname,
+      mimetype: realMimetype,
+      typeMessage,
+      pathMedia
+    });
+
+    if (typeMessage === "video") {
+      options = {
+        video: fs.readFileSync(pathMedia),
+        caption: bodyMedia,
+        fileName: media.originalname.replace("/", "-"),
+        contextInfo: {
+          forwardingScore: isForwarded ? 2 : 0,
+          isForwarded: isForwarded
+        }
+      };
+      bodyTicket = "🎥 Arquivo de vídeo";
+    } else if (typeMessage === "audio" || realMimetype.includes("audio")) {
+      // ✅ CORREÇÃO: Tratamento específico para arquivos de áudio
+      let audioPath = pathMedia;
+
+      console.log("🔄 Convertendo áudio para OGG...");
+      audioPath = await convertToOggOpus(pathMedia);
+
+      options = {
+        audio: fs.readFileSync(audioPath),
+        mimetype: "audio/ogg; codecs=opus",
+        ptt: true,
+        contextInfo: {
+          forwardingScore: isForwarded ? 2 : 0,
+          isForwarded: isForwarded
+        }
+      };
+
+      // Limpar arquivo convertido se necessário
+      if (audioPath !== pathMedia && fs.existsSync(audioPath)) {
+        fs.unlinkSync(audioPath);
+      }
+
+      bodyTicket = bodyMedia || "🎵 Mensagem de voz";
+    } else if (typeMessage === "document" || typeMessage === "text") {
+      options = {
+        document: fs.readFileSync(pathMedia),
+        caption: bodyMedia,
+        fileName: media.originalname.replace("/", "-"),
+        mimetype: realMimetype,
+        contextInfo: {
+          forwardingScore: isForwarded ? 2 : 0,
+          isForwarded: isForwarded
+        }
+      };
+      bodyTicket = "📂 Documento";
+    } else if (typeMessage === "application") {
+      options = {
+        document: fs.readFileSync(pathMedia),
+        caption: bodyMedia,
+        fileName: media.originalname.replace("/", "-"),
+        mimetype: realMimetype,
+        contextInfo: {
+          forwardingScore: isForwarded ? 2 : 0,
+          isForwarded: isForwarded
+        }
+      };
+      bodyTicket = "📎 Outros anexos";
+    } else {
+      if (realMimetype.includes("gif")) {
+        options = {
+          image: fs.readFileSync(pathMedia),
+          caption: bodyMedia,
+          mimetype: "image/gif",
+          contextInfo: {
+            forwardingScore: isForwarded ? 2 : 0,
+            isForwarded: isForwarded
+          },
+          gifPlayback: true
+        };
+      } else {
+        if (realMimetype.includes("png") || realMimetype.includes("webp")) {
+          // ✅ Converter PNG/WebP para JPG antes de enviar
+          console.log("🔄 Detectado arquivo PNG/WebP, convertendo para JPG...");
+          const imageBuffer = await convertPngToJpg(pathMedia, ticket.companyId);
+          options = {
+            image: imageBuffer,
+            caption: bodyMedia,
+            contextInfo: {
+              forwardingScore: isForwarded ? 2 : 0,
+              isForwarded: isForwarded
+            }
+          };
+        } else {
+          options = {
+            image: fs.readFileSync(pathMedia),
+            caption: bodyMedia,
+            contextInfo: {
+              forwardingScore: isForwarded ? 2 : 0,
+              isForwarded: isForwarded
+            }
+          };
+        }
+      }
+      bodyTicket = "🖼️ Imagem";
+    }
+
+    if (isPrivate === true) {
+      const messageData = {
+        wid: `PVT${companyId}${ticket.id}${body.substring(0, 6)}`,
+        ticketId: ticket.id,
+        contactId: undefined,
+        body: bodyMedia,
+        fromMe: true,
+        mediaUrl: media.filename,
+        mediaType: getMediaTypeFromMimeType(realMimetype),
+        read: true,
+        quotedMsgId: null,
+        ack: 2,
+        remoteJid: null,
+        participant: null,
+        dataJson: null,
+        ticketTrakingId: null,
+        isPrivate
+      };
+
+      await CreateMessageService({ messageData, companyId: ticket.companyId });
+      return;
+    }
+
+    const contactNumber = await Contact.findByPk(ticket.contactId);
+
+    let jid;
+    if (contactNumber.lid && contactNumber.lid !== "") {
+      jid = contactNumber.lid;
+    } else if (
+      contactNumber.remoteJid &&
+      contactNumber.remoteJid !== "" &&
+      contactNumber.remoteJid.includes("@")
+    ) {
+      jid = contactNumber.remoteJid;
+    } else {
+      jid = `${contactNumber.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
+    }
+    jid = normalizeJid(jid);
+
+    let sentMessage: WAMessage;
+
+    if (ticket.isGroup) {
       if (ENABLE_LID_DEBUG) {
-        logger.error(
-          `[RDS-LID] SendMessage - Erro de criptografia de grupo detectado: ${err.message}`
-        );
+        logger.info(`[LID-DEBUG] Media - Enviando mídia para grupo: ${jid}`);
       }
 
       try {
-        if (ENABLE_LID_DEBUG) {
-          logger.info(
-            `[RDS-LID] SendMessage - Tentando envio sem criptografia para grupo ${jid}`
-          );
+        sentMessage = await wbot.sendMessage(getJidOf(ticket), options);
+      } catch (err1) {
+        if (err1.message && err1.message.includes("senderMessageKeys")) {
+          sentMessage = await wbot.sendMessage(getJidOf(ticket), options);
+        } else {
+          sentMessage = await wbot.sendMessage(getJidOf(ticket), options);
         }
-
-        const sentMessage = await wbot.sendMessage(jid, {
-          text: formatBody(body, ticket)
-        });
-
-        if (ENABLE_LID_DEBUG) {
-          logger.info(
-            `[RDS-LID] SendMessage - Sucesso no envio sem criptografia para grupo ${jid}`
-          );
-        }
-        wbot.store(sentMessage);
-        await ticket.update({
-          lastMessage: formatBody(body, ticket),
-          imported: null
-        });
-
-        // Log detalhado de mensagem enviada com sucesso após retry (problema de criptografia)
-        logger.info(
-          `[RDS-BAILEYS] Mensagem enviada com sucesso após retry para contato ID=${contactNumber.id}, number=${contactNumber.number}, jid=${jid} (problema de criptografia resolvido)`
-        );
-
-        return sentMessage;
-      } catch (finalErr) {
-        if (ENABLE_LID_DEBUG) {
-          logger.error(
-            `[RDS-LID] SendMessage - Falha no envio sem criptografia: ${finalErr.message}`
-          );
-        }
-        Sentry.captureException(finalErr);
-        throw new AppError("ERR_SENDING_WAPP_MSG_GROUP_CRYPTO");
       }
+    } else {
+      sentMessage = await wbot.sendMessage(getJidOf(ticket), options);
     }
 
+    wbot.store(sentMessage);
+
+    await ticket.update({
+      lastMessage: body !== media.filename ? body : bodyMedia,
+      imported: null
+    });
+
+    return sentMessage;
+  } catch (err) {
+    console.error(
+      `❌ ERRO AO ENVIAR MÍDIA ${ticket.id} media ${media.originalname}:`,
+      err
+    );
     Sentry.captureException(err);
-    console.log(err);
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
 };
 
-export default SendWhatsAppMessage;
+export default SendWhatsAppMedia;
