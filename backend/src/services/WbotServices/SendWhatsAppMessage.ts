@@ -116,11 +116,12 @@ const getMediaTypeFromMimeType = (mimetype: string): string => {
   return mimetype.split("/")[0];
 };
 
+// ✅ CORREÇÃO: Interface com media opcional para suportar envio de texto puro
 interface Request {
-  media: Express.Multer.File;
+  body: string;
   ticket: Ticket;
+  media?: Express.Multer.File;  // ✅ Agora é opcional
   companyId?: number;
-  body?: string;
   isPrivate?: boolean;
   isForwarded?: boolean;
 }
@@ -303,6 +304,79 @@ const SendWhatsAppMedia = async ({
     const wbot = await getWbot(ticket.whatsappId);
     const companyId = ticket.companyId.toString();
 
+    // ✅ CORREÇÃO: Verificar se body é válido antes de usar trim()
+    const safeBody = body || "";
+    const formattedBody = ticket ? formatBody(safeBody, ticket) : safeBody;
+
+    // ✅ CORREÇÃO: Se não há mídia, enviar apenas texto
+    if (!media) {
+      console.log("📤 Enviando mensagem de texto puro (sem mídia)");
+
+      if (!formattedBody || formattedBody.trim() === "") {
+        throw new AppError("ERR_EMPTY_MESSAGE");
+      }
+
+      // Mensagem privada (apenas texto)
+      if (isPrivate === true) {
+        const messageData = {
+          wid: `PVT${companyId}${ticket.id}${safeBody.substring(0, 6)}`,
+          ticketId: ticket.id,
+          contactId: undefined,
+          body: formattedBody,
+          fromMe: true,
+          mediaUrl: null,
+          mediaType: "chat",
+          read: true,
+          quotedMsgId: null,
+          ack: 2,
+          remoteJid: null,
+          participant: null,
+          dataJson: null,
+          ticketTrakingId: null,
+          isPrivate
+        };
+
+        await CreateMessageService({ messageData, companyId: ticket.companyId });
+        return;
+      }
+
+      // Buscar contato para enviar mensagem
+      const contactNumber = await Contact.findByPk(ticket.contactId);
+
+      let jid;
+      if (contactNumber.lid && contactNumber.lid !== "") {
+        jid = contactNumber.lid;
+      } else if (
+        contactNumber.remoteJid &&
+        contactNumber.remoteJid !== "" &&
+        contactNumber.remoteJid.includes("@")
+      ) {
+        jid = contactNumber.remoteJid;
+      } else {
+        jid = `${contactNumber.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
+      }
+      jid = normalizeJid(jid);
+
+      // Enviar mensagem de texto
+      const sentMessage = await wbot.sendMessage(getJidOf(ticket), {
+        text: formattedBody,
+        contextInfo: {
+          forwardingScore: isForwarded ? 2 : 0,
+          isForwarded: isForwarded
+        }
+      });
+
+      wbot.store(sentMessage);
+
+      await ticket.update({
+        lastMessage: formattedBody,
+        imported: null
+      });
+
+      return sentMessage;
+    }
+
+    // ✅ FLUXO ORIGINAL: Envio com mídia
     // Construir o caminho absoluto baseado no companyId
     let pathMedia;
 
@@ -346,7 +420,7 @@ const SendWhatsAppMedia = async ({
 
     let options: AnyMessageContent;
     let bodyTicket = "";
-    const bodyMedia = ticket ? formatBody(body, ticket) : body;
+    const bodyMedia = formattedBody;
 
     console.log("📤 Enviando mídia:", {
       originalname: media.originalname,
@@ -454,7 +528,7 @@ const SendWhatsAppMedia = async ({
 
     if (isPrivate === true) {
       const messageData = {
-        wid: `PVT${companyId}${ticket.id}${body.substring(0, 6)}`,
+        wid: `PVT${companyId}${ticket.id}${safeBody.substring(0, 6)}`,
         ticketId: ticket.id,
         contactId: undefined,
         body: bodyMedia,
@@ -514,14 +588,14 @@ const SendWhatsAppMedia = async ({
     wbot.store(sentMessage);
 
     await ticket.update({
-      lastMessage: body !== media.filename ? body : bodyMedia,
+      lastMessage: safeBody !== media.filename ? safeBody : bodyMedia,
       imported: null
     });
 
     return sentMessage;
   } catch (err) {
     console.error(
-      `❌ ERRO AO ENVIAR MÍDIA ${ticket.id} media ${media.originalname}:`,
+      `❌ ERRO AO ENVIAR MÍDIA ${ticket.id} media ${media?.originalname || 'texto'}:`,
       err
     );
     Sentry.captureException(err);
