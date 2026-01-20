@@ -11,6 +11,7 @@ import { getWbot } from "../../libs/wbot";
 import logger from "../../utils/logger";
 import { ENABLE_LID_DEBUG } from "../../config/debug";
 import { normalizeJid } from "../../utils";
+
 interface Request {
   body: string;
   whatsappId: number;
@@ -78,7 +79,10 @@ const SendWhatsAppMessage = async ({
   }
 
   try {
-    await delay(msdelay);
+    // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+    if (msdelay && msdelay > 0) {
+      await delay(msdelay);
+    }
 
     const messageContent: any = {
       text: body
@@ -109,7 +113,7 @@ const SendWhatsAppMessage = async ({
       );
     }
 
-    wbot.store(sentMessage);
+    // ✅ CORREÇÃO: Removido wbot.store duplicado
 
     return sentMessage;
   } catch (err) {

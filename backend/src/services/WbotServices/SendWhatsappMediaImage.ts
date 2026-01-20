@@ -9,10 +9,12 @@ import path from "path";
 import fs from "fs";
 import logger from "../../utils/logger";
 
+// ✅ CORREÇÃO: Interface completa com todos os parâmetros usados
 interface Request {
-  body: string;
   ticket: Ticket;
-  quotedMsg?: Message;
+  url?: string;
+  caption?: string;
+  msdelay?: number;
 }
 
 function makeid(length) {
@@ -33,7 +35,7 @@ const SendWhatsAppMediaImage = async ({
   url,
   caption,
   msdelay
-}): Promise<WAMessage> => {
+}: Request): Promise<WAMessage> => {
   const wbot = await GetTicketWbot(ticket);
   const contactNumber = await Contact.findByPk(ticket.contactId);
 
@@ -42,18 +44,27 @@ const SendWhatsAppMediaImage = async ({
     ticket.isGroup ? "g.us" : "s.whatsapp.net"
   }`;
   logger.info(`[RDS-LID] Enviando para JID tradicional: ${jid}`);
+
+  // ✅ CORREÇÃO: Garantir caption seguro
+  const safeCaption = caption || "";
+
   try {
     wbot.sendPresenceUpdate("available");
-    await delay(msdelay);
+
+    // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+    if (msdelay && msdelay > 0) {
+      await delay(msdelay);
+    }
+
     const sentMessage = await wbot.sendMessage(`${jid}`, {
       image: url
         ? { url }
         : fs.readFileSync(
-            `${publicFolder}/company${ticket.companyId}/${caption}-${makeid(
+            `${publicFolder}/company${ticket.companyId}/${safeCaption}-${makeid(
               5
             )}.png`
           ),
-      caption: formatBody(`${caption}`, ticket),
+      caption: formatBody(`${safeCaption}`, ticket),
       mimetype: "image/jpeg"
     });
     wbot.sendPresenceUpdate("unavailable");

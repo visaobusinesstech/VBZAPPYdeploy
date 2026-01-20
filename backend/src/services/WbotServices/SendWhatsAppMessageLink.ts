@@ -9,6 +9,7 @@ import { getWbot } from "../../libs/wbot";
 import logger from "../../utils/logger";
 import { ENABLE_LID_DEBUG } from "../../config/debug";
 import { normalizeJid } from "../../utils";
+
 interface Request {
   whatsappId: number;
   contact: Contact;
@@ -62,7 +63,11 @@ const SendWhatsAppMessageLink = async ({
   const name = caption.replace("/", "-");
 
   try {
-    await delay(msdelay);
+    // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+    if (msdelay && msdelay > 0) {
+      await delay(msdelay);
+    }
+
     const sentMessage = await wbot.sendMessage(jid, {
       document: url
         ? { url }

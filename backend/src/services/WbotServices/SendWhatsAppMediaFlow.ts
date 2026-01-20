@@ -17,6 +17,7 @@ import { getWbot } from "../../libs/wbot";
 import GetTicketWbot from "../../helpers/GetTicketWbot";
 import logger from "../../utils/logger";
 import { ENABLE_LID_DEBUG } from "../../config/debug";
+
 interface Request {
   media: Express.Multer.File;
   ticket: Ticket;
@@ -71,21 +72,23 @@ const nameFileDiscovery = (pathMedia: string) => {
 export const typeSimulation = async (ticket: Ticket, presence: WAPresence) => {
   const wbot = await GetTicketWbot(ticket);
 
-  let contact = await Contact.findOne({
+  const contact = await Contact.findOne({
     where: {
       id: ticket.contactId
     }
   });
 
-  await wbot.sendPresenceUpdate(
-    presence,
-    `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`
-  );
+  // ✅ CORREÇÃO: Verificar se contact existe
+  if (!contact) {
+    logger.error(`[SendWhatsAppMediaFlow] Contato não encontrado para ticket ${ticket.id}`);
+    return;
+  }
+
+  const jid = `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
+
+  await wbot.sendPresenceUpdate(presence, jid);
   await delay(5000);
-  await wbot.sendPresenceUpdate(
-    "paused",
-    `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`
-  );
+  await wbot.sendPresenceUpdate("paused", jid);
 };
 
 const SendWhatsAppMediaFlow = async ({
@@ -99,9 +102,13 @@ const SendWhatsAppMediaFlow = async ({
   try {
     const wbot = await getWbot(whatsappId);
 
+    // ✅ CORREÇÃO: Verificar se mimetype é válido
     const mimetype = mime.lookup(media);
-    const pathMedia = media;
+    if (!mimetype) {
+      throw new AppError("ERR_INVALID_MEDIA_TYPE");
+    }
 
+    const pathMedia = media;
     const typeMessage = mimetype.split("/")[0];
     const mediaName = nameFileDiscovery(media);
 
@@ -120,14 +127,14 @@ const SendWhatsAppMediaFlow = async ({
         const convert = await processAudio(pathMedia);
         options = {
           audio: fs.readFileSync(convert),
-          mimetype: typeMessage ? "audio/mp4" : mimetype,
+          mimetype: "audio/mp4",
           ptt: true
         };
       } else {
         const convert = await processAudioFile(pathMedia);
         options = {
           audio: fs.readFileSync(convert),
-          mimetype: typeMessage ? "audio/mp4" : mimetype,
+          mimetype: "audio/mp4",
           ptt: false
         };
       }
@@ -152,11 +159,16 @@ const SendWhatsAppMediaFlow = async ({
       };
     }
 
-    let contact = await Contact.findOne({
+    const contact = await Contact.findOne({
       where: {
         id: ticket.contactId
       }
     });
+
+    // ✅ CORREÇÃO: Verificar se contact existe
+    if (!contact) {
+      throw new AppError("ERR_CONTACT_NOT_FOUND");
+    }
 
     // ✅ CORREÇÃO: Sempre envie para o JID tradicional
     const jid = `${contact.number}@${
