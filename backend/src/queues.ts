@@ -916,19 +916,17 @@ async function handleVerifyCampaigns(job) {
   if (isProcessing) {
     return;
   }
-
   isProcessing = true;
   try {
     await new Promise(r => setTimeout(r, 1500));
-
     const campaigns: { id: number; scheduledAt: string; nextScheduledAt: string }[] =
       await sequelize.query(
         `SELECT id, "scheduledAt", "nextScheduledAt"
          FROM "Campaigns" c
          WHERE (
-           ("scheduledAt" <= NOW() + INTERVAL '1 minute' AND "scheduledAt" >= NOW() - INTERVAL '1 minute' AND status = 'PROGRAMADA' AND "executionCount" = 0)
+           ("scheduledAt" <= NOW() + INTERVAL '1 minute' AND status = 'PROGRAMADA' AND "executionCount" = 0)
            OR
-           ("nextScheduledAt" <= NOW() + INTERVAL '1 minute' AND "nextScheduledAt" >= NOW() - INTERVAL '1 minute' AND status IN ('PROGRAMADA', 'EM_ANDAMENTO') AND "isRecurring" = true)
+           ("nextScheduledAt" <= NOW() + INTERVAL '1 minute' AND status IN ('PROGRAMADA', 'EM_ANDAMENTO') AND "isRecurring" = true)
          )`,
         { type: QueryTypes.SELECT }
       );
