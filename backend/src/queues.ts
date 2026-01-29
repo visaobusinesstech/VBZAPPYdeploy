@@ -159,6 +159,7 @@ async function apiMessageQueue() {
               where: {
                 isSending: false,
                 companyId: company.id,
+                whatsappId: whatsapp.id,
                 [Op.or]: [
                   { schedule: { [Op.lte]: currentDate } },
                   { schedule: null }
