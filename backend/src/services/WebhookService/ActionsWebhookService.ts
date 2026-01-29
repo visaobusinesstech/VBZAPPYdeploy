@@ -1611,12 +1611,20 @@ export const ActionsWebhookService = async (
           console.log(`[MENU NODE] Buscando conexão - Source: ${next}, SourceHandle: a${pressKey}`);
           console.log(`[MENU NODE] Total de conexões disponíveis: ${connectStatic.length}`);
           console.log(`[MENU NODE] Conexões do nó atual (${next}): ${JSON.stringify(connectStatic.filter(c => c.source === next).map(c => ({ source: c.source, target: c.target, handle: c.sourceHandle })))}`);
-
+// ✅ RDS-FIX: Limpar prefixo de nome do remetente (ex: "*Vitor Fantinel*:\n1" -> "1")
+          let menuPressKey = pressKey;
+          const prefixPattern = /^\*[^*]+\*:\s*/;
+          if (prefixPattern.test(menuPressKey)) {
+            menuPressKey = menuPressKey.replace(prefixPattern, '').trim();
+            console.log(`[MENU NODE] PressKey limpo: "${pressKey}" -> "${menuPressKey}"`);
+          }
+          console.log(`[MENU NODE] Buscando conexão - Source: ${next}, SourceHandle: a${menuPressKey}`);
+          console.log(`[MENU NODE] Total de conexões disponíveis: ${connectStatic.length}`);
+          console.log(`[MENU NODE] Conexões do nó atual (${next}): ${JSON.stringify(connectStatic.filter(c => c.source === next).map(c => ({ source: c.source, target: c.target, handle: c.sourceHandle })))}`);
           const filterOne = connectStatic.filter(confil => confil.source === next)
           console.log(`[MENU NODE] FilterOne (conexões do source ${next}): ${filterOne.length} encontradas`);
-
-          const filterTwo = filterOne.filter(filt2 => filt2.sourceHandle === "a" + pressKey)
-          console.log(`[MENU NODE] FilterTwo (handle a${pressKey}): ${filterTwo.length} encontradas`);
+          const filterTwo = filterOne.filter(filt2 => filt2.sourceHandle === "a" + menuPressKey)
+          console.log(`[MENU NODE] FilterTwo (handle a${menuPressKey}): ${filterTwo.length} encontradas`);
 
           if (filterTwo.length > 0) {
             execFn = filterTwo[0].target
