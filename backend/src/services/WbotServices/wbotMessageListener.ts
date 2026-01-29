@@ -3644,6 +3644,12 @@ const handleMessage = async (
   let campaignExecuted = false;
 
   console.log("[DEBUG RODRIGO] msg.key.id", JSON.stringify(msg.key))
+  const existingMessage = await Message.findOne({
+   where: { wid: msg.key.id }
+});
+ if (existingMessage) {
+   return;
+}
   if (isImported) {
     addLogs({
       fileName: `processImportMessagesWppId${wbot.id}.txt`,
