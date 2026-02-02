@@ -3217,9 +3217,11 @@ export const handleMessageIntegration = async (
       console.error(`queueIntegration.type 2: ${queueIntegration.type}`);
       let cfg: any = {};
       cfg = queueIntegration?.jsonContent ? JSON.parse(queueIntegration.jsonContent) : {};
+      // Fix: tipoIntegracao deve ser "SB" ou "LC" para rotear para SGP, não apenas truthy
+      const tipoIntegracaoValido = cfg?.tipoIntegracao && ["SB", "LC"].includes(String(cfg.tipoIntegracao).toUpperCase());
       if (
         queueIntegration.type === "SGP" ||
-        ((cfg?.sgpUrl || cfg?.tipoIntegracao) && queueIntegration.type !== "typebot")
+        ((cfg?.sgpUrl || tipoIntegracaoValido) && queueIntegration.type !== "typebot")
       ) {
         console.error(`queueIntegration.type 3: ${queueIntegration.type}`);
         const simulatedMsg = {
