@@ -66,6 +66,15 @@ export const updateContact = async (
   return contact;
 };
 
+// ✅ RDS-FIX: Helper para detectar se um JID é na verdade um LID disfarçado
+// LIDs são números longos (>14 dígitos) que não correspondem a telefones reais
+const isLidJid = (jid: string, realNumber: string): boolean => {
+  if (!jid || !realNumber) return false;
+  // Se o jid não contém o número real, provavelmente é um LID
+  const jidNumber = jid.replace(/@.*$/, "").replace(/\D/g, "");
+  return jidNumber !== realNumber && !jid.includes(realNumber);
+};
+
 const CreateOrUpdateContactService = async ({
   name,
   number,
@@ -98,9 +107,17 @@ const CreateOrUpdateContactService = async ({
     }
 
     // Monta um remoteJid padrão quando não for informado
-    const fallbackRemoteJid = normalizeJid(
+    let fallbackRemoteJid = normalizeJid(
       remoteJid || (isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@s.whatsapp.net`)
     );
+
+    // ✅ RDS-FIX: Garantir que remoteJid NUNCA contenha um LID no lugar do número real
+    if (!isGroup && cleanNumber && isLidJid(fallbackRemoteJid, cleanNumber)) {
+      logger.info(
+        `[RDS-LID-GUARD] remoteJid '${fallbackRemoteJid}' não contém número real '${cleanNumber}', corrigindo para ${cleanNumber}@s.whatsapp.net`
+      );
+      fallbackRemoteJid = `${cleanNumber}@s.whatsapp.net`;
+    }
 
     let createContact = false;
     const publicFolder = path.resolve(__dirname, "..", "..", "..", "public");
@@ -127,12 +144,19 @@ const CreateOrUpdateContactService = async ({
       false;
 
     if (contact) {
-      // if (ENABLE_LID_DEBUG) {
-      //   logger.info(
-      //     `[RDS-LID] Contato encontrado: id=${contact.id}, number=${contact.number}, jid=${contact.remoteJid}, lid=${contact.lid}`
-      //   );
-      // }
-      contact.remoteJid = fallbackRemoteJid;
+      // ✅ RDS-FIX: Só atualizar remoteJid se o novo valor contém o número real (não é LID)
+      if (!isGroup && cleanNumber && isLidJid(fallbackRemoteJid, cleanNumber)) {
+        logger.info(
+          `[RDS-LID-GUARD] Bloqueando atualização de remoteJid com LID: '${fallbackRemoteJid}' para contato ${contact.id} (${cleanNumber})`
+        );
+        // Manter o remoteJid existente ou corrigir para o número real
+        if (!contact.remoteJid || isLidJid(contact.remoteJid, cleanNumber)) {
+          contact.remoteJid = `${cleanNumber}@s.whatsapp.net`;
+        }
+      } else {
+        contact.remoteJid = fallbackRemoteJid;
+      }
+
       if (!contact.lid) {
         contact.lid = lid;
       }
@@ -302,6 +326,11 @@ const CreateOrUpdateContactService = async ({
           }
         }
 
+        // ✅ RDS-FIX: Garantir que o remoteJid do novo contato use o número real
+        const safeRemoteJid = (!isGroup && cleanNumber && isLidJid(newRemoteJid, cleanNumber))
+          ? `${cleanNumber}@s.whatsapp.net`
+          : normalizeJid(newRemoteJid);
+
         // Criando contato com LID quando disponível
         contact = await Contact.create({
           name,
@@ -313,7 +342,7 @@ const CreateOrUpdateContactService = async ({
           channel,
           acceptAudioMessage:
             acceptAudioMessageContact === "enabled" ? true : false,
-          remoteJid: normalizeJid(newRemoteJid),
+          remoteJid: safeRemoteJid, // ✅ RDS-FIX: Usar remoteJid seguro
           lid: lidToUse, // Usa o LID obtido da API ou o passado no parâmetro
           profilePicUrl,
           urlPicture: "",
