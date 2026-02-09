@@ -35,7 +35,17 @@ const logger_1 = __importDefault(require("../../utils/logger"));
 const Sentry = __importStar(require("@sentry/node"));
 const RedisGroupCache_1 = require("../../utils/RedisGroupCache");
 const StartWhatsAppSession = async (whatsapp, companyId) => {
-    await whatsapp.update({ status: "OPENING" });
+    // ✅ CORREÇÃO: Verificar se whatsapp existe
+    if (!whatsapp) {
+        logger_1.default.error(`[StartWhatsAppSession] Whatsapp não fornecido para companyId ${companyId}`);
+        return;
+    }
+    try {
+        await whatsapp.update({ status: "OPENING" });
+    }
+    catch (updateErr) {
+        logger_1.default.error(`[StartWhatsAppSession] Erro ao atualizar status: ${updateErr}`);
+    }
     const io = (0, socket_1.getIO)();
     io.of(String(companyId))
         .emit(`company-${companyId}-whatsappSession`, {
@@ -44,14 +54,26 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
     });
     try {
         const wbot = await (0, wbot_1.initWASocket)(whatsapp);
+        // ✅ CORREÇÃO: Verificar se wbot foi inicializado corretamente
+        if (!wbot) {
+            logger_1.default.error(`[StartWhatsAppSession] Falha ao inicializar wbot para whatsapp ${whatsapp.id}`);
+            return;
+        }
         if (wbot.id) {
-            const groups = await wbot.groupFetchAllParticipating();
-            if (groups) {
-                for (const [id, groupMetadata] of Object.entries(groups)) {
-                    //limpa os grupos existentes no cache
-                    await RedisGroupCache_1.redisGroupCache.del(whatsapp.id, id);
-                    await RedisGroupCache_1.redisGroupCache.set(whatsapp.id, id, groupMetadata);
+            // ✅ CORREÇÃO: Tratar erro ao buscar grupos separadamente
+            try {
+                const groups = await wbot.groupFetchAllParticipating();
+                if (groups && typeof groups === 'object') {
+                    for (const [id, groupMetadata] of Object.entries(groups)) {
+                        // Limpa os grupos existentes no cache
+                        await RedisGroupCache_1.redisGroupCache.del(whatsapp.id, id);
+                        await RedisGroupCache_1.redisGroupCache.set(whatsapp.id, id, groupMetadata);
+                    }
                 }
+            }
+            catch (groupErr) {
+                // ✅ CORREÇÃO: Não interromper sessão se falhar ao buscar grupos
+                logger_1.default.warn(`[StartWhatsAppSession] Erro ao buscar grupos para whatsapp ${whatsapp.id}: ${groupErr}`);
             }
             (0, wbotMessageListener_1.wbotMessageListener)(wbot, companyId);
             (0, wbotMonitor_1.default)(wbot, whatsapp, companyId);
@@ -59,7 +81,7 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
     }
     catch (err) {
         Sentry.captureException(err);
-        logger_1.default.error(err);
+        logger_1.default.error(`[StartWhatsAppSession] Erro ao iniciar sessão whatsapp ${whatsapp.id}: ${err}`);
     }
 };
 exports.StartWhatsAppSession = StartWhatsAppSession;

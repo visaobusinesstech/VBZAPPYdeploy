@@ -9,7 +9,10 @@ const Ticket_1 = __importDefault(require("../../models/Ticket"));
 const UpdateTicketService_1 = __importDefault(require("../TicketServices/UpdateTicketService"));
 const CompaniesSettings_1 = __importDefault(require("../../models/CompaniesSettings"));
 const MarkDeleteWhatsAppMessage = async (from, timestamp, msgId, companyId) => {
-    from = from.replace('@c.us', '').replace('@s.whatsapp.net', '');
+    // ✅ CORREÇÃO: Verificar se from existe antes de usar replace
+    if (from) {
+        from = from.replace('@c.us', '').replace('@s.whatsapp.net', '');
+    }
     if (msgId) {
         const messages = await Message_1.default.findAll({
             where: {
@@ -17,6 +20,11 @@ const MarkDeleteWhatsAppMessage = async (from, timestamp, msgId, companyId) => {
                 companyId
             }
         });
+        // ✅ CORREÇÃO: Verificar se encontrou mensagens antes de acessar o array
+        if (!messages || messages.length === 0) {
+            console.log(`Mensagem não encontrada: ${msgId}`);
+            return timestamp;
+        }
         try {
             const messageToUpdate = await Message_1.default.findOne({
                 where: {
@@ -43,27 +51,34 @@ const MarkDeleteWhatsAppMessage = async (from, timestamp, msgId, companyId) => {
                         companyId
                     }
                 });
-                if (settings.lgpdDeleteMessage === "enabled" && settings.enableLGPD === "enabled") {
+                // ✅ CORREÇÃO: Verificar se settings existe antes de acessar propriedades
+                if (settings && settings.lgpdDeleteMessage === "enabled" && settings.enableLGPD === "enabled") {
                     await messageToUpdate.update({ body: "🚫 _Mensagem Apagada_", isDeleted: true });
                 }
                 else {
                     await messageToUpdate.update({ isDeleted: true });
                 }
-                await (0, UpdateTicketService_1.default)({ ticketData: { lastMessage: "🚫 _Mensagem Apagada_" }, ticketId: ticket.id, companyId });
+                // ✅ CORREÇÃO: Verificar se ticket existe antes de acessar id
+                if (ticket) {
+                    await (0, UpdateTicketService_1.default)({
+                        ticketData: { lastMessage: "🚫 _Mensagem Apagada_" },
+                        ticketId: ticket.id,
+                        companyId
+                    });
+                }
                 const io = (0, socket_1.getIO)();
                 io.of(String(companyId))
-                    // .to(messageToUpdate.ticketId.toString())
-                    .emit(`appMessage-${messageToUpdate}`, {
+                    // ✅ CORREÇÃO: Usar ticketId ao invés do objeto messageToUpdate
+                    .emit(`appMessage-${messageToUpdate.ticketId}`, {
                     action: "update",
                     message: messageToUpdate
                 });
             }
         }
         catch (err) {
-            console.log("Erro ao tentar marcar a mensagem com excluída");
+            console.log("Erro ao tentar marcar a mensagem como excluída:", err);
         }
         return timestamp;
     }
-    ;
 };
 exports.default = MarkDeleteWhatsAppMessage;

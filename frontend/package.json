@@ -98,7 +98,7 @@
     "zustand": "^4.4.1"
   },
   "scripts": {
-    "start": "export NODE_OPTIONS='--openssl-legacy-provider' && react-scripts start",
+    "start": "react-scripts start",
     "start:dev": "set NODE_OPTIONS='--openssl-legacy-provider' && react-scripts start",
     "build": "export NODE_OPTIONS='--max-old-space-size=4096 --openssl-legacy-provider' && react-scripts build",
     "builddev": "export NODE_OPTIONS='--openssl-legacy-provider' && react-scripts build",

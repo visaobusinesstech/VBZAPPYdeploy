@@ -49,11 +49,13 @@ const CreateQueueIntegrationService = async ({ type, name, projectName, jsonCont
     catch (err) {
         throw new AppError_1.default(err.message);
     }
+    // Se for typebot, garante que jsonContent seja vazio para evitar conflito com SGP
+    const finalJsonContent = type === "typebot" ? "{}" : jsonContent;
     const queueIntegration = await QueueIntegrations_1.default.create({
         type,
         name,
         projectName,
-        jsonContent,
+        jsonContent: finalJsonContent,
         language,
         urlN8N,
         companyId,

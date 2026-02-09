@@ -372,7 +372,7 @@ const verifyQueueOficial = async (msg, ticket, settings, ticketTraking, fromMe) 
                     catch {
                         cfg = {};
                     }
-                    if (integrations.type === "SGP" || cfg?.sgpUrl || cfg?.tipoIntegracao) {
+                    if (integrations.type === "SGP" || ((cfg?.sgpUrl || cfg?.tipoIntegracao) && integrations.type !== "typebot")) {
                         console.log("[SGP OFICIAL - QUEUE] SGP detectado: aguardando CPF do cliente");
                         // Não iniciar integração agora; apenas marcar no ticket
                         await ticket.update({ useIntegration: true, integrationId: integrations.id });

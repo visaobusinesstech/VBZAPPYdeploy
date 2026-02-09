@@ -166,10 +166,10 @@ const index = async (req, res) => {
     let bodyMessage;
     // @ts-ignore: Unreachable code error
     if (sendSignature && !(0, lodash_1.isNil)(user)) {
-        bodyMessage = `*${user.name}:*\n${body.trim()}`;
+        bodyMessage = `*${user.name}:*\n${body ? body.trim() : ''}`;
     }
     else {
-        bodyMessage = body.trim();
+        bodyMessage = body ? body.trim() : '';
     }
     const dtschedule = req.body.schedule
         ? new Date(req.body.schedule)

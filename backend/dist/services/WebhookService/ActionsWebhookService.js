@@ -265,7 +265,7 @@ const ActionsWebhookService = async (whatsappId, idFlowDb, companyId, nodes, con
         if (numberPhrase === "") {
             const emailInput = details.inputs.find(item => item.keyValue === "email");
             emailInput.data.split(",").map(dataN => {
-                const lineToDataEmail = details.keysFull.find(item => item.endsWith("email"));
+                const lineToDataEmail = details.keysFull.find(itemLocal => itemLocal.endsWith("email"));
                 let sumRes = "";
                 if (!lineToDataEmail) {
                     sumRes = dataN;
@@ -562,13 +562,25 @@ const ActionsWebhookService = async (whatsappId, idFlowDb, companyId, nodes, con
             }
             if (nodeSelected.type === "input") {
                 try {
-                    // Garantir que o ticket esteja disponível
+                    // ✅ RDS-FIX: Carregar ticket COM Contact para getJidOf funcionar
                     if (!ticket && idTicket) {
                         ticket = await Ticket_1.default.findOne({
-                            where: { id: idTicket, whatsappId }
+                            where: { id: idTicket, whatsappId },
+                            include: [{ model: Contact_1.default, as: "contact" }]
                         });
                         if (!ticket) {
                             continue;
+                        }
+                    }
+                    // ✅ RDS-FIX: Se ticket já existe mas sem contact, recarregar
+                    if (ticket && !ticket.contact) {
+                        console.log(`[INPUT NODE] Ticket ${ticket.id} sem contact carregado, recarregando...`);
+                        ticket = await Ticket_1.default.findOne({
+                            where: { id: ticket.id, whatsappId },
+                            include: [{ model: Contact_1.default, as: "contact" }]
+                        });
+                        if (ticket) {
+                            console.log(`[INPUT NODE] ✅ Ticket recarregado com contact: ${ticket.contact?.number || 'N/A'}`);
                         }
                     }
                     let question = nodeSelected.data.question || "";
@@ -677,6 +689,9 @@ const ActionsWebhookService = async (whatsappId, idFlowDb, companyId, nodes, con
                     }
                 }
                 catch (error) {
+                    // ✅ RDS-FIX: Logar erros ao invés de engolir silenciosamente
+                    console.error(`[INPUT NODE] ❌ Erro ao processar input: ${error?.message || error}`);
+                    console.error(`[INPUT NODE] Stack: ${error?.stack?.split("\n")[0] || 'N/A'}`);
                 }
             }
             if (nodeSelected.type === "conditionCompare") {
@@ -1243,10 +1258,20 @@ const ActionsWebhookService = async (whatsappId, idFlowDb, companyId, nodes, con
                     console.log(`[MENU NODE] Buscando conexão - Source: ${next}, SourceHandle: a${pressKey}`);
                     console.log(`[MENU NODE] Total de conexões disponíveis: ${connectStatic.length}`);
                     console.log(`[MENU NODE] Conexões do nó atual (${next}): ${JSON.stringify(connectStatic.filter(c => c.source === next).map(c => ({ source: c.source, target: c.target, handle: c.sourceHandle })))}`);
+                    // ✅ RDS-FIX: Limpar prefixo de nome do remetente (ex: "*Vitor Fantinel*:\n1" -> "1")
+                    let menuPressKey = pressKey;
+                    const prefixPattern = /^\*[^*]+\*:\s*/;
+                    if (prefixPattern.test(menuPressKey)) {
+                        menuPressKey = menuPressKey.replace(prefixPattern, '').trim();
+                        console.log(`[MENU NODE] PressKey limpo: "${pressKey}" -> "${menuPressKey}"`);
+                    }
+                    console.log(`[MENU NODE] Buscando conexão - Source: ${next}, SourceHandle: a${menuPressKey}`);
+                    console.log(`[MENU NODE] Total de conexões disponíveis: ${connectStatic.length}`);
+                    console.log(`[MENU NODE] Conexões do nó atual (${next}): ${JSON.stringify(connectStatic.filter(c => c.source === next).map(c => ({ source: c.source, target: c.target, handle: c.sourceHandle })))}`);
                     const filterOne = connectStatic.filter(confil => confil.source === next);
                     console.log(`[MENU NODE] FilterOne (conexões do source ${next}): ${filterOne.length} encontradas`);
-                    const filterTwo = filterOne.filter(filt2 => filt2.sourceHandle === "a" + pressKey);
-                    console.log(`[MENU NODE] FilterTwo (handle a${pressKey}): ${filterTwo.length} encontradas`);
+                    const filterTwo = filterOne.filter(filt2 => filt2.sourceHandle === "a" + menuPressKey);
+                    console.log(`[MENU NODE] FilterTwo (handle a${menuPressKey}): ${filterTwo.length} encontradas`);
                     if (filterTwo.length > 0) {
                         execFn = filterTwo[0].target;
                         console.log(`[MENU NODE] ✅ Conexão encontrada! Próximo nó (execFn): ${execFn}`);

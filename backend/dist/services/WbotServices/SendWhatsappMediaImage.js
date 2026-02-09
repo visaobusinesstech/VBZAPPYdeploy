@@ -27,14 +27,19 @@ const SendWhatsAppMediaImage = async ({ ticket, url, caption, msdelay }) => {
     // Sempre envie para o JID tradicional
     const jid = `${contactNumber.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
     logger_1.default.info(`[RDS-LID] Enviando para JID tradicional: ${jid}`);
+    // ✅ CORREÇÃO: Garantir caption seguro
+    const safeCaption = caption || "";
     try {
         wbot.sendPresenceUpdate("available");
-        await (0, baileys_1.delay)(msdelay);
+        // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+        if (msdelay && msdelay > 0) {
+            await (0, baileys_1.delay)(msdelay);
+        }
         const sentMessage = await wbot.sendMessage(`${jid}`, {
             image: url
                 ? { url }
-                : fs_1.default.readFileSync(`${publicFolder}/company${ticket.companyId}/${caption}-${makeid(5)}.png`),
-            caption: (0, Mustache_1.default)(`${caption}`, ticket),
+                : fs_1.default.readFileSync(`${publicFolder}/company${ticket.companyId}/${safeCaption}-${makeid(5)}.png`),
+            caption: (0, Mustache_1.default)(`${safeCaption}`, ticket),
             mimetype: "image/jpeg"
         });
         wbot.sendPresenceUpdate("unavailable");

@@ -269,6 +269,8 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
     try {
         const wbot = await (0, wbot_1.getWbot)(ticket.whatsappId);
         const companyId = ticket.companyId.toString();
+        // ✅ CORREÇÃO: Garantir que body é sempre uma string válida
+        const safeBody = body || "";
         // Construir o caminho absoluto baseado no companyId
         let pathMedia;
         // Verificar se media.path já é um caminho absoluto ou relativo
@@ -298,13 +300,22 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
         if (!fs_1.default.existsSync(pathMedia)) {
             throw new Error(`Arquivo de mídia não encontrado: ${pathMedia}`);
         }
-        const typeMessage = media.mimetype.split("/")[0];
+        // ✅ CORREÇÃO: Detectar mimetype correto pela extensão se vier como octet-stream
+        let realMimetype = media.mimetype;
+        if (media.mimetype === "application/octet-stream") {
+            const detectedMime = mime_types_1.default.lookup(pathMedia);
+            if (detectedMime) {
+                realMimetype = detectedMime;
+                console.log("🔄 Mimetype corrigido:", { original: media.mimetype, detected: realMimetype });
+            }
+        }
+        const typeMessage = realMimetype.split("/")[0];
         let options;
         let bodyTicket = "";
-        const bodyMedia = ticket ? (0, Mustache_1.default)(body, ticket) : body;
+        const bodyMedia = ticket ? (0, Mustache_1.default)(safeBody, ticket) : safeBody;
         console.log("📤 Enviando mídia:", {
             originalname: media.originalname,
-            mimetype: media.mimetype,
+            mimetype: realMimetype,
             typeMessage,
             pathMedia
         });
@@ -320,7 +331,7 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
             };
             bodyTicket = "🎥 Arquivo de vídeo";
         }
-        else if (typeMessage === "audio" || media.mimetype.includes("audio")) {
+        else if (typeMessage === "audio" || realMimetype.includes("audio")) {
             // ✅ CORREÇÃO: Tratamento específico para arquivos de áudio
             let audioPath = pathMedia;
             console.log("🔄 Convertendo áudio para OGG...");
@@ -345,7 +356,7 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
                 document: fs_1.default.readFileSync(pathMedia),
                 caption: bodyMedia,
                 fileName: media.originalname.replace("/", "-"),
-                mimetype: media.mimetype,
+                mimetype: realMimetype,
                 contextInfo: {
                     forwardingScore: isForwarded ? 2 : 0,
                     isForwarded: isForwarded
@@ -358,7 +369,7 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
                 document: fs_1.default.readFileSync(pathMedia),
                 caption: bodyMedia,
                 fileName: media.originalname.replace("/", "-"),
-                mimetype: media.mimetype,
+                mimetype: realMimetype,
                 contextInfo: {
                     forwardingScore: isForwarded ? 2 : 0,
                     isForwarded: isForwarded
@@ -367,7 +378,7 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
             bodyTicket = "📎 Outros anexos";
         }
         else {
-            if (media.mimetype.includes("gif")) {
+            if (realMimetype.includes("gif")) {
                 options = {
                     image: fs_1.default.readFileSync(pathMedia),
                     caption: bodyMedia,
@@ -380,7 +391,7 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
                 };
             }
             else {
-                if (media.mimetype.includes("png") || media.mimetype.includes("webp")) {
+                if (realMimetype.includes("png") || realMimetype.includes("webp")) {
                     // ✅ Converter PNG/WebP para JPG antes de enviar
                     console.log("🔄 Detectado arquivo PNG/WebP, convertendo para JPG...");
                     const imageBuffer = await (0, exports.convertPngToJpg)(pathMedia, ticket.companyId);
@@ -408,13 +419,13 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
         }
         if (isPrivate === true) {
             const messageData = {
-                wid: `PVT${companyId}${ticket.id}${body.substring(0, 6)}`,
+                wid: `PVT${companyId}${ticket.id}${safeBody.substring(0, 6)}`,
                 ticketId: ticket.id,
                 contactId: undefined,
                 body: bodyMedia,
                 fromMe: true,
                 mediaUrl: media.filename,
-                mediaType: getMediaTypeFromMimeType(media.mimetype),
+                mediaType: getMediaTypeFromMimeType(realMimetype),
                 read: true,
                 quotedMsgId: null,
                 ack: 2,
@@ -447,41 +458,29 @@ const SendWhatsAppMedia = async ({ media, ticket, body = "", isPrivate = false, 
                 logger_1.default.info(`[LID-DEBUG] Media - Enviando mídia para grupo: ${jid}`);
             }
             try {
-                // sentMessage = await wbot.sendMessage(jid, options);
                 sentMessage = await wbot.sendMessage((0, getJidOf_1.getJidOf)(ticket), options);
             }
             catch (err1) {
                 if (err1.message && err1.message.includes("senderMessageKeys")) {
-                    // const simpleOptions = { ...options } as any;
-                    // if (simpleOptions.contextInfo) {
-                    //   delete simpleOptions.contextInfo;
-                    // }
-                    // sentMessage = await wbot.sendMessage(jid, simpleOptions);
                     sentMessage = await wbot.sendMessage((0, getJidOf_1.getJidOf)(ticket), options);
                 }
                 else {
-                    // const otherOptions = { ...options } as any;
-                    // if (otherOptions.contextInfo) {
-                    //   delete otherOptions.contextInfo;
-                    // }
-                    // sentMessage = await wbot.sendMessage(jid, otherOptions);
                     sentMessage = await wbot.sendMessage((0, getJidOf_1.getJidOf)(ticket), options);
                 }
             }
         }
         else {
-            // sentMessage = await wbot.sendMessage(jid, options);
             sentMessage = await wbot.sendMessage((0, getJidOf_1.getJidOf)(ticket), options);
         }
         wbot.store(sentMessage);
         await ticket.update({
-            lastMessage: body !== media.filename ? body : bodyMedia,
+            lastMessage: safeBody !== media.filename ? safeBody : bodyMedia,
             imported: null
         });
         return sentMessage;
     }
     catch (err) {
-        console.error(`❌ ERRO AO ENVIAR MÍDIA ${ticket.id} media ${media.originalname}:`, err);
+        console.error(`❌ ERRO AO ENVIAR MÍDIA ${ticket.id} media ${media?.originalname || 'desconhecido'}:`, err);
         Sentry.captureException(err);
         throw new AppError_1.default("ERR_SENDING_WAPP_MSG");
     }

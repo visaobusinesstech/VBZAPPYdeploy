@@ -1188,7 +1188,7 @@ const verifyQueue = async (wbot, msg, ticket, contact, settings, ticketTraking) 
         if (enableQueuePosition) {
             // Lógica para enviar posição da fila de atendimento
             const qtd = count.count === 0 ? 1 : count.count;
-            const msgFila = `${settings.sendQueuePositionMessage} *${qtd}*`;
+            const msgFila = `Você está na fila *${queues[0].name}*. Em breve será atendido!`;
             // const msgFila = `*Assistente Virtual:*\n{{ms}} *{{name}}*, sua posição na fila de atendimento é: *${qtd}*`;
             const bodyFila = (0, Mustache_1.default)(`${msgFila}`, ticket);
             const debouncedSentMessagePosicao = (0, Debounce_1.debounce)(async () => {
@@ -2304,9 +2304,10 @@ const handleMessageIntegration = async (msg, wbot, companyId, queueIntegration, 
             console.error(`queueIntegration.type 2: ${queueIntegration.type}`);
             let cfg = {};
             cfg = queueIntegration?.jsonContent ? JSON.parse(queueIntegration.jsonContent) : {};
+            // Fix: tipoIntegracao deve ser "SB" ou "LC" para rotear para SGP, não apenas truthy
+            const tipoIntegracaoValido = cfg?.tipoIntegracao && ["SB", "LC"].includes(String(cfg.tipoIntegracao).toUpperCase());
             if (queueIntegration.type === "SGP" ||
-                cfg?.sgpUrl ||
-                cfg?.tipoIntegracao) {
+                ((cfg?.sgpUrl || tipoIntegracaoValido) && queueIntegration.type !== "typebot")) {
                 console.error(`queueIntegration.type 3: ${queueIntegration.type}`);
                 const simulatedMsg = {
                     key: {
@@ -2601,6 +2602,12 @@ const handleOpenAi = async (msg, wbot, ticket, contact, mediaSent, ticketTraking
 const handleMessage = async (msg, wbot, companyId, isImported = false) => {
     let campaignExecuted = false;
     console.log("[DEBUG RODRIGO] msg.key.id", JSON.stringify(msg.key));
+    const existingMessage = await Message_1.default.findOne({
+        where: { wid: msg.key.id }
+    });
+    if (existingMessage) {
+        return;
+    }
     if (isImported) {
         (0, addLogs_1.addLogs)({
             fileName: `processImportMessagesWppId${wbot.id}.txt`,

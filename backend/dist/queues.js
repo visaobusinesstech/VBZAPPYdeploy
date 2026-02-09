@@ -138,6 +138,7 @@ async function apiMessageQueue() {
                             where: {
                                 isSending: false,
                                 companyId: company.id,
+                                whatsappId: whatsapp.id,
                                 [sequelize_1.Op.or]: [
                                     { schedule: { [sequelize_1.Op.lte]: currentDate } },
                                     { schedule: null }
@@ -751,9 +752,9 @@ async function handleVerifyCampaigns(job) {
         const campaigns = await database_1.default.query(`SELECT id, "scheduledAt", "nextScheduledAt"
          FROM "Campaigns" c
          WHERE (
-           ("scheduledAt" <= NOW() + INTERVAL '1 minute' AND "scheduledAt" >= NOW() - INTERVAL '1 minute' AND status = 'PROGRAMADA' AND "executionCount" = 0)
+           ("scheduledAt" <= NOW() + INTERVAL '1 minute' AND status = 'PROGRAMADA' AND "executionCount" = 0)
            OR
-           ("nextScheduledAt" <= NOW() + INTERVAL '1 minute' AND "nextScheduledAt" >= NOW() - INTERVAL '1 minute' AND status IN ('PROGRAMADA', 'EM_ANDAMENTO') AND "isRecurring" = true)
+           ("nextScheduledAt" <= NOW() + INTERVAL '1 minute' AND status IN ('PROGRAMADA', 'EM_ANDAMENTO') AND "isRecurring" = true)
          )`, { type: sequelize_1.QueryTypes.SELECT });
         if (campaigns.length > 0) {
             logger_1.default.info(`Campanhas encontradas: ${campaigns.length}`);

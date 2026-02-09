@@ -49,6 +49,15 @@ const updateContact = async (contact, contactData) => {
     return contact;
 };
 exports.updateContact = updateContact;
+// ✅ RDS-FIX: Helper para detectar se um JID é na verdade um LID disfarçado
+// LIDs são números longos (>14 dígitos) que não correspondem a telefones reais
+const isLidJid = (jid, realNumber) => {
+    if (!jid || !realNumber)
+        return false;
+    // Se o jid não contém o número real, provavelmente é um LID
+    const jidNumber = jid.replace(/@.*$/, "").replace(/\D/g, "");
+    return jidNumber !== realNumber && !jid.includes(realNumber);
+};
 const CreateOrUpdateContactService = async ({ name, number, 
 // number: rawNumber,
 profilePicUrl, isGroup, email = "", birthDate = null, // 🎂 INCLUIR NO DESTRUCTURING
@@ -65,7 +74,12 @@ channel = "whatsapp", companyId, extraInfo = [], remoteJid = "", lid = "", whats
             logger_1.default.info(`[RDS-LID] Número com formato incorreto corrigido: ${number} -> ${cleanNumber}`);
         }
         // Monta um remoteJid padrão quando não for informado
-        const fallbackRemoteJid = (0, utils_1.normalizeJid)(remoteJid || (isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@s.whatsapp.net`));
+        let fallbackRemoteJid = (0, utils_1.normalizeJid)(remoteJid || (isGroup ? `${cleanNumber}@g.us` : `${cleanNumber}@s.whatsapp.net`));
+        // ✅ RDS-FIX: Garantir que remoteJid NUNCA contenha um LID no lugar do número real
+        if (!isGroup && cleanNumber && isLidJid(fallbackRemoteJid, cleanNumber)) {
+            logger_1.default.info(`[RDS-LID-GUARD] remoteJid '${fallbackRemoteJid}' não contém número real '${cleanNumber}', corrigindo para ${cleanNumber}@s.whatsapp.net`);
+            fallbackRemoteJid = `${cleanNumber}@s.whatsapp.net`;
+        }
         let createContact = false;
         const publicFolder = path_1.default.resolve(__dirname, "..", "..", "..", "public");
         const io = (0, socket_1.getIO)();
@@ -84,12 +98,17 @@ channel = "whatsapp", companyId, extraInfo = [], remoteJid = "", lid = "", whats
             (wbot || ["instagram", "facebook"].includes(channel))) ||
             false;
         if (contact) {
-            // if (ENABLE_LID_DEBUG) {
-            //   logger.info(
-            //     `[RDS-LID] Contato encontrado: id=${contact.id}, number=${contact.number}, jid=${contact.remoteJid}, lid=${contact.lid}`
-            //   );
-            // }
-            contact.remoteJid = fallbackRemoteJid;
+            // ✅ RDS-FIX: Só atualizar remoteJid se o novo valor contém o número real (não é LID)
+            if (!isGroup && cleanNumber && isLidJid(fallbackRemoteJid, cleanNumber)) {
+                logger_1.default.info(`[RDS-LID-GUARD] Bloqueando atualização de remoteJid com LID: '${fallbackRemoteJid}' para contato ${contact.id} (${cleanNumber})`);
+                // Manter o remoteJid existente ou corrigir para o número real
+                if (!contact.remoteJid || isLidJid(contact.remoteJid, cleanNumber)) {
+                    contact.remoteJid = `${cleanNumber}@s.whatsapp.net`;
+                }
+            }
+            else {
+                contact.remoteJid = fallbackRemoteJid;
+            }
             if (!contact.lid) {
                 contact.lid = lid;
             }
@@ -239,6 +258,10 @@ channel = "whatsapp", companyId, extraInfo = [], remoteJid = "", lid = "", whats
                         }
                     }
                 }
+                // ✅ RDS-FIX: Garantir que o remoteJid do novo contato use o número real
+                const safeRemoteJid = (!isGroup && cleanNumber && isLidJid(newRemoteJid, cleanNumber))
+                    ? `${cleanNumber}@s.whatsapp.net`
+                    : (0, utils_1.normalizeJid)(newRemoteJid);
                 // Criando contato com LID quando disponível
                 contact = await Contact_1.default.create({
                     name,
@@ -249,7 +272,7 @@ channel = "whatsapp", companyId, extraInfo = [], remoteJid = "", lid = "", whats
                     companyId,
                     channel,
                     acceptAudioMessage: acceptAudioMessageContact === "enabled" ? true : false,
-                    remoteJid: (0, utils_1.normalizeJid)(newRemoteJid),
+                    remoteJid: safeRemoteJid,
                     lid: lidToUse,
                     profilePicUrl,
                     urlPicture: "",

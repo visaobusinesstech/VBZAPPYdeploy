@@ -70,20 +70,30 @@ const nameFileDiscovery = (pathMedia) => {
 };
 const typeSimulation = async (ticket, presence) => {
     const wbot = await (0, GetTicketWbot_1.default)(ticket);
-    let contact = await Contact_1.default.findOne({
+    const contact = await Contact_1.default.findOne({
         where: {
             id: ticket.contactId
         }
     });
-    await wbot.sendPresenceUpdate(presence, `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`);
+    // ✅ CORREÇÃO: Verificar se contact existe
+    if (!contact) {
+        logger_1.default.error(`[SendWhatsAppMediaFlow] Contato não encontrado para ticket ${ticket.id}`);
+        return;
+    }
+    const jid = `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
+    await wbot.sendPresenceUpdate(presence, jid);
     await (0, baileys_1.delay)(5000);
-    await wbot.sendPresenceUpdate("paused", `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`);
+    await wbot.sendPresenceUpdate("paused", jid);
 };
 exports.typeSimulation = typeSimulation;
 const SendWhatsAppMediaFlow = async ({ media, ticket, whatsappId, body, isFlow = false, isRecord = false }) => {
     try {
         const wbot = await (0, wbot_1.getWbot)(whatsappId);
+        // ✅ CORREÇÃO: Verificar se mimetype é válido
         const mimetype = mime_types_1.default.lookup(media);
+        if (!mimetype) {
+            throw new AppError_1.default("ERR_INVALID_MEDIA_TYPE");
+        }
         const pathMedia = media;
         const typeMessage = mimetype.split("/")[0];
         const mediaName = nameFileDiscovery(media);
@@ -102,7 +112,7 @@ const SendWhatsAppMediaFlow = async ({ media, ticket, whatsappId, body, isFlow =
                 const convert = await processAudio(pathMedia);
                 options = {
                     audio: fs_1.default.readFileSync(convert),
-                    mimetype: typeMessage ? "audio/mp4" : mimetype,
+                    mimetype: "audio/mp4",
                     ptt: true
                 };
             }
@@ -110,7 +120,7 @@ const SendWhatsAppMediaFlow = async ({ media, ticket, whatsappId, body, isFlow =
                 const convert = await processAudioFile(pathMedia);
                 options = {
                     audio: fs_1.default.readFileSync(convert),
-                    mimetype: typeMessage ? "audio/mp4" : mimetype,
+                    mimetype: "audio/mp4",
                     ptt: false
                 };
             }
@@ -137,11 +147,15 @@ const SendWhatsAppMediaFlow = async ({ media, ticket, whatsappId, body, isFlow =
                 caption: body
             };
         }
-        let contact = await Contact_1.default.findOne({
+        const contact = await Contact_1.default.findOne({
             where: {
                 id: ticket.contactId
             }
         });
+        // ✅ CORREÇÃO: Verificar se contact existe
+        if (!contact) {
+            throw new AppError_1.default("ERR_CONTACT_NOT_FOUND");
+        }
         // ✅ CORREÇÃO: Sempre envie para o JID tradicional
         const jid = `${contact.number}@${ticket.isGroup ? "g.us" : "s.whatsapp.net"}`;
         if (debug_1.ENABLE_LID_DEBUG) {

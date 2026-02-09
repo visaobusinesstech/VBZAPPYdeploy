@@ -30,29 +30,39 @@ exports.StartAllWhatsAppsSessions = void 0;
 const ListWhatsAppsService_1 = __importDefault(require("../WhatsappService/ListWhatsAppsService"));
 const StartWhatsAppSession_1 = require("./StartWhatsAppSession");
 const Sentry = __importStar(require("@sentry/node"));
+const logger_1 = __importDefault(require("../../utils/logger"));
 const StartAllWhatsAppsSessions = async (companyId) => {
     try {
         const whatsapps = await (0, ListWhatsAppsService_1.default)({ companyId });
-        if (whatsapps.length > 0) {
-            const promises = whatsapps.map(async (whatsapp) => {
-                if (whatsapp.channel === "whatsapp" && whatsapp.status !== "DISCONNECTED") {
-                    return (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, companyId);
-                }
-            });
-            // Aguardar a resolução de todas as promessas
-            await Promise.all(promises);
+        // ✅ CORREÇÃO: Verificar se whatsapps existe e é um array
+        if (!whatsapps || !Array.isArray(whatsapps) || whatsapps.length === 0) {
+            logger_1.default.info(`[StartAllWhatsAppsSessions] Nenhuma conexão WhatsApp encontrada para companyId ${companyId}`);
+            return;
         }
-        // fechar os tickets automaticamente
-        // if (whatsapps.length > 0) {
-        //   whatsapps.forEach(whatsapp => {
-        //     const timeClosed = whatsapp.expiresTicket ? (((whatsapp.expiresTicket * 60) * 60) * 1000) : 500000;
-        //     setInterval(() => {
-        //       ClosedAllOpenTickets();
-        //     }, timeClosed);
-        //   });
-        // }
+        logger_1.default.info(`[StartAllWhatsAppsSessions] Iniciando ${whatsapps.length} sessões para companyId ${companyId}`);
+        const promises = whatsapps.map(async (whatsapp) => {
+            // ✅ CORREÇÃO: Verificar se whatsapp existe antes de acessar propriedades
+            if (!whatsapp) {
+                return;
+            }
+            if (whatsapp.channel === "whatsapp" && whatsapp.status !== "DISCONNECTED") {
+                try {
+                    return await (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, companyId);
+                }
+                catch (sessionErr) {
+                    // ✅ CORREÇÃO: Logar erro individual sem interromper outras sessões
+                    logger_1.default.error(`[StartAllWhatsAppsSessions] Erro ao iniciar sessão ${whatsapp.id}: ${sessionErr}`);
+                    Sentry.captureException(sessionErr);
+                }
+            }
+        });
+        // Aguardar a resolução de todas as promessas
+        await Promise.all(promises);
+        logger_1.default.info(`[StartAllWhatsAppsSessions] Sessões iniciadas para companyId ${companyId}`);
     }
     catch (e) {
+        // ✅ CORREÇÃO: Logar erro para facilitar debugging
+        logger_1.default.error(`[StartAllWhatsAppsSessions] Erro geral para companyId ${companyId}: ${e}`);
         Sentry.captureException(e);
     }
 };

@@ -12,6 +12,7 @@ catch (_) {
 } })();
 const Op = (Sequelize && Sequelize.Op) ? Sequelize.Op : { lt: Symbol("lt"), gt: Symbol("gt"), or: Symbol("or"), not: Symbol("not") };
 const Ticket_1 = __importDefault(require("../../models/Ticket"));
+const Contact_1 = __importDefault(require("../../models/Contact"));
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const socket_1 = require("../../libs/socket");
 const Mustache_1 = __importDefault(require("../../helpers/Mustache"));
@@ -26,7 +27,6 @@ const lodash_1 = require("lodash");
 const date_fns_1 = require("date-fns");
 const ActionsWebhookService_1 = require("../WebhookService/ActionsWebhookService");
 const FlowBuilder_1 = require("../../models/FlowBuilder");
-const Contact_1 = __importDefault(require("../../models/Contact"));
 const ShowTicketFromUUIDService_1 = __importDefault(require("../TicketServices/ShowTicketFromUUIDService"));
 const closeTicket = async (ticket, body) => {
     await ticket.update({
@@ -72,8 +72,10 @@ const handleOpenTickets = async (companyId, whatsapp) => {
                     fromMe: true
                 };
             }
+            // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
             const ticketsForInactiveMessage = await Ticket_1.default.findAll({
-                where: whereCondition1
+                where: whereCondition1,
+                include: [{ model: Contact_1.default, as: "contact" }]
             });
             if (ticketsForInactiveMessage && ticketsForInactiveMessage.length > 0) {
                 logger_1.default.info(`Encontrou ${ticketsForInactiveMessage.length} atendimentos para enviar mensagem de inatividade na empresa ${companyId}- na conexão ${whatsapp.name}!`);
@@ -125,8 +127,10 @@ const handleOpenTickets = async (companyId, whatsapp) => {
                 fromMe: true
             };
         }
+        // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
         const ticketsToClose = await Ticket_1.default.findAll({
-            where: whereCondition
+            where: whereCondition,
+            include: [{ model: Contact_1.default, as: "contact" }]
         });
         if (ticketsToClose && ticketsToClose.length > 0) {
             logger_1.default.info(`Encontrou ${ticketsToClose.length} atendimentos para encerrar na empresa ${companyId} - na conexão ${whatsapp.name}!`);
@@ -242,7 +246,8 @@ const handleNPSTickets = async (companyId, whatsapp) => {
             whatsappId: whatsapp.id,
             updatedAt: { [Op.lt]: dataLimite.toDate() },
             imported: null
-        }
+        },
+        include: [{ model: Contact_1.default, as: "contact" }]
     });
     if (ticketsToClose && ticketsToClose.length > 0) {
         logger_1.default.info(`Encontrou ${ticketsToClose.length} atendimentos para encerrar NPS na empresa ${companyId} - na conexão ${whatsapp.name}!`);
@@ -313,8 +318,10 @@ const handleOpenPendingTickets = async (companyId, whatsapp) => {
                     fromMe: true
                 };
             }
+            // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
             const ticketsForInactiveMessage = await Ticket_1.default.findAll({
-                where: whereCondition1
+                where: whereCondition1,
+                include: [{ model: Contact_1.default, as: "contact" }]
             });
             if (ticketsForInactiveMessage && ticketsForInactiveMessage.length > 0) {
                 logger_1.default.info(`Encontrou ${ticketsForInactiveMessage.length} atendimentos para enviar mensagem de inatividade na empresa ${companyId}- na conexão ${whatsapp.name}!`);
@@ -356,8 +363,10 @@ const handleOpenPendingTickets = async (companyId, whatsapp) => {
                 fromMe: true
             };
         }
+        // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
         const ticketsToClose = await Ticket_1.default.findAll({
-            where: whereCondition
+            where: whereCondition,
+            include: [{ model: Contact_1.default, as: "contact" }]
         });
         if (ticketsToClose && ticketsToClose.length > 0) {
             logger_1.default.info(`Encontrou ${ticketsToClose.length} atendimentos para encerrar na empresa ${companyId} - na conexão ${whatsapp.name}!`);
@@ -470,7 +479,8 @@ const handleReturnQueue = async (companyId, whatsapp) => {
                 })
             },
             imported: null
-        }
+        },
+        include: [{ model: Contact_1.default, as: "contact" }]
     });
     if (ticketsToReturnQueue && ticketsToReturnQueue.length > 0) {
         logger_1.default.info(`Encontrou ${ticketsToReturnQueue.length} atendimentos para retornar a fila na empresa ${companyId} - na conexão ${whatsapp.name}!`);
@@ -499,75 +509,6 @@ const handleReturnQueue = async (companyId, whatsapp) => {
         }));
     }
 };
-// const handleAwaitActiveFlow = async (companyId: number, whatsapp: Whatsapp) => {
-//   const timeAwaitActiveFlow = Number(whatsapp.timeAwaitActiveFlow || 0);
-//   const currentTime = new Date();
-//   const currentTimeBrazil = new Date(currentTime.getTime() + timeAwaitActiveFlow * 60000);
-//   const ticketsToAwaitActiveFlow = await Ticket.findAll({
-//     where: {
-//       status: "open",
-//       companyId,
-//       whatsappId: whatsapp.id,
-//       updatedAt: {
-//         [Op.lt]: +sub(new Date(), {
-//           minutes: Number(timeAwaitActiveFlow)
-//         })
-//       },
-//       imported: null
-//     },
-//     include: [
-//       {
-//         model: Contact,
-//         attributes: ["number", "name", "email"],
-//         as: "contact"
-//       }
-//     ]
-//   });
-//   if (ticketsToAwaitActiveFlow && ticketsToAwaitActiveFlow.length > 0) {
-//     logger.info(`Encontrou ${ticketsToAwaitActiveFlow.length} atendimentos para aguardar ativação do fluxo na empresa ${companyId} - na conexão ${whatsapp.name}!`);
-//     await Promise.all(ticketsToAwaitActiveFlow.map(async ticket => {
-//       const flow = await FlowBuilderModel.findOne({
-//         where: {
-//           id: whatsapp.timeAwaitActiveFlowId
-//         }
-//       });
-//       if (flow) {
-//         const contact = ticket.contact;
-//         const nodes: INodes[] = flow.flow["nodes"];
-//         const connections: IConnections[] = flow.flow["connections"];
-//         const mountDataContact = {
-//           number: contact.number,
-//           name: contact.name,
-//           email: contact.email
-//         };
-//         await ActionsWebhookService(
-//           whatsapp.id,
-//           whatsapp.timeAwaitActiveFlowId,
-//           ticket.companyId,
-//           nodes,
-//           connections,
-//           flow.flow["nodes"][0].id,
-//           null,
-//           "",
-//           "",
-//           null,
-//           ticket.id,
-//           mountDataContact
-//         );
-//         await ticket.update({
-//           maxUseInactiveTime: ticket.maxUseInactiveTime ? ticket.maxUseInactiveTime + 1 : 1
-//         });
-//         await ticket.reload();
-//         const io = getIO();
-//         io.of(companyId.toString()).emit(`company-${companyId}-ticket`, {
-//           action: "update",
-//           ticket: ticket,
-//           ticketId: ticket.id
-//         });
-//       }
-//     }));
-//   }
-// };
 const ClosedAllOpenTickets = async (companyId) => {
     try {
         const whatsapps = await Whatsapp_1.default.findAll({
@@ -601,9 +542,6 @@ const ClosedAllOpenTickets = async (companyId) => {
                 if (whatsapp.timeToReturnQueue) {
                     await handleReturnQueue(companyId, whatsapp);
                 }
-                // if (whatsapp.timeAwaitActiveFlowId && whatsapp.timeAwaitActiveFlow > 0) {
-                //   await handleAwaitActiveFlow(companyId, whatsapp);
-                // }
             }
         }
     }

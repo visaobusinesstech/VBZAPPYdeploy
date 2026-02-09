@@ -71,7 +71,10 @@ const SendWhatsAppMessage = async ({ body, whatsappId, contact, quotedMsg, msdel
         }
     }
     try {
-        await (0, baileys_1.delay)(msdelay);
+        // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+        if (msdelay && msdelay > 0) {
+            await (0, baileys_1.delay)(msdelay);
+        }
         const messageContent = {
             text: body
         };
@@ -91,7 +94,7 @@ const SendWhatsAppMessage = async ({ body, whatsappId, contact, quotedMsg, msdel
         if (debug_1.ENABLE_LID_DEBUG) {
             logger_1.default.info(`[RDS-LID] SendMessageAPI - Mensagem enviada com sucesso para ${jid}`);
         }
-        wbot.store(sentMessage);
+        // ✅ CORREÇÃO: Removido wbot.store duplicado
         return sentMessage;
     }
     catch (err) {

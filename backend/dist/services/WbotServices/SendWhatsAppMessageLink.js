@@ -34,7 +34,10 @@ const SendWhatsAppMessageLink = async ({ whatsappId, contact, url, caption, msde
     }
     const name = caption.replace("/", "-");
     try {
-        await (0, baileys_1.delay)(msdelay);
+        // ✅ CORREÇÃO: Verificar se msdelay existe antes de usar
+        if (msdelay && msdelay > 0) {
+            await (0, baileys_1.delay)(msdelay);
+        }
         const sentMessage = await wbot.sendMessage(jid, {
             document: url
                 ? { url }
