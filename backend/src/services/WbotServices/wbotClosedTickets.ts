@@ -3,6 +3,7 @@ type Filterable = { where?: any };
 const Sequelize = (() => { try { return require("sequelize"); } catch (_) { return {}; } })();
 const Op: any = (Sequelize && Sequelize.Op) ? Sequelize.Op : { lt: Symbol("lt"), gt: Symbol("gt"), or: Symbol("or"), not: Symbol("not") };
 import Ticket from "../../models/Ticket"
+import Contact from "../../models/Contact"
 import Whatsapp from "../../models/Whatsapp"
 import { getIO } from "../../libs/socket"
 import formatBody from "../../helpers/Mustache";
@@ -20,7 +21,6 @@ import { sub } from "date-fns";
 import { ActionsWebhookService } from "../WebhookService/ActionsWebhookService";
 import { IConnections, INodes } from "../WebhookService/DispatchWebHookService";
 import { FlowBuilderModel } from "../../models/FlowBuilder";
-import Contact from "../../models/Contact";
 import ShowTicketUUIDService from "../TicketServices/ShowTicketFromUUIDService";
 
 const closeTicket = async (ticket: any, body: string) => {
@@ -74,8 +74,10 @@ const handleOpenTickets = async (companyId: number, whatsapp: Whatsapp) => {
         };
       }
 
+      // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
       const ticketsForInactiveMessage = await (Ticket as any).findAll({
-        where: whereCondition1
+        where: whereCondition1,
+        include: [{ model: Contact, as: "contact" }]
       });
 
       if (ticketsForInactiveMessage && ticketsForInactiveMessage.length > 0) {
@@ -117,7 +119,7 @@ const handleOpenTickets = async (companyId: number, whatsapp: Whatsapp) => {
         })
       },
       imported: null
-    }
+    };
 
     if (timeInactiveMessage > 0) {
       whereCondition = {
@@ -133,8 +135,10 @@ const handleOpenTickets = async (companyId: number, whatsapp: Whatsapp) => {
       };
     }
 
+    // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
     const ticketsToClose = await (Ticket as any).findAll({
-      where: whereCondition
+      where: whereCondition,
+      include: [{ model: Contact, as: "contact" }]
     });
 
 
@@ -287,7 +291,8 @@ const handleNPSTickets = async (companyId: number, whatsapp: any) => {
       whatsappId: whatsapp.id,
       updatedAt: { [Op.lt]: dataLimite.toDate() },
       imported: null
-    }
+    },
+    include: [{ model: Contact, as: "contact" }]
   });
 
   if (ticketsToClose && ticketsToClose.length > 0) {
@@ -370,8 +375,10 @@ const handleOpenPendingTickets = async (companyId: number, whatsapp: Whatsapp) =
         };
       }
 
+      // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
       const ticketsForInactiveMessage = await Ticket.findAll({
-        where: whereCondition1
+        where: whereCondition1,
+        include: [{ model: Contact, as: "contact" }]
       });
 
       if (ticketsForInactiveMessage && ticketsForInactiveMessage.length > 0) {
@@ -404,7 +411,7 @@ const handleOpenPendingTickets = async (companyId: number, whatsapp: Whatsapp) =
         })
       },
       imported: null
-    }
+    };
 
     if (timeInactiveMessage > 0) {
       whereCondition = {
@@ -420,8 +427,10 @@ const handleOpenPendingTickets = async (companyId: number, whatsapp: Whatsapp) =
       };
     }
 
+    // ✅ RDS-FIX: Adicionado include Contact para getJidOf funcionar
     const ticketsToClose = await Ticket.findAll({
-      where: whereCondition
+      where: whereCondition,
+      include: [{ model: Contact, as: "contact" }]
     });
 
 
@@ -572,7 +581,8 @@ const handleReturnQueue = async (companyId: number, whatsapp: Whatsapp) => {
         })
       },
       imported: null
-    }
+    },
+    include: [{ model: Contact, as: "contact" }]
   });
 
   if (ticketsToReturnQueue && ticketsToReturnQueue.length > 0) {
@@ -607,88 +617,6 @@ const handleReturnQueue = async (companyId: number, whatsapp: Whatsapp) => {
     }));
   }
 };
-
-// const handleAwaitActiveFlow = async (companyId: number, whatsapp: Whatsapp) => {
-//   const timeAwaitActiveFlow = Number(whatsapp.timeAwaitActiveFlow || 0);
-//   const currentTime = new Date();
-//   const currentTimeBrazil = new Date(currentTime.getTime() + timeAwaitActiveFlow * 60000);
-
-//   const ticketsToAwaitActiveFlow = await Ticket.findAll({
-//     where: {
-//       status: "open",
-//       companyId,
-//       whatsappId: whatsapp.id,
-//       updatedAt: {
-//         [Op.lt]: +sub(new Date(), {
-//           minutes: Number(timeAwaitActiveFlow)
-//         })
-//       },
-//       imported: null
-//     },
-//     include: [
-//       {
-//         model: Contact,
-//         attributes: ["number", "name", "email"],
-//         as: "contact"
-//       }
-//     ]
-//   });
-
-//   if (ticketsToAwaitActiveFlow && ticketsToAwaitActiveFlow.length > 0) {
-//     logger.info(`Encontrou ${ticketsToAwaitActiveFlow.length} atendimentos para aguardar ativação do fluxo na empresa ${companyId} - na conexão ${whatsapp.name}!`);
-
-//     await Promise.all(ticketsToAwaitActiveFlow.map(async ticket => {
-//       const flow = await FlowBuilderModel.findOne({
-//         where: {
-//           id: whatsapp.timeAwaitActiveFlowId
-//         }
-//       });
-
-//       if (flow) {
-
-//         const contact = ticket.contact;
-
-//         const nodes: INodes[] = flow.flow["nodes"];
-//         const connections: IConnections[] = flow.flow["connections"];
-
-//         const mountDataContact = {
-//           number: contact.number,
-//           name: contact.name,
-//           email: contact.email
-//         };
-
-//         await ActionsWebhookService(
-//           whatsapp.id,
-//           whatsapp.timeAwaitActiveFlowId,
-//           ticket.companyId,
-//           nodes,
-//           connections,
-//           flow.flow["nodes"][0].id,
-//           null,
-//           "",
-//           "",
-//           null,
-//           ticket.id,
-//           mountDataContact
-//         );
-
-//         await ticket.update({
-//           maxUseInactiveTime: ticket.maxUseInactiveTime ? ticket.maxUseInactiveTime + 1 : 1
-//         });
-
-//         await ticket.reload();
-
-//         const io = getIO();
-//         io.of(companyId.toString()).emit(`company-${companyId}-ticket`, {
-//           action: "update",
-//           ticket: ticket,
-//           ticketId: ticket.id
-//         });
-//       }
-
-//     }));
-//   }
-// };
 
 export const ClosedAllOpenTickets = async (companyId: number): Promise<void> => {
 
@@ -725,9 +653,6 @@ export const ClosedAllOpenTickets = async (companyId: number): Promise<void> => 
         if (whatsapp.timeToReturnQueue) {
           await handleReturnQueue(companyId, whatsapp);
         }
-        // if (whatsapp.timeAwaitActiveFlowId && whatsapp.timeAwaitActiveFlow > 0) {
-        //   await handleAwaitActiveFlow(companyId, whatsapp);
-        // }
       }
     }
 
