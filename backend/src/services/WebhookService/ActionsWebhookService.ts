@@ -357,8 +357,8 @@ export const ActionsWebhookService = async (
       const emailInput = details.inputs.find(item => item.keyValue === "email");
       emailInput.data.split(",").map(dataN => {
 
-        const lineToDataEmail = details.keysFull.find(item =>
-          item.endsWith("email")
+        const lineToDataEmail = details.keysFull.find(itemLocal =>
+          itemLocal.endsWith("email")
         );
 
         let sumRes = "";
@@ -734,14 +734,27 @@ export const ActionsWebhookService = async (
 
       if (nodeSelected.type === "input") {
         try {
-          // Garantir que o ticket esteja disponível
+          // ✅ RDS-FIX: Carregar ticket COM Contact para getJidOf funcionar
           if (!ticket && idTicket) {
             ticket = await Ticket.findOne({
-              where: { id: idTicket, whatsappId }
+              where: { id: idTicket, whatsappId },
+              include: [{ model: Contact, as: "contact" }]
             });
 
             if (!ticket) {
               continue;
+            }
+          }
+
+          // ✅ RDS-FIX: Se ticket já existe mas sem contact, recarregar
+          if (ticket && !ticket.contact) {
+            console.log(`[INPUT NODE] Ticket ${ticket.id} sem contact carregado, recarregando...`);
+            ticket = await Ticket.findOne({
+              where: { id: ticket.id, whatsappId },
+              include: [{ model: Contact, as: "contact" }]
+            });
+            if (ticket) {
+              console.log(`[INPUT NODE] ✅ Ticket recarregado com contact: ${ticket.contact?.number || 'N/A'}`);
             }
           }
 
@@ -876,6 +889,9 @@ export const ActionsWebhookService = async (
             }
           }
         } catch (error) {
+          // ✅ RDS-FIX: Logar erros ao invés de engolir silenciosamente
+          console.error(`[INPUT NODE] ❌ Erro ao processar input: ${error?.message || error}`);
+          console.error(`[INPUT NODE] Stack: ${error?.stack?.split("\n")[0] || 'N/A'}`);
         }
       }
 
