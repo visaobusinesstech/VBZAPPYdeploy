@@ -168,7 +168,7 @@ const FlowBuilderSingleBlockModal = ({
       if (!value) {
         toast.error("Campos de mensagem vazio!");
         setLoading(false);
-        throw "";
+        throw new Error("Campos de mensagem vazio!");
       }
       elementsSequence.push({
         type: "message",
@@ -185,7 +185,7 @@ const FlowBuilderSingleBlockModal = ({
       if (parseInt(value) === 0 || parseInt(value) > 120) {
         toast.error("Intervalo não pode ser 0 ou maior que 120!");
         setLoading(false);
-        throw "";
+        throw new Error("Intervalo não pode ser 0 ou maior que 120!");
       }
       elementsSequence.push({
         type: "interval",
@@ -484,6 +484,7 @@ const FlowBuilderSingleBlockModal = ({
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const moveElementDown = (id) => {
     setElementsSeq((old) => {
       const array = old;
@@ -501,6 +502,7 @@ const FlowBuilderSingleBlockModal = ({
     });
   };
 
+  // eslint-disable-next-line no-unused-vars
   const moveElementUp = (id) => {
     setElementsSeq((old) => {
       const array = old;
@@ -657,6 +659,7 @@ const FlowBuilderSingleBlockModal = ({
         <Stack direction={"row"} justifyContent={"center"}>
           {/* COLOCAR AQUI */}
           <img
+            alt="Preview"
             src={
               valueDefault.length > 0
                 ? `${process.env.REACT_APP_BACKEND_URL}/public/company${companyId}/flow/${valueDefault}`
@@ -987,8 +990,8 @@ const FlowBuilderSingleBlockModal = ({
       if (data) {
         const elementsEditLoc = data.data.elements;
         const sequence = data.data.seq;
-
-        sequence.map((item) => {
+        
+        sequence.forEach((item) => {
           const itemNode = elementsEditLoc.filter(
             (inode) => inode.number === item
           )[0];
@@ -1105,6 +1108,7 @@ const FlowBuilderSingleBlockModal = ({
       setArrayOption([]);
       setActiveModal(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   useEffect(() => {
@@ -1143,6 +1147,7 @@ const FlowBuilderSingleBlockModal = ({
     const newArrImg = elementsSeq.filter((item) => item.includes("img"));
     const newArrAudio = elementsSeq.filter((item) => item.includes("audio"));
     const newArrVideo = elementsSeq.filter((item) => item.includes("video"));
+    // eslint-disable-next-line no-unused-vars
     const newArrDocs = elementsSeq.filter((item) => item.includes("document"));
 
     for (let i = 0; i < numberImg; i++) {
