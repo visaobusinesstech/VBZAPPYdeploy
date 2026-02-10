@@ -33,8 +33,6 @@ class FormatMask {
     } else {
       return phoneToFormat;
     }
-
-    return null;
   }
 
   removeMask(number) {

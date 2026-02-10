@@ -112,7 +112,7 @@ const messages = {
           detractors: "Detractors",
         },
       },
-      reports: {
+      surveyReports: {
         title: "Research Reports",
         operator: "Operator",
         period: "Period",
@@ -1913,14 +1913,12 @@ const messages = {
         campaignsFlow: "Campaigns Flow",
         campaigns: "Campaign",
         name: "Name",
-        status: "Status",
         newCampaignWithFlowByPhrase: "New campaign with flow by phrase",
         editCampaignWithFlowByPhrase: "Edit campaign with flow by phrase",
         phraseTriggerName: "Phrase trigger name",
         chooseAStream: "Choose a stream",
         whichPhraseTriggersTheFlow: " Which phrase triggers the flow?",
         selectAConnection: " Select a Connection",
-        chooseAStream: "Choose a stream",
         status: " Status",
         cancel: "CANCEL",
         createCampaign: "CREATE CAMPAIGN ",
@@ -1983,7 +1981,6 @@ const messages = {
         save: "Save",
         forwardMessage: "Forward Message",
         selectChat: "Select chat",
-        forward: "Forward",
         noChats: "No chat available",
       },
       chatIndex: {

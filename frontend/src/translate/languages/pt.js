@@ -118,7 +118,7 @@ const messages = {
           detractors: "Detratores",
         },
       },
-      reports: {
+      surveyReports: {
         title: "Relatório de Pesquisas Realizadas",
 
         operator: "Operador",
@@ -222,7 +222,6 @@ const messages = {
         newConnection: "Nova Conexão",
         restartConnections: "Reiniciar Conexões",
         callSupport: "Chamar Suporte",
-        newConnection: "Nova Conexão",
         connectYourServiceChannelsToReceiveMessagesAndStartConversationsWithYourCustomers:
           " Conecte seus canais de atendimento para receber mensagens e iniciar conversas com seus clientes.",
         client: "Cliente",
@@ -256,7 +255,6 @@ const messages = {
           closedImported: "Fechar todos os tickets Importados",
           preparing: "Preparando mensagens para importação",
           importing: "Importando Mensagens do WhatsApp",
-          newQr: "Novo QR CODE",
           processed: "Processado",
           in: "de",
           connecting: "Conectando",
@@ -901,20 +899,6 @@ const messages = {
         buttons: {
           ok: "Transferir",
           cancel: "Cancelar",
-        },
-      },
-      chatInternal: {
-        new: "Criar grupo",
-        modal: {
-          conversation: "Conversa",
-          title: "Nome",
-          filterUsers: "Selecione integrantes",
-          cancel: "Fechar",
-          save: "Salvar",
-        },
-        modalDelete: {
-          title: "Excluir Conversa",
-          message: "Esta ação não pode ser revertida, confirmar?",
         },
       },
       ticketsList: {
@@ -1732,7 +1716,7 @@ const messages = {
               "Mensagem para informar que não aceita ligações",
             greetingAcceptedMessage: "Mensagem de Saudação ao aceitar ticket",
             transferMessage:
-              "Mensagem de transferência - ${queue.name} = fila destino",
+              `Mensagem de transferência - ${queue.name} = fila destino`,
           },
           LGPD: {
             title: "LGPD",
@@ -1974,14 +1958,12 @@ const messages = {
         campaignsFlow: "Fluxo de Campanhas",
         campaigns: "Campanhas",
         name: "Nome",
-        status: "Status",
         newCampaignWithFlowByPhrase: "Nova campanha com fluxo por frase",
         editCampaignWithFlowByPhrase: "Editar campanha com fluxo por frase",
         phraseTriggerName: "Nome do disparo por frase",
         chooseAStream: "Escolha um fluxo",
         whichPhraseTriggersTheFlow: " Qual frase dispara o fluxo?",
         selectAConnection: " Selecione uma Conexão",
-        chooseAStream: " Escolha um fluxo",
         status: " Status",
         cancel: "CANCELAR",
         createCampaign: "CRIAR CAMPANHA ",
@@ -2059,7 +2041,6 @@ const messages = {
         save: "Salvar",
         forwardMessage: "Encaminhar Mensagem",
         selectChat: "Selecione o chat",
-        forward: "Encaminhar",
         noChats: "Nenhum chat disponível",
       },
       chatIndex: {
@@ -2097,12 +2078,6 @@ const messages = {
           cancel: "Cancelar",
           save: "Salvar",
           edit: "Editar",
-        },
-        modal: {
-          title: "Criar Grupo",
-          editTitle: "Editar Grupo",
-          save: "Salvar",
-          cancel: "Cancelar",
         },
       },
 whitelabel: {
