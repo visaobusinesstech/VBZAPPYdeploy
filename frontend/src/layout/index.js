@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo, useCallback } from "react";
+import { Link } from "react-router-dom";
 import clsx from "clsx";
 import {
   makeStyles,
@@ -110,8 +111,9 @@ const useStyles = makeStyles((theme) => ({
   toolbarIcon: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     padding: "0 8px",
+    paddingLeft: theme.spacing(2),
     minHeight: "48px",
     [theme.breakpoints.down("sm")]: {
       height: "48px",
@@ -222,13 +224,13 @@ const useStyles = makeStyles((theme) => ({
   },
 
   logo: {
-    width: "100%",
-    //height: "45px",
-    maxWidth: 180,
+    width: "70%",
+    height: "auto",
+    maxWidth: 120,
     [theme.breakpoints.down("sm")]: {
       width: "auto",
       height: "100%",
-      maxWidth: 180,
+      maxWidth: 120,
     },
     logo: theme.logo,
     content:
@@ -741,7 +743,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 display: "block",
                 margin: "0 auto",
                 //height: "50px",
-                width: "100%",
+                //width: "100%",
               }}
               alt="logo"
             />
