@@ -36,7 +36,7 @@
     "lodash": "^4.17.21",
     "markdown-to-jsx": "^9.7.3",
     "material-ui-color": "^1.2.0",
-    "material-ui-popup-state": "^5.3.6",
+    "material-ui-popup-state": "^1.9.3",
     "mic-recorder-to-mp3": "^2.2.2",
     "moment": "^2.29.1",
     "prop-types": "^15.8.1",
