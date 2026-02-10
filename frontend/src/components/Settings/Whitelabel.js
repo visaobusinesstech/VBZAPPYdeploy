@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 import { makeStyles } from "@material-ui/core/styles";
 import { grey, blue } from "@material-ui/core/colors";
 import OnlyForSuperUser from "../OnlyForSuperUser";
-import useAuth from "../../hooks/useAuth";
+import useAuth from "../../hooks/useAuth.js";
 
 import { IconButton, InputAdornment, Chip } from "@material-ui/core";
 
