@@ -12,6 +12,7 @@ import { getBackendUrl } from "./config";
 import Routes from "./routes";
 import defaultLogoLight from "./assets/logo.png";
 import defaultLogoDark from "./assets/logo-black.png";
+import defaultLogoFavicon from "./assets/favicon.ico";
 import useSettings from "./hooks/useSettings";
 
 import "./styles/animations.css";
