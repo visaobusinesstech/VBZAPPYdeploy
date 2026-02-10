@@ -21,6 +21,7 @@ interface Request {
   companyId: number;
   queueId?: number;
   whatsappId: string;
+  requestUserId?: number;
 }
 
 const CreateTicketService = async ({
@@ -29,7 +30,8 @@ const CreateTicketService = async ({
   userId,
   queueId,
   companyId,
-  whatsappId = ""
+  whatsappId = "",
+  requestUserId
 }: Request): Promise<Ticket> => {
 
   const io = getIO();
@@ -39,7 +41,7 @@ const CreateTicketService = async ({
 
   if (whatsappId !== "undefined" && whatsappId !== null && whatsappId !== "") {
     // console.log("GETTING WHATSAPP CREATE TICKETSERVICE", whatsappId)
-    whatsapp = await ShowWhatsAppService(whatsappId, companyId)
+    whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, requestUserId)
   }
 
   
@@ -54,7 +56,7 @@ const CreateTicketService = async ({
   // console.log("defaultWhatsapp", defaultWhatsapp.id, defaultWhatsapp.channel)
   await CheckContactOpenTickets(contactId, defaultWhatsapp.id);
 
-  const { isGroup } = await ShowContactService(contactId, companyId);
+  const { isGroup } = await ShowContactService(contactId, companyId, requestUserId);
 
   let ticket = await Ticket.create({
     contactId,
@@ -74,7 +76,7 @@ const CreateTicketService = async ({
   //   { where: { id } }
   // );
 
-  ticket = await ShowTicketService(ticket.id, companyId);
+  ticket = await ShowTicketService(ticket.id, companyId, requestUserId);
 
   if (!ticket) {
     throw new AppError("ERR_CREATING_TICKET");

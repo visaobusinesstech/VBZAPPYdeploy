@@ -66,6 +66,7 @@ interface Request {
   whatsappData: WhatsappData;
   whatsappId: string;
   companyId: number;
+  requestUserId?: number;
 }
 
 interface Response {
@@ -76,7 +77,8 @@ interface Response {
 const UpdateWhatsAppService = async ({
   whatsappData,
   whatsappId,
-  companyId
+  companyId,
+  requestUserId
 }: Request): Promise<Response> => {
   const schema = Yup.object().shape({
     name: Yup.string().min(2),
@@ -165,7 +167,7 @@ const UpdateWhatsAppService = async ({
     }
   }
   // console.log("GETTING WHATSAPP SHOW WHATSAPP 1", whatsappId, companyId)
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, requestUserId);
 
   // DEBUG - Log dos dados antes da atualização
   console.log(`[WHATSAPP-SERVICE] Atualizando conexão ${whatsappId} com:`, {

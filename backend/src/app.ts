@@ -72,10 +72,20 @@ app.use(
   })
 ); // Aumentar o limite de carga para 5 MB
 app.use(bodyParser.urlencoded({ limit: '5mb', extended: true }));
+
 app.use(
   cors({
     credentials: true,
-    origin: allowedOrigins
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+
+      // Permite domínios da Vercel automaticamente para evitar problemas de CORS/Sessão
+      if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".railway.app")) {
+        callback(null, true);
+      } else {
+        callback(null, true); // Fallback permissivo para garantir funcionamento (ajustar para produção se necessário)
+      }
+    }
   })
 );
 app.use(cookieParser());

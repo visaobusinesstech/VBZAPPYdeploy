@@ -27,7 +27,8 @@ interface QueueData {
 const UpdateQueueService = async (
   queueId: number | string,
   queueData: QueueData,
-  companyId: number
+  companyId: number,
+  requestUserId?: number
 ): Promise<Queue> => {
   const { color, name, chatbots } = queueData;
 
@@ -80,7 +81,12 @@ const UpdateQueueService = async (
 
   const queue = await ShowQueueService(queueId, companyId);
 
-  if (queue.companyId !== companyId) {
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  if (!requestUser?.super && queue.companyId !== companyId) {
     throw new AppError("Não é permitido alterar registros de outra empresa");
   }
 

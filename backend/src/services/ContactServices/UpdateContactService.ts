@@ -4,6 +4,7 @@ import Contact from "../../models/Contact";
 import ContactCustomField from "../../models/ContactCustomField";
 import DeleteContactWalletService from "./DeleteContactWalletService";
 import UpdateContactWalletsService from "./UpdateContactWalletsService";
+import User from "../../models/User";
 
 interface ExtraInfo {
   id?: number;
@@ -28,6 +29,7 @@ interface Request {
   contactData: ContactData;
   contactId: string;
   companyId: number;
+  requestUserId?: number;
 }
 
 const updateCustomFields = async (
@@ -64,7 +66,8 @@ const updateCustomFields = async (
 const UpdateContactService = async ({
   contactData,
   contactId,
-  companyId
+  companyId,
+  requestUserId
 }: Request): Promise<Contact> => {
   const {
     email,
@@ -88,7 +91,12 @@ const UpdateContactService = async ({
     throw new AppError("Contato não encontrado", 404);
   }
 
-  if (contact.companyId !== companyId) {
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  if (!requestUser?.super && contact.companyId !== companyId) {
     throw new AppError("Não é possível alterar registros de outra empresa");
   }
 

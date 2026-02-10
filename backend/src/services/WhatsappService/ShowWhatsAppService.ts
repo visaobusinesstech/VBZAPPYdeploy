@@ -5,11 +5,13 @@ import Chatbot from "../../models/Chatbot";
 import { FindOptions } from "sequelize/types";
 import Prompt from "../../models/Prompt";
 import { FlowBuilderModel } from "../../models/FlowBuilder";
+import User from "../../models/User";
 
 const ShowWhatsAppService = async (
   id: string | number,
   companyId: number,
-  session?: any
+  session?: any,
+  requestUserId?: number
 ): Promise<Whatsapp> => {
   const findOptions: FindOptions = {
     include: [
@@ -45,7 +47,12 @@ const ShowWhatsAppService = async (
 
   const whatsapp = await Whatsapp.findByPk(id, findOptions);
 
-  if (whatsapp?.companyId !== companyId) {
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  if (!requestUser?.super && whatsapp?.companyId !== companyId) {
     throw new AppError("Não é possível acessar registros de outra empresa");
   }
 

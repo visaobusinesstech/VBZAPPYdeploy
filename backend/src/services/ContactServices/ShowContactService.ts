@@ -7,7 +7,8 @@ import User from "../../models/User";
 
 const ShowContactService = async (
   id: string | number,
-  companyId: number
+  companyId: number,
+  requestUserId?: number
 ): Promise<Contact> => {
   const contact = await Contact.findByPk(id, {
     include: ["extraInfo", "tags",
@@ -36,12 +37,17 @@ const ShowContactService = async (
     ]
   });
 
-  if (contact?.companyId !== companyId) {
-    throw new AppError("Não é possível excluir registro de outra empresa");
-  }
-
   if (!contact) {
     throw new AppError("ERR_NO_CONTACT_FOUND", 404);
+  }
+
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  if (!requestUser?.super && contact.companyId !== companyId) {
+    throw new AppError("Não é possível consultar registros de outra empresa");
   }
 
   return contact;

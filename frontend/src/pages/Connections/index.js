@@ -650,6 +650,7 @@ const Connections = () => {
           open={qrModalOpen}
           onClose={handleCloseQrModal}
           whatsAppId={!whatsAppModalOpen && selectedWhatsApp?.id}
+          companyId={selectedWhatsApp?.companyId}
         />
       )}
       <WhatsAppModal

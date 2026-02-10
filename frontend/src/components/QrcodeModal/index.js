@@ -6,6 +6,7 @@ import { Dialog, DialogContent, Paper, Typography } from "@material-ui/core";
 import { i18n } from "../../translate/i18n";
 import api from "../../services/api";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import openSocket from "socket.io-client";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -44,10 +45,31 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const QrcodeModal = ({ open, onClose, whatsAppId }) => {
+const QrcodeModal = ({ open, onClose, whatsAppId, companyId }) => {
   const classes = useStyles();
   const [qrCode, setQrCode] = useState("");
-  const { user, socket } = useContext(AuthContext);
+  const { user, socket: globalSocket } = useContext(AuthContext);
+  const [socket, setSocket] = useState(globalSocket);
+
+  useEffect(() => {
+    if (!open) return;
+
+    // Se companyId for fornecido e diferente do usuário logado (Super Admin)
+    if (companyId && user.companyId && Number(companyId) !== Number(user.companyId)) {
+      const token = localStorage.getItem("token");
+      const newSocket = openSocket(`${process.env.REACT_APP_BACKEND_URL}/${companyId}`, {
+        query: { token }
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.disconnect();
+      };
+    } else {
+      setSocket(globalSocket);
+    }
+  }, [open, companyId, user.companyId, globalSocket]);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -64,8 +86,8 @@ const QrcodeModal = ({ open, onClose, whatsAppId }) => {
   }, [whatsAppId]);
 
   useEffect(() => {
-    if (!whatsAppId) return;
-    const companyId = user.companyId;
+    if (!whatsAppId || !socket) return;
+    const socketCompanyId = companyId || user.companyId;
 
     const onWhatsappData = (data) => {
       if (data.action === "update" && data.session.id === whatsAppId) {
@@ -76,12 +98,13 @@ const QrcodeModal = ({ open, onClose, whatsAppId }) => {
         onClose();
       }
     };
-    socket.on(`company-${companyId}-whatsappSession`, onWhatsappData);
+    
+    socket.on(`company-${socketCompanyId}-whatsappSession`, onWhatsappData);
 
     return () => {
-      socket.off(`company-${companyId}-whatsappSession`, onWhatsappData);
+      socket.off(`company-${socketCompanyId}-whatsappSession`, onWhatsappData);
     };
-  }, [whatsAppId, onClose, user.companyId]);
+  }, [whatsAppId, onClose, user.companyId, companyId, socket]);
 
   return (
     <Dialog

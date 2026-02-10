@@ -64,14 +64,27 @@ const useAuth = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     (async () => {
-      if (token) {
-        try {
-          const { data } = await api.post("/auth/refresh_token");
-          api.defaults.headers.Authorization = `Bearer ${data.token}`;
-          setIsAuth(true);
-          setUser(data.user || data);
-        } catch (err) {
-          toastError(err);
+      // Tentar refresh sempre que carregar o hook (F5), mesmo sem token no localStorage (pode estar no cookie)
+      // OU se tiver token.
+      // Na verdade, o refresh_token usa cookie HttpOnly. Então se tiver cookie, deve funcionar.
+      // Se não tiver token no localStorage, o interceptor de request não vai por Authorization.
+      // Mas o refresh_token endpoint não precisa de Authorization header se usar cookie.
+      
+      try {
+        const { data } = await api.post("/auth/refresh_token");
+        if (data) {
+           api.defaults.headers.Authorization = `Bearer ${data.token}`;
+           localStorage.setItem("token", JSON.stringify(data.token));
+           setIsAuth(true);
+           setUser(data.user || data);
+        }
+      } catch (err) {
+        // Se falhar o refresh, e tiver token antigo, remove.
+        if (token) {
+           toastError(err);
+           localStorage.removeItem("token");
+           api.defaults.headers.Authorization = undefined;
+           setIsAuth(false);
         }
       }
       setLoading(false);

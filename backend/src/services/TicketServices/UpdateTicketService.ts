@@ -58,6 +58,7 @@ interface Request {
   ticketData: TicketData;
   ticketId: string | number;
   companyId: number;
+  requestUserId?: number;
 }
 
 interface Response {
@@ -69,7 +70,8 @@ interface Response {
 const UpdateTicketService = async ({
   ticketData,
   ticketId,
-  companyId
+  companyId,
+  requestUserId
 }: Request): Promise<Response> => {
   try {
     let {
@@ -100,7 +102,53 @@ const UpdateTicketService = async ({
       }
     });
 
-    let ticket = await ShowTicketService(ticketId, companyId);
+    let requestUser: User | null = null;
+    if (requestUserId) {
+      requestUser = await User.findByPk(requestUserId);
+    }
+
+    const whereCondition: any = { id: ticketId };
+    
+    if (!requestUser?.super) {
+      whereCondition.companyId = companyId;
+    }
+
+    let ticket = await Ticket.findOne({
+      where: whereCondition,
+      include: [
+        {
+          model: Contact,
+          as: "contact",
+          include: [
+            "extraInfo",
+            "tags",
+            {
+              association: "wallets",
+              attributes: ["id", "name"]
+            },
+          ]
+        },
+        {
+          model: User,
+          as: "user",
+          attributes: ["id", "name"]
+        },
+        {
+          model: Queue,
+          as: "queue",
+          attributes: ["id", "name", "color"]
+        },
+        {
+          model: Whatsapp,
+          as: "whatsapp",
+          attributes: ["id", "name", "groupAsTicket", "greetingMediaAttachment", "facebookUserToken", "facebookUserId", "color", "wavoip"]
+        }
+      ]
+    });
+
+    if (!ticket) {
+      throw new AppError("ERR_NO_TICKET_FOUND", 404);
+    }
 
     if (ticket.channel === "whatsapp" && ticket.whatsappId) {
       SetTicketMessagesAsRead(ticket);
@@ -124,7 +172,7 @@ const UpdateTicketService = async ({
         integrationId: null
       });
 
-      io.of(String(companyId))
+      io.of(String(ticket.companyId))
         // .to(oldStatus)
         // .to(ticketId.toString())
         .emit(`company-${ticket.companyId}-ticket`, {
@@ -144,7 +192,7 @@ const UpdateTicketService = async ({
       });
       if (otherTicket) {
         if (otherTicket.id !== ticket.id) {
-          otherTicket = await ShowTicketService(otherTicket.id, companyId);
+          otherTicket = await ShowTicketService(otherTicket.id, companyId, requestUserId);
           return { ticket: otherTicket, oldStatus, oldUserId };
         }
       }

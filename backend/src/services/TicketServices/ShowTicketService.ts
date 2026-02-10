@@ -13,13 +13,22 @@ import ContactWallet from "../../models/ContactWallet";
 
 const ShowTicketService = async (
   id: string | number,
-  companyId: number
+  companyId: number,
+  userId?: number
 ): Promise<Ticket> => {
+  let user: User | null = null;
+  if (userId) {
+    user = await User.findByPk(userId);
+  }
+
+  const whereCondition: any = { id };
+  
+  if (!user?.super) {
+    whereCondition.companyId = companyId;
+  }
+
   const ticket = await Ticket.findOne({
-    where: {
-      id,
-      companyId
-    },
+    where: whereCondition,
     attributes: [
       "id",
       "uuid",
@@ -126,7 +135,7 @@ const ShowTicketService = async (
   });
 
   if (ticket?.companyId !== companyId) {
-    throw new AppError("Não é possível consultar registros de outra empresa");
+    // throw new AppError("Não é possível consultar registros de outra empresa");
   }
 
   if (!ticket) {

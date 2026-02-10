@@ -55,13 +55,14 @@ const ListTicketsServiceKanban = async ({
 }: Request): Promise<Response> => {
   // Verificar se o usuário é admin
   const user = await ShowUserService(userId, companyId);
-  const isAdmin = user.profile === 'admin';
+  const isAdmin = user.profile === 'admin' || user.super;
   
   let whereCondition: Filterable["where"] = isAdmin 
-    ? { queueId: { [Op.or]: [queueIds, null] } }
+    ? { queueId: { [Op.or]: [queueIds, null] }, companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] } }
     : {
         [Op.or]: [{ userId }, { status: "pending" }],
-        queueId: { [Op.or]: [queueIds, null] }
+        queueId: { [Op.or]: [queueIds, null] },
+        companyId
       };
   let includeCondition: Includeable[];
 

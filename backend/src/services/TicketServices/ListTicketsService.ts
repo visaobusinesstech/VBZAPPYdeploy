@@ -84,7 +84,7 @@ const ListTicketsService = async ({
   whereCondition = {
     [Op.or]: [{ userId }, { status: "pending" }],
     queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] },
-    companyId
+    companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
   };
 
 
@@ -143,7 +143,7 @@ const ListTicketsService = async ({
   } else
     if (status === "group" && user.allowGroup && user.whatsappId) {
       whereCondition = {
-        companyId,
+        companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
         queueId: { [Op.or]: [queueIds, null] },
         whatsappId: user.whatsappId
       };
@@ -151,7 +151,7 @@ const ListTicketsService = async ({
     else
       if (status === "group" && (user.allowGroup) && !user.whatsappId) {
         whereCondition = {
-          companyId,
+          companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
           queueId: { [Op.or]: [queueIds, null] },
         };
       }
@@ -160,15 +160,15 @@ const ListTicketsService = async ({
         if (status === "chatbot") {
           // Para status chatbot, mostrar tickets que estão sendo processados pelo flowbuilder
           // Admins podem ver todos, usuários comuns só os seus ou os sem responsável
-          if (user.profile === "admin" || showAll === "true") {
+          if (user.profile === "admin" || showAll === "true" || user.super) {
             whereCondition = {
-              companyId,
+              companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
               status: "chatbot",
               queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] }
             };
           } else {
             whereCondition = {
-              companyId,
+              companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
               status: "chatbot",
               [Op.or]: [{ userId }, { userId: null }],
               queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] }
@@ -187,7 +187,7 @@ const ListTicketsService = async ({
                   userId: { [Op.or]: [user.id, null] },
                   queueId: { [Op.or]: [queueIds, null] },
                   status: "pending",
-                  companyId
+                  companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
                 },
               });
             } else {
@@ -195,7 +195,7 @@ const ListTicketsService = async ({
                 where: {
                   userId: { [Op.or]: [user.id, null] },
                   status: "pending",
-                  companyId
+                  companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
                 },
               });
             }
@@ -220,7 +220,7 @@ const ListTicketsService = async ({
               if (!showTicketAllQueues) {
                 ticketsIds = await Ticket.findAll({
                   where: {
-                    companyId,
+                    companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
                     userId:
                       { [Op.or]: [user.id, null] },
                     status: "pending",
@@ -230,7 +230,7 @@ const ListTicketsService = async ({
               } else {
                 ticketsIds = await Ticket.findAll({
                   where: {
-                    companyId,
+                    companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
                     [Op.or]:
                       [{
                         userId:
@@ -256,16 +256,24 @@ const ListTicketsService = async ({
               };
             }
 
-  if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled") && status !== "search") {
-    if (user.allHistoric === "enabled" && showTicketWithoutQueue) {
-      whereCondition = { companyId };
-    } else if (user.allHistoric === "enabled" && !showTicketWithoutQueue) {
-      whereCondition = { companyId, queueId: { [Op.ne]: null } };
-    } else if (user.allHistoric === "disabled" && showTicketWithoutQueue) {
-      whereCondition = { companyId, queueId: { [Op.or]: [queueIds, null] } };
-    } else if (user.allHistoric === "disabled" && !showTicketWithoutQueue) {
-      whereCondition = { companyId, queueId: queueIds };
-    }
+  if (user.profile === "user" && !user.super) {
+    whereCondition = {
+      ...whereCondition,
+      userId
+    };
+  }
+
+  // Se for admin ou super, pode ver tudo se quiser
+  if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super) && status !== "search") {
+     if (user.allHistoric === "enabled" && showTicketWithoutQueue) {
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] } };
+     } else if (user.allHistoric === "enabled" && !showTicketWithoutQueue) {
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.ne]: null } };
+     } else if (user.allHistoric === "disabled" && showTicketWithoutQueue) {
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.or]: [queueIds, null] } };
+     } else if (user.allHistoric === "disabled" && !showTicketWithoutQueue) {
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: queueIds };
+     }
   }
 
 
@@ -282,12 +290,12 @@ const ListTicketsService = async ({
 
     if (!showTicketAllQueues) {
       let whereCondition2: Filterable["where"] = {
-        companyId,
+        companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
         status: "closed",
       }
 
       // Se showAll === "true" E usuário tem permissão (admin ou allUserChat), mostrar todos
-      if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled")) {
+      if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super)) {
         whereCondition2 = {
           ...whereCondition2,
           queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : queueIds,
@@ -309,12 +317,12 @@ const ListTicketsService = async ({
 
     } else {
       let whereCondition2: Filterable["where"] = {
-        companyId,
+        companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
         status: "closed",
       }
 
       // Se showAll === "true" E usuário tem permissão (admin ou allUserChat), mostrar todos
-      if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled")) {
+      if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super)) {
         whereCondition2 = {
           ...whereCondition2,
           queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : queueIds,

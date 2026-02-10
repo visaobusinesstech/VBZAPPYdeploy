@@ -12,7 +12,6 @@ import { getBackendUrl } from "./config";
 import Routes from "./routes";
 import defaultLogoLight from "./assets/logo.png";
 import defaultLogoDark from "./assets/logo-black.png";
-import defaultLogoFavicon from "./assets/favicon.ico";
 import useSettings from "./hooks/useSettings";
 
 import "./styles/animations.css";
@@ -415,11 +414,11 @@ const App = () => {
       });
     getPublicSetting("appName")
       .then((name) => {
-        setAppName(name || "AtendeChat");
+        setAppName(name || "VBZappy");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
-        setAppName("AtendeChat");
+        setAppName("VBZAPPY");
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -156,7 +156,7 @@ export const update = async (
         async value => {
           if (value) {
             const companyWithSameName = await Company.findOne({
-              where: { name: value, id: { [Op.ne]: companyData.id } }
+              where: { name: value, id: { [Op.ne]: id } }
             });
             return !companyWithSameName;
           }

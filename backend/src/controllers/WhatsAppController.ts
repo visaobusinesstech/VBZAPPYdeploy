@@ -93,9 +93,9 @@ interface QueryParams {
 }
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
-  const { companyId } = req.user;
+  const { companyId, super: isSuper } = req.user;
   const { session } = req.query as QueryParams;
-  const whatsapps = await ListWhatsAppsService({ companyId, session });
+  const whatsapps = await ListWhatsAppsService({ companyId, session, isSuper });
 
   return res.status(200).json(whatsapps);
 };
@@ -117,6 +117,8 @@ export const indexFilter = async (
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId, super: isSuper } = req.user;
+  const data = req.body;
   const {
     name,
     status,
@@ -159,10 +161,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     color,
     waba_webhook,
     channel
-  }: WhatsappData = req.body;
-  const { companyId } = req.user;
+  }: WhatsappData = data;
 
-  const company = await ShowCompanyService(companyId);
+  const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
+
+  const company = await ShowCompanyService(targetCompanyId);
   const plan = await ShowPlanService(company.planId);
 
   if (!plan.useWhatsapp) {
@@ -179,7 +182,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     complationMessage,
     outOfHoursMessage,
     queueIds,
-    companyId,
+    companyId: targetCompanyId,
     token,
     maxUseBotQueues,
     timeUseBotQueues,
@@ -218,7 +221,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   if (["whatsapp_oficial"].includes(whatsapp.channel)) {
     try {
-      const company: ICreateConnectionWhatsAppOficialCompany = {
+      const companyData: ICreateConnectionWhatsAppOficialCompany = {
         companyId: String(whatsapp.companyId),
         companyName: whatsapp.company.name
       };
@@ -234,7 +237,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
       const data = {
         email: whatsapp.company.email,
-        company,
+        company: companyData,
         whatsApp: whatsappOficial
       };
 
@@ -253,16 +256,17 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   if (["whatsapp"].includes(whatsapp.channel)) {
-    StartWhatsAppSession(whatsapp, companyId);
+    StartWhatsAppSession(whatsapp, targetCompanyId);
   }
+
   const io = getIO();
-  io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+  io.of(String(targetCompanyId)).emit(`company-${targetCompanyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of(String(targetCompanyId)).emit(`company-${targetCompanyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -407,56 +411,25 @@ export const storeFacebook = async (
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
-  const { companyId } = req.user;
-  const { session } = req.query;
+  const { companyId, id: userId } = req.user;
+  const { session } = req.query as QueryParams;
 
-  // console.log("SHOWING WHATSAPP", whatsappId)
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, session);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, session, userId);
 
   return res.status(200).json(whatsapp);
 };
 
-export const update = async (
-  req: Request,
-  res: Response
-): Promise<Response> => {
+export const update = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
   const whatsappData = req.body;
-  const { companyId } = req.user;
-
-  // DEBUG - Log dos dados recebidos
-  console.log(`[WHATSAPP-UPDATE] Dados recebidos para conexão ${whatsappId}:`, {
-    flowIdNotPhrase: whatsappData.flowIdNotPhrase,
-    flowIdWelcome: whatsappData.flowIdWelcome,
-    flowIdInactiveTime: whatsappData.flowIdInactiveTime
-  });
+  const { companyId, id: userId } = req.user;
 
   const { whatsapp, oldDefaultWhatsapp } = await UpdateWhatsAppService({
     whatsappData,
     whatsappId,
-    companyId
+    companyId,
+    requestUserId: userId
   });
-
-  if (["whatsapp_oficial"].includes(whatsapp.channel)) {
-    try {
-      const whatsappOficial: IUpdateonnectionWhatsAppOficialWhatsApp = {
-        token_mult100: whatsapp.token,
-        phone_number_id: whatsapp.phone_number_id,
-        waba_id: whatsapp.waba_id,
-        send_token: whatsapp.send_token,
-        business_id: whatsapp.business_id,
-        phone_number: whatsapp.phone_number,
-        idEmpresaMult100: companyId
-      };
-
-      await UpdateConnectionWhatsAppOficial(
-        whatsapp.waba_webhook_id,
-        whatsappOficial
-      );
-    } catch (error) {
-      logger.info("ERROR", error);
-    }
-  }
 
   const io = getIO();
   io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {

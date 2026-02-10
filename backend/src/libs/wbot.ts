@@ -526,10 +526,11 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                   sessions.push(wsocket);
                 }
 
+                console.log(`[WBOT] Emitting QRCode for company ${companyId} - Session ${whatsapp.id}`);
                 io.of(String(companyId))
                   .emit(`company-${whatsapp.companyId}-whatsappSession`, {
                     action: "update",
-                    session: whatsapp
+                    session: { ...whatsapp.toJSON(), qrcode: qr }
                   });
               }
             }

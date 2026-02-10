@@ -9,13 +9,24 @@ import Company from "../../models/Company";
 import QueueIntegrations from "../../models/QueueIntegrations";
 import ContactWallet from "../../models/ContactWallet";
 
-const ShowTicketUUIDService = async (uuid: string,
-  companyId: number): Promise<Ticket> => {
+const ShowTicketUUIDService = async (
+  uuid: string,
+  companyId: number,
+  requestUserId?: number
+): Promise<Ticket> => {
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  const whereCondition: any = { uuid };
+
+  if (!requestUser?.super) {
+    whereCondition.companyId = companyId;
+  }
+
   const ticket = await Ticket.findOne({
-    where: {
-      uuid,
-      companyId
-    },
+    where: whereCondition,
     attributes: [
       "id",
       "uuid",

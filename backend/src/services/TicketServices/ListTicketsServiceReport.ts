@@ -3,6 +3,7 @@
 import { QueryTypes } from "sequelize";
 import * as _ from "lodash";
 import sequelize from "../../database";
+import User from "../../models/User";
 
 export interface DashboardData {
   tickets: any[];
@@ -27,9 +28,15 @@ export default async function ListTicketsServiceReport(
   companyId: string | number,
   params: Params,
   page: number = 1,
-  pageSize: number = 20
+  pageSize: number = 20,
+  requestUserId?: number
 ): Promise<DashboardData> {
   const offset = (page - 1) * pageSize;
+
+  let requestUser: User | null = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
 
   const onlyRated = params.onlyRated === "true" ? true : false;
   let query = "";
@@ -69,7 +76,7 @@ export default async function ListTicketsServiceReport(
   LEFT JOIN (
         SELECT DISTINCT ON ("ticketId") *
         FROM "TicketTraking"
-        WHERE "companyId" = ${companyId}
+        WHERE ${!requestUser?.super ? `"companyId" = ${companyId}` : `"companyId" is not null`}
         ORDER BY "ticketId", "id" DESC
     ) tt ON t.id = tt."ticketId"
 	inner join "UserRatings" ur on
@@ -78,7 +85,7 @@ export default async function ListTicketsServiceReport(
     left join "Contacts" c on 
       t."contactId" = c.id 
     left join "ContactWallets" cw on 
-      c.id = cw."contactId" and cw."companyId" = ${companyId}
+      c.id = cw."contactId" and ${!requestUser?.super ? `cw."companyId" = ${companyId}` : `cw."companyId" is not null`}
     left join "Users" wallet_user on 
       cw."walletId" = wallet_user.id
     left join "Whatsapps" w on 
@@ -122,7 +129,7 @@ export default async function ListTicketsServiceReport(
   LEFT JOIN (
         SELECT DISTINCT ON ("ticketId") *
         FROM "TicketTraking"
-        WHERE "companyId" = ${companyId}
+        WHERE ${!requestUser?.super ? `"companyId" = ${companyId}` : `"companyId" is not null`}
         ORDER BY "ticketId", "id" DESC
     ) tt ON t.id = tt."ticketId"
 	left join "UserRatings" ur on
@@ -130,7 +137,7 @@ export default async function ListTicketsServiceReport(
     left join "Contacts" c on 
       t."contactId" = c.id 
     left join "ContactWallets" cw on 
-      c.id = cw."contactId" and cw."companyId" = ${companyId}
+      c.id = cw."contactId" and ${!requestUser?.super ? `cw."companyId" = ${companyId}` : `cw."companyId" is not null`}
     left join "Users" wallet_user on 
       cw."walletId" = wallet_user.id
     left join "Whatsapps" w on 
@@ -141,7 +148,7 @@ export default async function ListTicketsServiceReport(
       t."queueId" = q.id 
   -- filterPeriod`;
   }
-  let where = `where t."companyId" = ${companyId}`;
+  let where = !requestUser?.super ? `where t."companyId" = ${companyId}` : `where t."companyId" is not null`;
 
   if (_.has(params, "dateFrom")) {
     where += ` and t."createdAt" >= '${params.dateFrom} 00:00:00'`;

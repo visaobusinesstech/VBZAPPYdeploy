@@ -1,4 +1,4 @@
-# 🚀 AtendeChat - Sistema de Atendimento Multicanal
+# 🚀 VBZappy - Sistema de Atendimento Multicanal
 
 ## 📋 Descrição
 

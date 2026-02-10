@@ -21,7 +21,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     if (ticketTag) {
       const nextTag = await Tag.findOne({ where: { id: tagId } });
       if (!isNil(nextTag.greetingMessageLane) && nextTag.greetingMessageLane !== "") {
-        const ticketUpdate = await ShowTicketService(ticketId, companyId);
+        const ticketUpdate = await ShowTicketService(ticketId, companyId, req.user.id);
         const bodyMessage = ticketUpdate.user ? `*${ticketUpdate.user.name}:*\n${nextTag.greetingMessageLane}` : nextTag.greetingMessageLane;
 
         if (ticketUpdate.channel === "whatsapp") {
@@ -148,7 +148,7 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
       await TicketTag.destroy({ where: { ticketId, tagId: tagIdsWithKanbanOne } });
 
 
-    const ticket = await ShowTicketService(ticketId, companyId);
+    const ticket = await ShowTicketService(ticketId, companyId, req.user.id);
 
     const io = getIO();
     io.of(String(companyId))

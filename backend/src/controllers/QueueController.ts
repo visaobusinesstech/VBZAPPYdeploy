@@ -88,7 +88,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const { queueId } = req.params;
-  const { companyId } = req.user;
+  const { companyId, id: requestUserId } = req.user;
 
   const {
     name,
@@ -125,7 +125,8 @@ export const update = async (
     randomizeImmediate,
     tipoIntegracao
   },
-    companyId);
+    companyId,
+    +requestUserId);
 
   const io = getIO();
   io.of(String(companyId))

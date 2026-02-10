@@ -49,7 +49,7 @@ export const update = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  if (req.user.profile !== "admin") {
+  if (req.user.profile !== "admin" && !req.user.super) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 

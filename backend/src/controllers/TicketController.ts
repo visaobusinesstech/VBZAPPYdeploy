@@ -144,11 +144,13 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   return res.status(200).json({ tickets, count, hasMore });
 };
 
-export const report = async (
+export const indexReport = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
   const {
+    page,
+    pageSize,
     searchParam,
     contactId,
     whatsappId: whatsappIdsStringified,
@@ -158,30 +160,23 @@ export const report = async (
     queueIds: queueIdsStringified,
     tags: tagIdsStringified,
     users: userIdsStringified,
-    page: pageNumber,
-    pageSize,
     onlyRated
   } = req.query as IndexQueryReport;
 
-  const userId = req.user.id;
-  const { companyId } = req.user;
+  const { companyId, id: requestUserId } = req.user;
 
   let queueIds: number[] = [];
   let whatsappIds: string[] = [];
   let tagsIds: number[] = [];
   let usersIds: number[] = [];
-  let statusIds: string[] = [];
+  let status: string[] = [];
 
-  if (statusStringified) {
-    statusIds = JSON.parse(statusStringified);
+  if (queueIdsStringified) {
+    queueIds = JSON.parse(queueIdsStringified);
   }
 
   if (whatsappIdsStringified) {
     whatsappIds = JSON.parse(whatsappIdsStringified);
-  }
-
-  if (queueIdsStringified) {
-    queueIds = JSON.parse(queueIdsStringified);
   }
 
   if (tagIdsStringified) {
@@ -192,6 +187,10 @@ export const report = async (
     usersIds = JSON.parse(userIdsStringified);
   }
 
+  if (statusStringified) {
+    status = JSON.parse(statusStringified);
+  }
+
   const { tickets, totalTickets } = await ListTicketsServiceReport(
     companyId,
     {
@@ -199,17 +198,17 @@ export const report = async (
       queueIds,
       tags: tagsIds,
       users: usersIds,
-      status: statusIds,
+      status,
       dateFrom,
       dateTo,
-      userId,
       contactId,
       whatsappId: whatsappIds,
-      onlyRated: onlyRated
+      onlyRated,
+      userId: req.user.id
     },
-    +pageNumber,
-
-    +pageSize
+    +page,
+    +pageSize,
+    +requestUserId
   );
 
   return res.status(200).json({ tickets, totalTickets });
@@ -276,22 +275,25 @@ export const kanban = async (
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { contactId, status, userId, queueId, whatsappId }: TicketData =
     req.body;
-  const { companyId } = req.user;
+  const { companyId, id: requestUserId, super: isSuper } = req.user;
+  const data = req.body;
+  const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
 
   try {
     const ticket = await CreateTicketService({
       contactId,
       status,
       userId,
-      companyId,
+      companyId: targetCompanyId,
       queueId,
-      whatsappId
+      whatsappId,
+      requestUserId: +requestUserId
     });
 
     const io = getIO();
-    io.of(String(companyId))
+    io.of(String(targetCompanyId))
       // .to(ticket.status)
-      .emit(`company-${companyId}-ticket`, {
+      .emit(`company-${targetCompanyId}-ticket`, {
         action: "update",
         ticket
       });
@@ -324,7 +326,7 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
   const { id: userId, companyId } = req.user;
 
-  const contact = await ShowTicketService(ticketId, companyId);
+  const contact = await ShowTicketService(ticketId, companyId, userId);
 
   await CreateLogTicketService({
     userId,
@@ -354,7 +356,7 @@ export const showFromUUID = async (
   const { uuid } = req.params;
   const { id: userId, companyId } = req.user;
 
-  const ticket: Ticket = await ShowTicketUUIDService(uuid, companyId);
+  const ticket: Ticket = await ShowTicketUUIDService(uuid, companyId, +userId);
 
   if (
     ["whatsapp", "whatsapp_oficial"].includes(ticket.channel) &&
@@ -379,14 +381,15 @@ export const update = async (
 ): Promise<Response> => {
   const { ticketId } = req.params;
   const ticketData: TicketData = req.body;
-  const { companyId } = req.user;
+  const { id: requestUserId, companyId } = req.user;
 
   const mutex = new Mutex();
   const { ticket } = await mutex.runExclusive(async () => {
     const result = await UpdateTicketService({
       ticketData,
       ticketId,
-      companyId
+      companyId,
+      requestUserId: +requestUserId
     });
     return result;
   });
@@ -403,7 +406,7 @@ export const remove = async (
 
   // await ShowTicketService(ticketId, companyId);
 
-  const ticket = await DeleteTicketService(ticketId, userId, companyId);
+  const ticket = await DeleteTicketService(ticketId, userId, companyId, +userId);
 
   const io = getIO();
 
@@ -423,7 +426,7 @@ export const closeAll = async (
   req: Request,
   res: Response
 ): Promise<Response> => {
-  const { companyId } = req.user;
+  const { companyId, id: requestUserId } = req.user;
   const { status }: TicketData = req.body;
   const io = getIO();
 
@@ -442,7 +445,7 @@ export const closeAll = async (
       sendFarewellMessage: false
     };
 
-    await UpdateTicketService({ ticketData, ticketId: ticket.id, companyId });
+    await UpdateTicketService({ ticketData, ticketId: ticket.id, companyId, requestUserId: +requestUserId });
   });
 
   return res.status(200).json();

@@ -23,7 +23,7 @@ const ListUsersService = async ({
   pageNumber = "1",
   companyId
 }: Request): Promise<Response> => {
-  const whereCondition = {
+  const whereCondition: any = {
     [Op.or]: [
       {
         "$User.name$": Sequelize.where(
@@ -33,11 +33,14 @@ const ListUsersService = async ({
         )
       },
       { email: { [Op.like]: `%${searchParam.toLowerCase()}%` } }
-    ],
-    companyId: {
-      [Op.eq]: companyId
-    }
+    ]
   };
+
+  if (companyId) {
+    whereCondition.companyId = {
+      [Op.eq]: companyId
+    };
+  }
 
   const limit = 20;
   const offset = limit * (+pageNumber - 1);

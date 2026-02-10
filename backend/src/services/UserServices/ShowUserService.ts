@@ -7,13 +7,17 @@ import Plan from "../../models/Plan";
 
 const ShowUserService = async (
   id: string | number,
-  companyId: string | number
+  companyId: string | number,
+  skipCompanyCheck: boolean = false
 ): Promise<User> => {
+  const whereCondition: any = { id };
+
+  if (!skipCompanyCheck) {
+    whereCondition.companyId = companyId;
+  }
+
   const user = await User.findOne({
-    where: {
-      id,
-      companyId
-    },
+    where: whereCondition,
     attributes: [
       "id",
       "name",

@@ -335,7 +335,7 @@ export const update = async (
   res: Response
 ): Promise<Response> => {
   const contactData: ContactData = req.body;
-  const {companyId} = req.user;
+  const {companyId, id: requestUserId} = req.user;
   const {contactId} = req.params;
 
   const schema = Yup.object().shape({
@@ -365,7 +365,7 @@ export const update = async (
     contactData.number = number;
   }
 
-  const oldContact = await ShowContactService(contactId, companyId);
+  const oldContact = await ShowContactService(contactId, companyId, Number(requestUserId));
 
   if (
     contactData.number &&
@@ -389,7 +389,8 @@ export const update = async (
   const contact = await UpdateContactService({
     contactData,
     contactId,
-    companyId
+    companyId,
+    requestUserId: +requestUserId
   });
 
   const io = getIO();
@@ -403,9 +404,9 @@ export const update = async (
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const {contactId} = req.params;
-  const {companyId} = req.user;
+  const {companyId, id: requestUserId} = req.user;
 
-  const contact = await ShowContactService(contactId, companyId);
+  const contact = await ShowContactService(contactId, companyId, Number(requestUserId));
 
   return res.status(200).json(contact);
 };
@@ -415,9 +416,9 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const {contactId} = req.params;
-  const {companyId} = req.user;
+  const {companyId, id: requestUserId} = req.user;
 
-  await ShowContactService(contactId, companyId);
+  await ShowContactService(contactId, companyId, Number(requestUserId));
 
   await DeleteContactService(contactId);
 

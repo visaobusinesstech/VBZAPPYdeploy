@@ -7,10 +7,21 @@ import { getIO } from "../../libs/socket";
 
 const DeleteUserService = async (
   id: string | number,
-  companyId: number
+  companyId: number,
+  requestUserId?: number
 ): Promise<void> => {
+  let requestUser = null;
+  if (requestUserId) {
+    requestUser = await User.findByPk(requestUserId);
+  }
+
+  const whereCondition: any = { id };
+  if (!requestUser?.super) {
+    whereCondition.companyId = companyId;
+  }
+
   const user = await User.findOne({
-    where: { id }
+    where: whereCondition
   });
 
   if (!user) {
