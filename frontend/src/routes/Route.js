@@ -1,12 +1,20 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import { Route as RouterRoute, Redirect } from "react-router-dom";
 import moment from "moment";
 
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
 
-const Route = ({ component: Component, isPrivate = false, ...rest }) => {
+const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 	const { isAuth, loading, user } = useContext(AuthContext);
+
+	useEffect(() => {
+		if (title) {
+			document.title = `VBZappy | ${title}`;
+		} else {
+			document.title = "VBZappy";
+		}
+	}, [title]);
 
 	// Verificar se a empresa está vencida
 	const isCompanyExpired = () => {

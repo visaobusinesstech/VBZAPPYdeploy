@@ -82,8 +82,8 @@ const RoutesContent = () => {
   return (
     <TicketsContextProvider>
       <Switch>
-        <Route exact path="/login" component={Login} />
-        <Route exact path="/signup" component={Signup} />
+        <Route exact path="/login" component={Login} title="Login" />
+        <Route exact path="/signup" component={Signup} title="Cadastro" />
         <WhatsAppsProvider>
           <LoggedInLayout hideMenu={isCompanyExpired()}>
                 <Route
@@ -91,6 +91,7 @@ const RoutesContent = () => {
                   path="/financeiro"
                   component={Financeiro}
                   isPrivate
+                  title="Financeiro"
                 />
 
                 <Route
@@ -98,6 +99,7 @@ const RoutesContent = () => {
                   path="/financeiro-aberto"
                   component={Financeiro}
                   isPrivate
+                  title="Financeiro"
                 />
 
                 <Route
@@ -105,104 +107,119 @@ const RoutesContent = () => {
                   path="/companies"
                   component={Companies}
                   isPrivate
+                  title="Empresas"
                 />
                 <Route
                   exact
                   path="/birthday-settings"
                   component={BirthdaySettingsPage}
                   isPrivate
+                  title="Configurações de Aniversário"
                 />
-                <Route exact path="/" component={Dashboard} isPrivate />
-                <Route exact path="/call-historicals" component={CallHistoricals} isPrivate />
+                <Route exact path="/" component={Dashboard} isPrivate title="Dashboard" />
+                <Route exact path="/call-historicals" component={CallHistoricals} isPrivate title="Histórico de Chamadas" />
                 <Route
                   exact
                   path="/tickets/:ticketId?"
                   component={TicketResponsiveContainer}
                   isPrivate
+                  title="Atendimentos"
                 />
                 <Route
                   exact
                   path="/connections"
                   component={Connections}
                   isPrivate
+                  title="Conexões"
                 />
                 <Route
                   exact
                   path="/quick-messages"
                   component={QuickMessages}
                   isPrivate
+                  title="Respostas Rápidas"
                 />
-                <Route exact path="/todolist" component={ToDoList} isPrivate />
+                <Route exact path="/todolist" component={ToDoList} isPrivate title="Tarefas" />
                 <Route
                   exact
                   path="/schedules"
                   component={Schedules}
                   isPrivate
+                  title="Agendamentos"
                 />
-                <Route exact path="/tags" component={Tags} isPrivate />
-                <Route exact path="/contacts" component={Contacts} isPrivate />
+                <Route exact path="/tags" component={Tags} isPrivate title="Etiquetas" />
+                <Route exact path="/contacts" component={Contacts} isPrivate title="Contatos" />
                 <Route
                   exact
                   path="/contacts/import"
                   component={ContactImportPage}
                   isPrivate
+                  title="Importar Contatos"
                 />
-                <Route exact path="/wallets" component={Wallets} isPrivate />
-                <Route exact path="/helps" component={Helps} isPrivate />
-                <Route exact path="/users" component={Users} isPrivate />
+                <Route exact path="/wallets" component={Wallets} isPrivate title="Carteiras" />
+                <Route exact path="/helps" component={Helps} isPrivate title="Ajuda" />
+                <Route exact path="/users" component={Users} isPrivate title="Usuários" />
                 <Route
                   exact
                   path="/messages-api"
                   component={MessagesAPI}
                   isPrivate
+                  title="API"
                 />
                 <Route
                   exact
                   path="/settings"
                   component={Settings}
                   isPrivate
+                  title="Configurações"
                 />
-                <Route exact path="/queues" component={Queues} isPrivate />
-                <Route exact path="/reports" component={Reports} isPrivate />
+                <Route exact path="/queues" component={Queues} isPrivate title="Filas e Chatbot" />
+                <Route exact path="/reports" component={Reports} isPrivate title="Relatórios" />
                 <Route
                   exact
                   path="/relatorio-vendas"
                   component={RelatorioVendas}
                   isPrivate
+                  title="Relatório de Vendas"
                 />
                 <Route
                   exact
                   path="/queue-integration"
                   component={QueueIntegration}
                   isPrivate
+                  title="Integrações de Filas"
                 />
                 <Route
                   exact
                   path="/announcements"
                   component={Annoucements}
                   isPrivate
+                  title="Avisos"
                 />
-                <Route exact path="/chats/:id?" component={Chat} isPrivate />
-                <Route exact path="/files" component={Files} isPrivate />
+                <Route exact path="/chats/:id?" component={Chat} isPrivate title="Chats Internos" />
+                <Route exact path="/files" component={Files} isPrivate title="Lista de Arquivos" />
                 <Route
                   exact
                   path="/moments"
                   component={ChatMoments}
                   isPrivate
+                  title="Chat Moments"
                 />
-                <Route exact path="/Kanban" component={Kanban} isPrivate />
+                <Route exact path="/Kanban" component={Kanban} isPrivate title="Kanban" />
                 <Route
                   exact
                   path="/TagsKanban"
                   component={TagsKanban}
                   isPrivate
+                  title="Kanban de Tags"
                 />
-                <Route exact path="/prompts" component={Prompts} isPrivate />
+                <Route exact path="/prompts" component={Prompts} isPrivate title="Prompts" />
                 <Route
                   exact
                   path="/allConnections"
                   component={AllConnections}
                   isPrivate
+                  title="Todas Conexões"
                 />
 
                 <Route
@@ -210,18 +227,21 @@ const RoutesContent = () => {
                   path="/phrase-lists"
                   component={CampaignsPhrase}
                   isPrivate
+                  title="Frases de Campanha"
                 />
                 <Route
                   exact
                   path="/flowbuilders"
                   component={FlowBuilder}
                   isPrivate
+                  title="Flow Builder"
                 />
                 <Route
                   exact
                   path="/flowbuilder/:id?"
                   component={FlowBuilderConfig}
                   isPrivate
+                  title="Configuração de Fluxo"
                 />
 
                 {showCampaigns && (
@@ -231,30 +251,35 @@ const RoutesContent = () => {
                       path="/contact-lists"
                       component={ContactLists}
                       isPrivate
+                      title="Listas de Contatos"
                     />
                     <Route
                       exact
                       path="/contact-lists/:contactListId/contacts"
                       component={ContactListItems}
                       isPrivate
+                      title="Contatos da Lista"
                     />
                     <Route
                       exact
                       path="/campaigns"
                       component={Campaigns}
                       isPrivate
+                      title="Campanhas"
                     />
                     <Route
                       exact
                       path="/campaign/:campaignId/report"
                       component={CampaignReport}
                       isPrivate
+                      title="Relatório de Campanha"
                     />
                     <Route
                       exact
                       path="/campaigns-config"
                       component={CampaignsConfig}
                       isPrivate
+                      title="Configuração de Campanhas"
                     />
                   </>
                 )}

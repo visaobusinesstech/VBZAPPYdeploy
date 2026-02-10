@@ -737,16 +737,33 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           open={drawerOpen}
         >
           <div className={classes.toolbarIcon}>
-            <img
-              className={drawerOpen ? classes.logo : classes.hideLogo}
-              style={{
-                display: "block",
-                margin: "0 auto",
-                //height: "50px",
-                //width: "100%",
-              }}
-              alt="logo"
-            />
+            <div style={{ display: drawerOpen ? "flex" : "none", alignItems: "center", gap: "12px" }}>
+              <img
+                className={classes.logo}
+                style={{
+                  display: "block",
+                  margin: "0",
+                  height: "40px",
+                  width: "auto",
+                }}
+                alt="logo"
+              />
+              <Link to="/dashboard" style={{ textDecoration: "none" }}>
+                <Typography
+                  variant="h5"
+                  style={{
+                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
+                    color: "#000",
+                    fontWeight: "bold",
+                    lineHeight: "1",
+                    fontSize: "24px",
+                    marginTop: "4px"
+                  }}
+                >
+                  Zappy
+                </Typography>
+              </Link>
+            </div>
             <IconButton onClick={() => setDrawerOpen(!drawerOpen)}>
               <ChevronLeftIcon />
             </IconButton>
