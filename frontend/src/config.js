@@ -8,7 +8,11 @@ function getConfig(name, defaultValue = null) {
 }
 
 export function getBackendUrl() {
-    return getConfig('REACT_APP_BACKEND_URL');
+    let url = getConfig('REACT_APP_BACKEND_URL');
+    if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+        url = `https://${url}`;
+    }
+    return url;
 }
 
 export function getHoursCloseTicketsAuto() {

@@ -9,6 +9,7 @@ import prod from "../../assets/prod.png"
 import prodKey from "../../assets/prodKey.png"
 import web from "../../assets/web.png"
 import webhook from "../../assets/webhook.png"
+import { getBackendUrl } from "../../config";
 
 const InfoMP = () => {
   const theme = useTheme();
@@ -22,7 +23,7 @@ const InfoMP = () => {
     setOpen(false);
   };
   const getEndpoint = () => {
-    return process.env.REACT_APP_BACKEND_URL + '/subscription/webhook/'
+    return getBackendUrl() + '/subscription/webhook/'
   }
 
   return (

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { getBackendUrl } from '../config';
 
 export const usePdfViewer = () => {
   
@@ -12,20 +13,19 @@ export const usePdfViewer = () => {
         return url;
       }
       
+      const backendUrl = getBackendUrl() || 'http://localhost:8080';
+
       // Se começa com /public/, usar a URL base do backend
       if (url.startsWith('/public/')) {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
         return `${backendUrl}${url}`;
       }
       
       // Se é apenas um nome de arquivo ou caminho relativo
       if (!url.startsWith('/')) {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
         return `${backendUrl}/public/${url}`;
       }
       
       // Para outros casos, assumir que é um caminho absoluto do servidor
-      const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8080';
       return `${backendUrl}${url}`;
       
     } catch (error) {
