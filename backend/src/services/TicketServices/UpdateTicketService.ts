@@ -28,6 +28,9 @@ import { getJidOf } from "../WbotServices/getJidOf";
 import logger from "../../utils/logger";
 import ListUserQueueImmediateService from "../UserQueueServices/ListUserQueueImmediateService";
 import SendWhatsAppOficialMessage from "../WhatsAppOficial/SendWhatsAppOficialMessage";
+import Contact from "../../models/Contact";
+import Whatsapp from "../../models/Whatsapp";
+import AppError from "../../errors/AppError";
 
 interface TicketData {
   status?: string;

@@ -326,10 +326,10 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { ticketId } = req.params;
   const { id: userId, companyId } = req.user;
 
-  const contact = await ShowTicketService(ticketId, companyId, userId);
+  const contact = await ShowTicketService(ticketId, companyId, +userId);
 
   await CreateLogTicketService({
-    userId,
+    userId: +userId,
     ticketId,
     type: "access"
   });

@@ -414,7 +414,7 @@ export const show = async (req: Request, res: Response): Promise<Response> => {
   const { companyId, id: userId } = req.user;
   const { session } = req.query as QueryParams;
 
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, session, userId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, session, +userId);
 
   return res.status(200).json(whatsapp);
 };
@@ -428,7 +428,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     whatsappData,
     whatsappId,
     companyId,
-    requestUserId: userId
+    requestUserId: +userId
   });
 
   const io = getIO();

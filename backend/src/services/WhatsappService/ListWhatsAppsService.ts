@@ -6,16 +6,22 @@ import Prompt from "../../models/Prompt";
 interface Request {
   companyId: number;
   session?: number | string;
+  isSuper?: boolean;
 }
 
 const ListWhatsAppsService = async ({
   session,
-  companyId
+  companyId,
+  isSuper
 }: Request): Promise<Whatsapp[]> => {
+  const whereCondition: any = {};
+  
+  if (!isSuper) {
+    whereCondition.companyId = companyId;
+  }
+
   const options: FindOptions = {
-    where: {
-      companyId
-    },
+    where: whereCondition,
     include: [
       {
         model: Queue,
