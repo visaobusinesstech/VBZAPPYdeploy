@@ -469,6 +469,8 @@ const MainListItems = ({ collapsed, drawerClose }) => {
       const companyId = user.companyId;
       const planConfigs = await getPlanCompany(undefined, companyId);
 
+      if (!planConfigs || !planConfigs.plan) return;
+
       setShowCampaigns(planConfigs.plan.useCampaigns);
       setShowKanban(planConfigs.plan.useKanban);
       setShowOpenAi(planConfigs.plan.useOpenAi);
