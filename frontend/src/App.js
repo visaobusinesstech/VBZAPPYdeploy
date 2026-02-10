@@ -19,12 +19,22 @@ import "./styles/animations.css";
 
 const queryClient = new QueryClient();
 
+const isValidHex = (color) => {
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3}|[A-Fa-f0-9]{8})$/.test(color);
+};
+
 const App = () => {
   const [locale, setLocale] = useState();
-  const appColorLocalStorage =
+  
+  const getSafeColor = (color) => {
+    if (color && isValidHex(color)) return color;
+    return "#065183";
+  };
+
+  const appColorLocalStorage = getSafeColor(
     localStorage.getItem("primaryColorLight") ||
-    localStorage.getItem("primaryColorDark") ||
-    "#065183";
+    localStorage.getItem("primaryColorDark")
+  );
   const appNameLocalStorage = localStorage.getItem("appName") || "";
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
   const preferredTheme = window.localStorage.getItem("preferredTheme");
@@ -78,7 +88,7 @@ const App = () => {
             "&::-webkit-scrollbar-thumb": {
               boxShadow: "inset 0 0 6px rgba(0, 0, 0, 0.3)",
               backgroundColor:
-                mode === "light" ? primaryColorLight : primaryColorDark, // Usa cores do tema
+                mode === "light" ? getSafeColor(primaryColorLight) : getSafeColor(primaryColorDark), // Usa cores do tema
               borderRadius: "4px", // Bordas arredondadas
             },
             "&::-webkit-scrollbar-track": {
@@ -106,29 +116,29 @@ const App = () => {
           palette: {
             type: mode,
             primary: {
-              main: mode === "light" ? primaryColorLight : primaryColorDark, // Usa cores dinâmicas
+              main: mode === "light" ? getSafeColor(primaryColorLight) : getSafeColor(primaryColorDark), // Usa cores dinâmicas
               light: mode === "light"
-                ? `${primaryColorLight}80`
-                : `${primaryColorDark}80`,
+                ? `${getSafeColor(primaryColorLight)}80`
+                : `${getSafeColor(primaryColorDark)}80`,
               dark: mode === "light"
-                ? `${primaryColorLight}CC`
-                : `${primaryColorDark}CC`,
+                ? `${getSafeColor(primaryColorLight)}CC`
+                : `${getSafeColor(primaryColorDark)}CC`,
               contrastText: "#ffffff",
             },
             textPrimary:
-              mode === "light" ? primaryColorLight : primaryColorDark,
+              mode === "light" ? getSafeColor(primaryColorLight) : getSafeColor(primaryColorDark),
             borderPrimary:
-              mode === "light" ? primaryColorLight : primaryColorDark,
+              mode === "light" ? getSafeColor(primaryColorLight) : getSafeColor(primaryColorDark),
             dark: { main: mode === "light" ? "#333333" : "#F3F3F3" },
             light: { main: mode === "light" ? "#F3F3F3" : "#333333" },
-            fontColor: mode === "light" ? primaryColorLight : primaryColorDark,
+            fontColor: mode === "light" ? getSafeColor(primaryColorLight) : getSafeColor(primaryColorDark),
             tabHeaderBackground: mode === "light" ? "#EEE" : "#666",
             optionsBackground: mode === "light" ? "#fafafa" : "#333",
             fancyBackground: mode === "light" ? "#fafafa" : "#333",
             total: mode === "light" ? "#fff" : "#222",
             messageIcons: mode === "light" ? "grey" : "#F3F3F3",
             inputBackground: mode === "light" ? "#FFFFFF" : "#333",
-            barraSuperior: mode === "light" ? primaryColorLight : "#666", // Usa cor do tema
+            barraSuperior: mode === "light" ? getSafeColor(primaryColorLight) : "#666", // Usa cor do tema
           },
 
           typography: {
