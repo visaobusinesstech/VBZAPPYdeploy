@@ -460,14 +460,14 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { whatsappId } = req.params;
-  const { companyId, profile } = req.user;
+  const { companyId, profile, id: userId } = req.user;
   const io = getIO();
 
-  if (profile !== "admin") {
+  if (profile !== "admin" && !req.user.super) {
     throw new AppError("ERR_NO_PERMISSION", 403);
   }
 
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, +userId);
 
   if (whatsapp.channel === "whatsapp") {
     await DeleteBaileysService(whatsappId);

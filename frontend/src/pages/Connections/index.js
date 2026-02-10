@@ -645,14 +645,12 @@ const Connections = () => {
       >
         {confirmModalInfo.message}
       </ConfirmationModal>
-      {qrModalOpen && (
-        <QrcodeModal
-          open={qrModalOpen}
-          onClose={handleCloseQrModal}
-          whatsAppId={!whatsAppModalOpen && selectedWhatsApp?.id}
-          companyId={selectedWhatsApp?.companyId}
-        />
-      )}
+      <QrcodeModal
+        open={qrModalOpen}
+        onClose={handleCloseQrModal}
+        whatsAppId={!selectedWhatsApp ? "" : selectedWhatsApp.id}
+        companyId={selectedWhatsApp?.companyId}
+      />
       <WhatsAppModal
         open={whatsAppModalOpen}
         onClose={handleCloseWhatsAppModal}
