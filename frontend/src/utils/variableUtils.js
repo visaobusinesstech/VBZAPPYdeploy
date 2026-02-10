@@ -63,6 +63,7 @@ export const processVariablesInText = (text) => {
       const evalContext = { ...window.flowVariables };
       
       // Cria uma função que avalia a expressão com acesso às variáveis
+      // eslint-disable-next-line no-new-func
       const evalFunc = new Function(
         ...Object.keys(evalContext),
         `return ${expression}`

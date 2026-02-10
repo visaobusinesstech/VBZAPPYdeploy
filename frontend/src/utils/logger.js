@@ -20,5 +20,6 @@ export const logError = (msg, err = {}) => {
   } catch {}
 };
 
-export default { logInfo, logWarn, logError };
+const logger = { logInfo, logWarn, logError };
+export default logger;
 
