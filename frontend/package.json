@@ -17,7 +17,7 @@
     "@mui/styles": "^5.16.14",
     "@mui/x-date-pickers": "^5.0.20",
     "ace-builds": "^1.43.6",
-    "axios": "^1.13.5",
+    "axios": "^0.27.2",
     "baseline-browser-mapping": "^2.9.19",
     "chart.js": "^3.9.1",
     "chartjs-plugin-datalabels": "^2.2.0",
