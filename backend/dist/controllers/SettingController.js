@@ -32,7 +32,7 @@ const showOne = async (req, res) => {
 };
 exports.showOne = showOne;
 const update = async (req, res) => {
-    if (req.user.profile !== "admin") {
+    if (req.user.profile !== "admin" && !req.user.super) {
         throw new AppError_1.default("ERR_NO_PERMISSION", 403);
     }
     const { settingKey: key } = req.params;

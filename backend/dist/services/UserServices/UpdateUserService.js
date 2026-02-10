@@ -33,8 +33,8 @@ const ShowUserService_1 = __importDefault(require("./ShowUserService"));
 const Company_1 = __importDefault(require("../../models/Company"));
 const User_1 = __importDefault(require("../../models/User"));
 const UpdateUserService = async ({ userData, userId, companyId, requestUserId }) => {
-    const user = await (0, ShowUserService_1.default)(userId, companyId);
     const requestUser = await User_1.default.findByPk(requestUserId);
+    const user = await (0, ShowUserService_1.default)(userId, companyId, requestUser.super);
     if (requestUser.super === false && userData.companyId !== companyId) {
         throw new AppError_1.default("O usuário não pertence à esta empresa");
     }

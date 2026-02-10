@@ -31,8 +31,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const sequelize_1 = require("sequelize");
 const _ = __importStar(require("lodash"));
 const database_1 = __importDefault(require("../../database"));
-async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 20) {
+const User_1 = __importDefault(require("../../models/User"));
+async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 20, requestUserId) {
     const offset = (page - 1) * pageSize;
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
     const onlyRated = params.onlyRated === "true" ? true : false;
     let query = "";
     console.log(params);
@@ -71,7 +76,7 @@ async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 
   LEFT JOIN (
         SELECT DISTINCT ON ("ticketId") *
         FROM "TicketTraking"
-        WHERE "companyId" = ${companyId}
+        WHERE ${!requestUser?.super ? `"companyId" = ${companyId}` : `"companyId" is not null`}
         ORDER BY "ticketId", "id" DESC
     ) tt ON t.id = tt."ticketId"
 	inner join "UserRatings" ur on
@@ -80,7 +85,7 @@ async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 
     left join "Contacts" c on 
       t."contactId" = c.id 
     left join "ContactWallets" cw on 
-      c.id = cw."contactId" and cw."companyId" = ${companyId}
+      c.id = cw."contactId" and ${!requestUser?.super ? `cw."companyId" = ${companyId}` : `cw."companyId" is not null`}
     left join "Users" wallet_user on 
       cw."walletId" = wallet_user.id
     left join "Whatsapps" w on 
@@ -125,7 +130,7 @@ async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 
   LEFT JOIN (
         SELECT DISTINCT ON ("ticketId") *
         FROM "TicketTraking"
-        WHERE "companyId" = ${companyId}
+        WHERE ${!requestUser?.super ? `"companyId" = ${companyId}` : `"companyId" is not null`}
         ORDER BY "ticketId", "id" DESC
     ) tt ON t.id = tt."ticketId"
 	left join "UserRatings" ur on
@@ -133,7 +138,7 @@ async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 
     left join "Contacts" c on 
       t."contactId" = c.id 
     left join "ContactWallets" cw on 
-      c.id = cw."contactId" and cw."companyId" = ${companyId}
+      c.id = cw."contactId" and ${!requestUser?.super ? `cw."companyId" = ${companyId}` : `cw."companyId" is not null`}
     left join "Users" wallet_user on 
       cw."walletId" = wallet_user.id
     left join "Whatsapps" w on 
@@ -144,7 +149,7 @@ async function ListTicketsServiceReport(companyId, params, page = 1, pageSize = 
       t."queueId" = q.id 
   -- filterPeriod`;
     }
-    let where = `where t."companyId" = ${companyId}`;
+    let where = !requestUser?.super ? `where t."companyId" = ${companyId}` : `where t."companyId" is not null`;
     if (_.has(params, "dateFrom")) {
         where += ` and t."createdAt" >= '${params.dateFrom} 00:00:00'`;
     }

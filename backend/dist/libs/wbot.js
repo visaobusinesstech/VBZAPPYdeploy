@@ -284,12 +284,12 @@ const initWASocket = async (whatsapp) => {
                             }
                             setTimeout(async () => {
                                 const wpp = await Whatsapp_1.default.findByPk(whatsappId);
-                                io.of(String(companyId))
+                                io.of("/" + String(companyId))
                                     .emit(`importMessages-${wpp.companyId}`, {
                                     action: "update",
                                     status: { this: -1, all: -1 }
                                 });
-                                io.of(String(companyId))
+                                io.of("/" + String(companyId))
                                     .emit(`company-${companyId}-whatsappSession`, {
                                     action: "update",
                                     session: wpp
@@ -315,7 +315,7 @@ const initWASocket = async (whatsapp) => {
                                         }
                                     }
                                 }
-                                io.of(String(companyId))
+                                io.of("/" + String(companyId))
                                     .emit(`company-${companyId}-whatsappSession`, {
                                     action: "update",
                                     session: wpp
@@ -334,7 +334,7 @@ const initWASocket = async (whatsapp) => {
                             await (0, DeleteBaileysService_1.default)(whatsapp.id);
                             // await deleteFolder(folderSessions);
                             await cache_1.default.delFromPattern(`sessions:${whatsapp.id}:*`);
-                            io.of(String(companyId))
+                            io.of("/" + String(companyId))
                                 .emit(`company-${whatsapp.companyId}-whatsappSession`, {
                                 action: "update",
                                 session: whatsapp
@@ -380,8 +380,8 @@ const initWASocket = async (whatsapp) => {
                             imgUrl: wsocket.user?.imgUrl,
                             status: wsocket.user?.status
                         }, `Session ${name} details`);
-                        io.of(String(companyId))
-                            .emit(`company-${whatsapp.companyId}-whatsappSession`, {
+                        io.of("/" + String(companyId))
+                            .emit(`company-${companyId}-whatsappSession`, {
                             action: "update",
                             session: whatsapp
                         });
@@ -401,7 +401,7 @@ const initWASocket = async (whatsapp) => {
                             await (0, DeleteBaileysService_1.default)(whatsappUpdate.id);
                             // await deleteFolder(folderSessions);
                             await cache_1.default.delFromPattern(`sessions:${whatsapp.id}:*`);
-                            io.of(String(companyId))
+                            io.of("/" + String(companyId))
                                 .emit(`company-${whatsapp.companyId}-whatsappSession`, {
                                 action: "update",
                                 session: whatsappUpdate
@@ -425,10 +425,11 @@ const initWASocket = async (whatsapp) => {
                                 wsocket.id = whatsapp.id;
                                 sessions.push(wsocket);
                             }
-                            io.of(String(companyId))
-                                .emit(`company-${whatsapp.companyId}-whatsappSession`, {
+                            console.log(`[WBOT] Emitting QRCode for company ${companyId} - Session ${whatsapp.id} - QR Length: ${qr.length}`);
+                            io.of("/" + String(companyId))
+                                .emit(`company-${companyId}-whatsappSession`, {
                                 action: "update",
-                                session: whatsapp
+                                session: { ...whatsapp.toJSON(), qrcode: qr }
                             });
                         }
                     }

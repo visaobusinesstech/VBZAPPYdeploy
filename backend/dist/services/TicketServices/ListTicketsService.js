@@ -28,7 +28,7 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
     whereCondition = {
         [sequelize_1.Op.or]: [{ userId }, { status: "pending" }],
         queueId: showTicketWithoutQueue ? { [sequelize_1.Op.or]: [queueIds, null] } : { [sequelize_1.Op.or]: [queueIds] },
-        companyId
+        companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }
     };
     let includeCondition;
     includeCondition = [
@@ -82,14 +82,14 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
     }
     else if (status === "group" && user.allowGroup && user.whatsappId) {
         whereCondition = {
-            companyId,
+            companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
             queueId: { [sequelize_1.Op.or]: [queueIds, null] },
             whatsappId: user.whatsappId
         };
     }
     else if (status === "group" && (user.allowGroup) && !user.whatsappId) {
         whereCondition = {
-            companyId,
+            companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
             queueId: { [sequelize_1.Op.or]: [queueIds, null] },
         };
     }
@@ -98,16 +98,16 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
     if (status === "chatbot") {
         // Para status chatbot, mostrar tickets que estão sendo processados pelo flowbuilder
         // Admins podem ver todos, usuários comuns só os seus ou os sem responsável
-        if (user.profile === "admin" || showAll === "true") {
+        if (user.profile === "admin" || showAll === "true" || user.super) {
             whereCondition = {
-                companyId,
+                companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                 status: "chatbot",
                 queueId: showTicketWithoutQueue ? { [sequelize_1.Op.or]: [queueIds, null] } : { [sequelize_1.Op.or]: [queueIds] }
             };
         }
         else {
             whereCondition = {
-                companyId,
+                companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                 status: "chatbot",
                 [sequelize_1.Op.or]: [{ userId }, { userId: null }],
                 queueId: showTicketWithoutQueue ? { [sequelize_1.Op.or]: [queueIds, null] } : { [sequelize_1.Op.or]: [queueIds] }
@@ -123,7 +123,7 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
                     userId: { [sequelize_1.Op.or]: [user.id, null] },
                     queueId: { [sequelize_1.Op.or]: [queueIds, null] },
                     status: "pending",
-                    companyId
+                    companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }
                 },
             });
         }
@@ -132,7 +132,7 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
                 where: {
                     userId: { [sequelize_1.Op.or]: [user.id, null] },
                     status: "pending",
-                    companyId
+                    companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }
                 },
             });
         }
@@ -151,7 +151,7 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
         if (!showTicketAllQueues) {
             ticketsIds = await Ticket_1.default.findAll({
                 where: {
-                    companyId,
+                    companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                     userId: { [sequelize_1.Op.or]: [user.id, null] },
                     status: "pending",
                     queueId: { [sequelize_1.Op.in]: queueIds }
@@ -161,7 +161,7 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
         else {
             ticketsIds = await Ticket_1.default.findAll({
                 where: {
-                    companyId,
+                    companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                     [sequelize_1.Op.or]: [{
                             userId: { [sequelize_1.Op.or]: [user.id, null] }
                         },
@@ -182,18 +182,25 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
             id: ticketsIntersection
         };
     }
-    if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled") && status !== "search") {
+    if (user.profile === "user" && !user.super) {
+        whereCondition = {
+            ...whereCondition,
+            userId
+        };
+    }
+    // Se for admin ou super, pode ver tudo se quiser
+    if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super) && status !== "search") {
         if (user.allHistoric === "enabled" && showTicketWithoutQueue) {
-            whereCondition = { companyId };
+            whereCondition = { companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] } };
         }
         else if (user.allHistoric === "enabled" && !showTicketWithoutQueue) {
-            whereCondition = { companyId, queueId: { [sequelize_1.Op.ne]: null } };
+            whereCondition = { companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }, queueId: { [sequelize_1.Op.ne]: null } };
         }
         else if (user.allHistoric === "disabled" && showTicketWithoutQueue) {
-            whereCondition = { companyId, queueId: { [sequelize_1.Op.or]: [queueIds, null] } };
+            whereCondition = { companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }, queueId: { [sequelize_1.Op.or]: [queueIds, null] } };
         }
         else if (user.allHistoric === "disabled" && !showTicketWithoutQueue) {
-            whereCondition = { companyId, queueId: queueIds };
+            whereCondition = { companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] }, queueId: queueIds };
         }
     }
     if (status && status !== "search") {
@@ -206,11 +213,11 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
         let latestTickets;
         if (!showTicketAllQueues) {
             let whereCondition2 = {
-                companyId,
+                companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                 status: "closed",
             };
             // Se showAll === "true" E usuário tem permissão (admin ou allUserChat), mostrar todos
-            if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled")) {
+            if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super)) {
                 whereCondition2 = {
                     ...whereCondition2,
                     queueId: showTicketWithoutQueue ? { [sequelize_1.Op.or]: [queueIds, null] } : queueIds,
@@ -232,11 +239,11 @@ const ListTicketsService = async ({ searchParam = "", pageNumber = "1", queueIds
         }
         else {
             let whereCondition2 = {
-                companyId,
+                companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] },
                 status: "closed",
             };
             // Se showAll === "true" E usuário tem permissão (admin ou allUserChat), mostrar todos
-            if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled")) {
+            if (showAll === "true" && (user.profile === "admin" || user.allUserChat === "enabled" || user.super)) {
                 whereCondition2 = {
                     ...whereCondition2,
                     queueId: showTicketWithoutQueue ? { [sequelize_1.Op.or]: [queueIds, null] } : queueIds,

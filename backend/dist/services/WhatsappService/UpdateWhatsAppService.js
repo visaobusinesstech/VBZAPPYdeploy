@@ -32,7 +32,7 @@ const AppError_1 = __importDefault(require("../../errors/AppError"));
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const ShowWhatsAppService_1 = __importDefault(require("./ShowWhatsAppService"));
 const AssociateWhatsappQueue_1 = __importDefault(require("./AssociateWhatsappQueue"));
-const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId }) => {
+const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId, requestUserId }) => {
     const schema = Yup.object().shape({
         name: Yup.string().min(2),
         status: Yup.string(),
@@ -62,7 +62,7 @@ const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId }) =>
         }
     }
     // console.log("GETTING WHATSAPP SHOW WHATSAPP 1", whatsappId, companyId)
-    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId);
+    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId, undefined, requestUserId);
     // DEBUG - Log dos dados antes da atualização
     console.log(`[WHATSAPP-SERVICE] Atualizando conexão ${whatsappId} com:`, {
         flowIdNotPhrase: flowIdNotPhrase,

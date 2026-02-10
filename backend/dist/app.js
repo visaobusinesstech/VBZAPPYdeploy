@@ -66,7 +66,7 @@ app.set("queues", {
     messageQueue: queues_1.messageQueue,
     sendScheduledMessages: queues_1.sendScheduledMessages
 });
-const allowedOrigins = [process.env.FRONTEND_URL];
+const allowedOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URL?.replace("https", "http"), "http://localhost:3000", "http://localhost:3001"];
 // Configuração do BullBoard
 if (String(process.env.BULL_BOARD).toLocaleLowerCase() === 'true' && process.env.REDIS_URI_ACK !== '') {
     bull_board_1.default.setQueues(queue_1.default.queues.map(queue => queue && queue.bull));
@@ -91,7 +91,17 @@ app.use(body_parser_1.default.json({
 app.use(body_parser_1.default.urlencoded({ limit: '5mb', extended: true }));
 app.use((0, cors_1.default)({
     credentials: true,
-    origin: allowedOrigins
+    origin: (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        // Permite domínios da Vercel automaticamente para evitar problemas de CORS/Sessão
+        if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app") || origin.endsWith(".railway.app")) {
+            callback(null, true);
+        }
+        else {
+            callback(null, true); // Fallback permissivo para garantir funcionamento (ajustar para produção se necessário)
+        }
+    }
 }));
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());

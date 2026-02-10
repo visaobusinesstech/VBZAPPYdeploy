@@ -20,12 +20,13 @@ const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const ListTicketsServiceKanban = async ({ searchParam = "", pageNumber = "1", queueIds, tags, users, status, date, dateStart, dateEnd, updatedAt, showAll, userId, withUnreadMessages, companyId }) => {
     // Verificar se o usuário é admin
     const user = await (0, ShowUserService_1.default)(userId, companyId);
-    const isAdmin = user.profile === 'admin';
+    const isAdmin = user.profile === 'admin' || user.super;
     let whereCondition = isAdmin
-        ? { queueId: { [sequelize_1.Op.or]: [queueIds, null] } }
+        ? { queueId: { [sequelize_1.Op.or]: [queueIds, null] }, companyId: !user.super ? companyId : { [sequelize_1.Op.or]: [companyId, { [sequelize_1.Op.ne]: null }] } }
         : {
             [sequelize_1.Op.or]: [{ userId }, { status: "pending" }],
-            queueId: { [sequelize_1.Op.or]: [queueIds, null] }
+            queueId: { [sequelize_1.Op.or]: [queueIds, null] },
+            companyId
         };
     let includeCondition;
     includeCondition = [

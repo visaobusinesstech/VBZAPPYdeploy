@@ -6,13 +6,14 @@ import UpdateWhatsAppService from "../services/WhatsappService/UpdateWhatsAppSer
 import DeleteBaileysService from "../services/BaileysServices/DeleteBaileysService";
 import cacheLayer from "../libs/cache";
 import Whatsapp from "../models/Whatsapp";
+import { getIO } from "../libs/socket";
 
 const store = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
-  const { companyId } = req.user;
+  const { companyId, id: userId } = req.user;
 
   // console.log("STARTING SESSION", whatsappId)
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, +userId);
   await StartWhatsAppSession(whatsapp, companyId);
 
 
@@ -21,19 +22,14 @@ const store = async (req: Request, res: Response): Promise<Response> => {
 
 const update = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
-  const { companyId } = req.user;
+  const { companyId, id: userId } = req.user;
 
-  // const { whatsapp } = await UpdateWhatsAppService({
-  //   whatsappId,
-  //   companyId,
-  //   whatsappData: { session: "", requestQR: true }
-  // });
-  const whatsapp = await Whatsapp.findOne({ where: { id: whatsappId, companyId } });
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, +userId);
 
   await whatsapp.update({ session: "" });
 
   if (whatsapp.channel === "whatsapp") {
-    await StartWhatsAppSession(whatsapp, companyId);
+    await StartWhatsAppSession(whatsapp, whatsapp.companyId);
   }
 
   return res.status(200).json({ message: "Starting session." });
@@ -41,10 +37,10 @@ const update = async (req: Request, res: Response): Promise<Response> => {
 
 const remove = async (req: Request, res: Response): Promise<Response> => {
   const { whatsappId } = req.params;
-  const { companyId } = req.user;
+  const { companyId, id: userId } = req.user;
+  const io = getIO();
   console.log("DISCONNECTING SESSION", whatsappId)
-  const whatsapp = await ShowWhatsAppService(whatsappId, companyId);
-
+  const whatsapp = await ShowWhatsAppService(whatsappId, companyId, undefined, +userId);
 
   if (whatsapp.channel === "whatsapp") {
     await DeleteBaileysService(whatsappId);

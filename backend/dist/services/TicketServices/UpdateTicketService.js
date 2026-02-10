@@ -52,7 +52,10 @@ const getJidOf_1 = require("../WbotServices/getJidOf");
 const logger_1 = __importDefault(require("../../utils/logger"));
 const ListUserQueueImmediateService_1 = __importDefault(require("../UserQueueServices/ListUserQueueImmediateService"));
 const SendWhatsAppOficialMessage_1 = __importDefault(require("../WhatsAppOficial/SendWhatsAppOficialMessage"));
-const UpdateTicketService = async ({ ticketData, ticketId, companyId }) => {
+const Contact_1 = __importDefault(require("../../models/Contact"));
+const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
+const AppError_1 = __importDefault(require("../../errors/AppError"));
+const UpdateTicketService = async ({ ticketData, ticketId, companyId, requestUserId }) => {
     try {
         let { queueId, userId, sendFarewellMessage = true, amountUsedBotQueues, lastMessage, integrationId, useIntegration, unreadMessages, msgTransfer, isTransfered = false, status, valorVenda, motivoNaoVenda, motivoFinalizacao, finalizadoComVenda } = ticketData;
         let isBot = ticketData.isBot || false;
@@ -63,7 +66,49 @@ const UpdateTicketService = async ({ ticketData, ticketId, companyId }) => {
                 companyId: companyId
             }
         });
-        let ticket = await (0, ShowTicketService_1.default)(ticketId, companyId);
+        let requestUser = null;
+        if (requestUserId) {
+            requestUser = await User_1.default.findByPk(requestUserId);
+        }
+        const whereCondition = { id: ticketId };
+        if (!requestUser?.super) {
+            whereCondition.companyId = companyId;
+        }
+        let ticket = await Ticket_1.default.findOne({
+            where: whereCondition,
+            include: [
+                {
+                    model: Contact_1.default,
+                    as: "contact",
+                    include: [
+                        "extraInfo",
+                        "tags",
+                        {
+                            association: "wallets",
+                            attributes: ["id", "name"]
+                        },
+                    ]
+                },
+                {
+                    model: User_1.default,
+                    as: "user",
+                    attributes: ["id", "name"]
+                },
+                {
+                    model: Queue_1.default,
+                    as: "queue",
+                    attributes: ["id", "name", "color"]
+                },
+                {
+                    model: Whatsapp_1.default,
+                    as: "whatsapp",
+                    attributes: ["id", "name", "groupAsTicket", "greetingMediaAttachment", "facebookUserToken", "facebookUserId", "color", "wavoip"]
+                }
+            ]
+        });
+        if (!ticket) {
+            throw new AppError_1.default("ERR_NO_TICKET_FOUND", 404);
+        }
         if (ticket.channel === "whatsapp" && ticket.whatsappId) {
             (0, SetTicketMessagesAsRead_1.default)(ticket);
         }
@@ -82,7 +127,7 @@ const UpdateTicketService = async ({ ticketData, ticketId, companyId }) => {
                 useIntegration: null,
                 integrationId: null
             });
-            io.of(String(companyId))
+            io.of(String(ticket.companyId))
                 // .to(oldStatus)
                 // .to(ticketId.toString())
                 .emit(`company-${ticket.companyId}-ticket`, {
@@ -101,7 +146,7 @@ const UpdateTicketService = async ({ ticketData, ticketId, companyId }) => {
             });
             if (otherTicket) {
                 if (otherTicket.id !== ticket.id) {
-                    otherTicket = await (0, ShowTicketService_1.default)(otherTicket.id, companyId);
+                    otherTicket = await (0, ShowTicketService_1.default)(otherTicket.id, companyId, requestUserId);
                     return { ticket: otherTicket, oldStatus, oldUserId };
                 }
             }

@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.triggerFlow = exports.transferTickets = exports.relatorioVendas = exports.closeAll = exports.remove = exports.update = exports.showFromUUID = exports.showLog = exports.show = exports.store = exports.kanban = exports.report = exports.index = void 0;
+exports.triggerFlow = exports.transferTickets = exports.relatorioVendas = exports.closeAll = exports.remove = exports.update = exports.showFromUUID = exports.showLog = exports.show = exports.store = exports.kanban = exports.indexReport = exports.index = void 0;
 const socket_1 = require("../libs/socket");
 const Ticket_1 = __importDefault(require("../models/Ticket"));
 const FlowBuilder_1 = require("../models/FlowBuilder");
@@ -71,23 +71,19 @@ const index = async (req, res) => {
     return res.status(200).json({ tickets, count, hasMore });
 };
 exports.index = index;
-const report = async (req, res) => {
-    const { searchParam, contactId, whatsappId: whatsappIdsStringified, dateFrom, dateTo, status: statusStringified, queueIds: queueIdsStringified, tags: tagIdsStringified, users: userIdsStringified, page: pageNumber, pageSize, onlyRated } = req.query;
-    const userId = req.user.id;
-    const { companyId } = req.user;
+const indexReport = async (req, res) => {
+    const { page, pageSize, searchParam, contactId, whatsappId: whatsappIdsStringified, dateFrom, dateTo, status: statusStringified, queueIds: queueIdsStringified, tags: tagIdsStringified, users: userIdsStringified, onlyRated } = req.query;
+    const { companyId, id: requestUserId } = req.user;
     let queueIds = [];
     let whatsappIds = [];
     let tagsIds = [];
     let usersIds = [];
-    let statusIds = [];
-    if (statusStringified) {
-        statusIds = JSON.parse(statusStringified);
+    let status = [];
+    if (queueIdsStringified) {
+        queueIds = JSON.parse(queueIdsStringified);
     }
     if (whatsappIdsStringified) {
         whatsappIds = JSON.parse(whatsappIdsStringified);
-    }
-    if (queueIdsStringified) {
-        queueIds = JSON.parse(queueIdsStringified);
     }
     if (tagIdsStringified) {
         tagsIds = JSON.parse(tagIdsStringified);
@@ -95,22 +91,25 @@ const report = async (req, res) => {
     if (userIdsStringified) {
         usersIds = JSON.parse(userIdsStringified);
     }
+    if (statusStringified) {
+        status = JSON.parse(statusStringified);
+    }
     const { tickets, totalTickets } = await (0, ListTicketsServiceReport_1.default)(companyId, {
         searchParam,
         queueIds,
         tags: tagsIds,
         users: usersIds,
-        status: statusIds,
+        status,
         dateFrom,
         dateTo,
-        userId,
         contactId,
         whatsappId: whatsappIds,
-        onlyRated: onlyRated
-    }, +pageNumber, +pageSize);
+        onlyRated,
+        userId: req.user.id
+    }, +page, +pageSize, +requestUserId);
     return res.status(200).json({ tickets, totalTickets });
 };
-exports.report = report;
+exports.indexReport = indexReport;
 const kanban = async (req, res) => {
     const { pageNumber, status, date, dateStart, dateEnd, updatedAt, searchParam, showAll, queueIds: queueIdsStringified, tags: tagIdsStringified, users: userIdsStringified, withUnreadMessages } = req.query;
     const userId = req.user.id;
@@ -148,20 +147,23 @@ const kanban = async (req, res) => {
 exports.kanban = kanban;
 const store = async (req, res) => {
     const { contactId, status, userId, queueId, whatsappId } = req.body;
-    const { companyId } = req.user;
+    const { companyId, id: requestUserId, super: isSuper } = req.user;
+    const data = req.body;
+    const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
     try {
         const ticket = await (0, CreateTicketService_1.default)({
             contactId,
             status,
             userId,
-            companyId,
+            companyId: targetCompanyId,
             queueId,
-            whatsappId
+            whatsappId,
+            requestUserId: +requestUserId
         });
         const io = (0, socket_1.getIO)();
-        io.of(String(companyId))
+        io.of(String(targetCompanyId))
             // .to(ticket.status)
-            .emit(`company-${companyId}-ticket`, {
+            .emit(`company-${targetCompanyId}-ticket`, {
             action: "update",
             ticket
         });
@@ -193,9 +195,9 @@ exports.store = store;
 const show = async (req, res) => {
     const { ticketId } = req.params;
     const { id: userId, companyId } = req.user;
-    const contact = await (0, ShowTicketService_1.default)(ticketId, companyId);
+    const contact = await (0, ShowTicketService_1.default)(ticketId, companyId, +userId);
     await (0, CreateLogTicketService_1.default)({
-        userId,
+        userId: +userId,
         ticketId,
         type: "access"
     });
@@ -212,7 +214,7 @@ exports.showLog = showLog;
 const showFromUUID = async (req, res) => {
     const { uuid } = req.params;
     const { id: userId, companyId } = req.user;
-    const ticket = await (0, ShowTicketFromUUIDService_1.default)(uuid, companyId);
+    const ticket = await (0, ShowTicketFromUUIDService_1.default)(uuid, companyId, +userId);
     if (["whatsapp", "whatsapp_oficial"].includes(ticket.channel) &&
         ticket.whatsappId &&
         ticket.unreadMessages > 0) {
@@ -229,13 +231,14 @@ exports.showFromUUID = showFromUUID;
 const update = async (req, res) => {
     const { ticketId } = req.params;
     const ticketData = req.body;
-    const { companyId } = req.user;
+    const { id: requestUserId, companyId } = req.user;
     const mutex = new async_mutex_1.Mutex();
     const { ticket } = await mutex.runExclusive(async () => {
         const result = await (0, UpdateTicketService_1.default)({
             ticketData,
             ticketId,
-            companyId
+            companyId,
+            requestUserId: +requestUserId
         });
         return result;
     });
@@ -246,7 +249,7 @@ const remove = async (req, res) => {
     const { ticketId } = req.params;
     const { id: userId, companyId } = req.user;
     // await ShowTicketService(ticketId, companyId);
-    const ticket = await (0, DeleteTicketService_1.default)(ticketId, userId, companyId);
+    const ticket = await (0, DeleteTicketService_1.default)(ticketId, userId, companyId, +userId);
     const io = (0, socket_1.getIO)();
     io.of(String(companyId))
         // .to(ticket.status)
@@ -260,7 +263,7 @@ const remove = async (req, res) => {
 };
 exports.remove = remove;
 const closeAll = async (req, res) => {
-    const { companyId } = req.user;
+    const { companyId, id: requestUserId } = req.user;
     const { status } = req.body;
     const io = (0, socket_1.getIO)();
     const { rows: tickets } = await Ticket_1.default.findAndCountAll({
@@ -276,7 +279,7 @@ const closeAll = async (req, res) => {
             amountUsedBotQueues: 0,
             sendFarewellMessage: false
         };
-        await (0, UpdateTicketService_1.default)({ ticketData, ticketId: ticket.id, companyId });
+        await (0, UpdateTicketService_1.default)({ ticketData, ticketId: ticket.id, companyId, requestUserId: +requestUserId });
     });
     return res.status(200).json();
 };

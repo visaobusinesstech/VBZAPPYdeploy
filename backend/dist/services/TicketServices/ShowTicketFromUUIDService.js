@@ -13,12 +13,17 @@ const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const Company_1 = __importDefault(require("../../models/Company"));
 const QueueIntegrations_1 = __importDefault(require("../../models/QueueIntegrations"));
 const ContactWallet_1 = __importDefault(require("../../models/ContactWallet"));
-const ShowTicketUUIDService = async (uuid, companyId) => {
+const ShowTicketUUIDService = async (uuid, companyId, requestUserId) => {
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    const whereCondition = { uuid };
+    if (!requestUser?.super) {
+        whereCondition.companyId = companyId;
+    }
     const ticket = await Ticket_1.default.findOne({
-        where: {
-            uuid,
-            companyId
-        },
+        where: whereCondition,
         attributes: [
             "id",
             "uuid",

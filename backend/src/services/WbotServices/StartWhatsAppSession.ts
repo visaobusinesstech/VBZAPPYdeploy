@@ -17,6 +17,9 @@ export const StartWhatsAppSession = async (
     return;
   }
 
+  // ✅ CORREÇÃO: Forçar uso do companyId do WhatsApp para garantir namespace correto (Super Admin)
+  const sessionCompanyId = whatsapp.companyId;
+
   try {
     await whatsapp.update({ status: "OPENING" });
   } catch (updateErr) {
@@ -24,8 +27,8 @@ export const StartWhatsAppSession = async (
   }
 
   const io = getIO();
-  io.of(String(companyId))
-    .emit(`company-${companyId}-whatsappSession`, {
+  io.of("/" + String(sessionCompanyId))
+    .emit(`company-${sessionCompanyId}-whatsappSession`, {
       action: "update",
       session: whatsapp
     });
@@ -55,8 +58,8 @@ export const StartWhatsAppSession = async (
         logger.warn(`[StartWhatsAppSession] Erro ao buscar grupos para whatsapp ${whatsapp.id}: ${groupErr}`);
       }
 
-      wbotMessageListener(wbot, companyId);
-      wbotMonitor(wbot, whatsapp, companyId);
+      wbotMessageListener(wbot, sessionCompanyId);
+      wbotMonitor(wbot, whatsapp, sessionCompanyId);
     }
   } catch (err) {
     Sentry.captureException(err);

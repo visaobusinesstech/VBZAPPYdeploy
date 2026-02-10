@@ -8,9 +8,17 @@ const AppError_1 = __importDefault(require("../../errors/AppError"));
 const UpdateDeletedUserOpenTicketsStatus_1 = __importDefault(require("../../helpers/UpdateDeletedUserOpenTicketsStatus"));
 const Chat_1 = __importDefault(require("../../models/Chat"));
 const socket_1 = require("../../libs/socket");
-const DeleteUserService = async (id, companyId) => {
+const DeleteUserService = async (id, companyId, requestUserId) => {
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    const whereCondition = { id };
+    if (!requestUser?.super) {
+        whereCondition.companyId = companyId;
+    }
     const user = await User_1.default.findOne({
-        where: { id }
+        where: whereCondition
     });
     if (!user) {
         throw new AppError_1.default("ERR_NO_USER_FOUND", 404);

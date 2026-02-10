@@ -33,7 +33,7 @@ const initIO = (httpServer) => {
         });
     }
     const workspaces = io.of(/^\/\w+$/);
-    workspaces.on("connection", socket => {
+    workspaces.on("connection", async (socket) => {
         const token_api_oficial = process.env.TOKEN_API_OFICIAL || "";
         const token = Array.isArray(socket?.handshake?.query?.token) ? socket.handshake.query.token[1] : socket?.handshake?.query?.token?.split(" ")[1];
         if (!token) {
@@ -46,8 +46,14 @@ const initIO = (httpServer) => {
                 const decodedPayload = decoded;
                 const companyIdToken = decodedPayload.companyId;
                 if (+companyIdToken !== +companyId) {
-                    logger_1.default.error(`CompanyId do token ${companyIdToken} diferente da companyId do socket ${companyId}`);
-                    return socket.disconnect();
+                    const user = await User_1.default.findByPk(decodedPayload.id);
+                    if (user?.super) {
+                        // Super user allowed
+                    }
+                    else {
+                        logger_1.default.error(`CompanyId do token ${companyIdToken} diferente da companyId do socket ${companyId}`);
+                        return socket.disconnect();
+                    }
                 }
             }
             catch (error) {

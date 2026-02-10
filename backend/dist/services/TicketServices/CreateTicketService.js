@@ -13,13 +13,13 @@ const ShowWhatsAppService_1 = __importDefault(require("../WhatsappService/ShowWh
 const CheckContactOpenTickets_1 = __importDefault(require("../../helpers/CheckContactOpenTickets"));
 const CreateLogTicketService_1 = __importDefault(require("./CreateLogTicketService"));
 const ShowTicketService_1 = __importDefault(require("./ShowTicketService"));
-const CreateTicketService = async ({ contactId, status, userId, queueId, companyId, whatsappId = "" }) => {
+const CreateTicketService = async ({ contactId, status, userId, queueId, companyId, whatsappId = "", requestUserId }) => {
     const io = (0, socket_1.getIO)();
     let whatsapp;
     let defaultWhatsapp;
     if (whatsappId !== "undefined" && whatsappId !== null && whatsappId !== "") {
         // console.log("GETTING WHATSAPP CREATE TICKETSERVICE", whatsappId)
-        whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId);
+        whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId, undefined, requestUserId);
     }
     defaultWhatsapp = await (0, GetDefaultWhatsAppByUser_1.default)(userId);
     if (whatsapp) {
@@ -29,7 +29,7 @@ const CreateTicketService = async ({ contactId, status, userId, queueId, company
         defaultWhatsapp = await (0, GetDefaultWhatsApp_1.default)(companyId);
     // console.log("defaultWhatsapp", defaultWhatsapp.id, defaultWhatsapp.channel)
     await (0, CheckContactOpenTickets_1.default)(contactId, defaultWhatsapp.id);
-    const { isGroup } = await (0, ShowContactService_1.default)(contactId, companyId);
+    const { isGroup } = await (0, ShowContactService_1.default)(contactId, companyId, requestUserId);
     let ticket = await Ticket_1.default.create({
         contactId,
         companyId,
@@ -46,7 +46,7 @@ const CreateTicketService = async ({ contactId, status, userId, queueId, company
     //   { companyId, queueId, userId, status: isGroup? "group": "open", isBot: true },
     //   { where: { id } }
     // );
-    ticket = await (0, ShowTicketService_1.default)(ticket.id, companyId);
+    ticket = await (0, ShowTicketService_1.default)(ticket.id, companyId, requestUserId);
     if (!ticket) {
         throw new AppError_1.default("ERR_CREATING_TICKET");
     }

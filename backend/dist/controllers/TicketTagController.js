@@ -21,7 +21,7 @@ const store = async (req, res) => {
         if (ticketTag) {
             const nextTag = await Tag_1.default.findOne({ where: { id: tagId } });
             if (!(0, lodash_1.isNil)(nextTag.greetingMessageLane) && nextTag.greetingMessageLane !== "") {
-                const ticketUpdate = await (0, ShowTicketService_1.default)(ticketId, companyId);
+                const ticketUpdate = await (0, ShowTicketService_1.default)(ticketId, companyId, +req.user.id);
                 const bodyMessage = ticketUpdate.user ? `*${ticketUpdate.user.name}:*\n${nextTag.greetingMessageLane}` : nextTag.greetingMessageLane;
                 if (ticketUpdate.channel === "whatsapp") {
                     // Enviar mensagem de texto
@@ -136,7 +136,7 @@ const remove = async (req, res) => {
         const tagIdsWithKanbanOne = tagsWithKanbanOne.map((tag) => tag.id);
         if (tagIdsWithKanbanOne)
             await TicketTag_1.default.destroy({ where: { ticketId, tagId: tagIdsWithKanbanOne } });
-        const ticket = await (0, ShowTicketService_1.default)(ticketId, companyId);
+        const ticket = await (0, ShowTicketService_1.default)(ticketId, companyId, +req.user.id);
         const io = (0, socket_1.getIO)();
         io.of(String(companyId))
             // .to(ticket.status)

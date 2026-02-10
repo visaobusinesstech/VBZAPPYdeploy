@@ -14,11 +14,13 @@ const ListUsersService = async ({ searchParam = "", pageNumber = "1", companyId 
                 "$User.name$": sequelize_1.Sequelize.where(sequelize_1.Sequelize.fn("LOWER", sequelize_1.Sequelize.col("User.name")), "LIKE", `%${searchParam.toLowerCase()}%`)
             },
             { email: { [sequelize_1.Op.like]: `%${searchParam.toLowerCase()}%` } }
-        ],
-        companyId: {
-            [sequelize_1.Op.eq]: companyId
-        }
+        ]
     };
+    if (companyId) {
+        whereCondition.companyId = {
+            [sequelize_1.Op.eq]: companyId
+        };
+    }
     const limit = 20;
     const offset = limit * (+pageNumber - 1);
     const { count, rows: users } = await User_1.default.findAndCountAll({

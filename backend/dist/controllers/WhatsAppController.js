@@ -31,9 +31,9 @@ const QuickMessageComponent_1 = __importDefault(require("../models/QuickMessageC
 const CreateService_1 = __importDefault(require("../services/QuickMessageService/CreateService"));
 const QuickMessage_1 = __importDefault(require("../models/QuickMessage"));
 const index = async (req, res) => {
-    const { companyId } = req.user;
+    const { companyId, super: isSuper } = req.user;
     const { session } = req.query;
-    const whatsapps = await (0, ListWhatsAppsService_1.default)({ companyId, session });
+    const whatsapps = await (0, ListWhatsAppsService_1.default)({ companyId, session, isSuper });
     return res.status(200).json(whatsapps);
 };
 exports.index = index;
@@ -49,9 +49,11 @@ const indexFilter = async (req, res) => {
 };
 exports.indexFilter = indexFilter;
 const store = async (req, res) => {
-    const { name, status, isDefault, greetingMessage, complationMessage, outOfHoursMessage, queueIds, token, maxUseBotQueues, timeUseBotQueues, expiresTicket, allowGroup, timeSendQueue, sendIdQueue, timeInactiveMessage, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS, whenExpiresTicket, expiresInactiveMessage, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, groupAsTicket, timeCreateNewTicket, schedules, promptId, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, phone_number_id, waba_id, send_token, business_id, phone_number, color, waba_webhook, channel } = req.body;
-    const { companyId } = req.user;
-    const company = await (0, ShowCompanyService_1.default)(companyId);
+    const { companyId, super: isSuper } = req.user;
+    const data = req.body;
+    const { name, status, isDefault, greetingMessage, complationMessage, outOfHoursMessage, queueIds, token, maxUseBotQueues, timeUseBotQueues, expiresTicket, allowGroup, timeSendQueue, sendIdQueue, timeInactiveMessage, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS, whenExpiresTicket, expiresInactiveMessage, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, groupAsTicket, timeCreateNewTicket, schedules, promptId, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, phone_number_id, waba_id, send_token, business_id, phone_number, color, waba_webhook, channel } = data;
+    const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
+    const company = await (0, ShowCompanyService_1.default)(targetCompanyId);
     const plan = await (0, ShowPlanService_1.default)(company.planId);
     if (!plan.useWhatsapp) {
         return res.status(400).json({
@@ -66,7 +68,7 @@ const store = async (req, res) => {
         complationMessage,
         outOfHoursMessage,
         queueIds,
-        companyId,
+        companyId: targetCompanyId,
         token,
         maxUseBotQueues,
         timeUseBotQueues,
@@ -104,7 +106,7 @@ const store = async (req, res) => {
     });
     if (["whatsapp_oficial"].includes(whatsapp.channel)) {
         try {
-            const company = {
+            const companyData = {
                 companyId: String(whatsapp.companyId),
                 companyName: whatsapp.company.name
             };
@@ -119,7 +121,7 @@ const store = async (req, res) => {
             };
             const data = {
                 email: whatsapp.company.email,
-                company,
+                company: companyData,
                 whatsApp: whatsappOficial
             };
             const { webhookLink, connectionId } = await (0, whatsAppOficial_service_1.CreateCompanyConnectionOficial)(data);
@@ -135,15 +137,15 @@ const store = async (req, res) => {
         }
     }
     if (["whatsapp"].includes(whatsapp.channel)) {
-        (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, companyId);
+        (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, targetCompanyId);
     }
     const io = (0, socket_1.getIO)();
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of("/" + String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
         action: "update",
         whatsapp
     });
     if (oldDefaultWhatsapp) {
-        io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+        io.of("/" + String(oldDefaultWhatsapp.companyId)).emit(`company-${oldDefaultWhatsapp.companyId}-whatsapp`, {
             action: "update",
             whatsapp: oldDefaultWhatsapp
         });
@@ -257,52 +259,29 @@ const storeFacebook = async (req, res) => {
 exports.storeFacebook = storeFacebook;
 const show = async (req, res) => {
     const { whatsappId } = req.params;
-    const { companyId } = req.user;
+    const { companyId, id: userId } = req.user;
     const { session } = req.query;
-    // console.log("SHOWING WHATSAPP", whatsappId)
-    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId, session);
+    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId, session, +userId);
     return res.status(200).json(whatsapp);
 };
 exports.show = show;
 const update = async (req, res) => {
     const { whatsappId } = req.params;
     const whatsappData = req.body;
-    const { companyId } = req.user;
-    // DEBUG - Log dos dados recebidos
-    console.log(`[WHATSAPP-UPDATE] Dados recebidos para conexão ${whatsappId}:`, {
-        flowIdNotPhrase: whatsappData.flowIdNotPhrase,
-        flowIdWelcome: whatsappData.flowIdWelcome,
-        flowIdInactiveTime: whatsappData.flowIdInactiveTime
-    });
+    const { companyId, id: userId } = req.user;
     const { whatsapp, oldDefaultWhatsapp } = await (0, UpdateWhatsAppService_1.default)({
         whatsappData,
         whatsappId,
-        companyId
+        companyId,
+        requestUserId: +userId
     });
-    if (["whatsapp_oficial"].includes(whatsapp.channel)) {
-        try {
-            const whatsappOficial = {
-                token_mult100: whatsapp.token,
-                phone_number_id: whatsapp.phone_number_id,
-                waba_id: whatsapp.waba_id,
-                send_token: whatsapp.send_token,
-                business_id: whatsapp.business_id,
-                phone_number: whatsapp.phone_number,
-                idEmpresaMult100: companyId
-            };
-            await (0, whatsAppOficial_service_1.UpdateConnectionWhatsAppOficial)(whatsapp.waba_webhook_id, whatsappOficial);
-        }
-        catch (error) {
-            logger_1.default.info("ERROR", error);
-        }
-    }
     const io = (0, socket_1.getIO)();
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
         action: "update",
         whatsapp
     });
     if (oldDefaultWhatsapp) {
-        io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+        io.of(String(oldDefaultWhatsapp.companyId)).emit(`company-${oldDefaultWhatsapp.companyId}-whatsapp`, {
             action: "update",
             whatsapp: oldDefaultWhatsapp
         });
@@ -318,18 +297,18 @@ const closedTickets = async (req, res) => {
 exports.closedTickets = closedTickets;
 const remove = async (req, res) => {
     const { whatsappId } = req.params;
-    const { companyId, profile } = req.user;
+    const { companyId, profile, id: userId } = req.user;
     const io = (0, socket_1.getIO)();
-    if (profile !== "admin") {
+    if (profile !== "admin" && !req.user.super) {
         throw new AppError_1.default("ERR_NO_PERMISSION", 403);
     }
-    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId);
+    const whatsapp = await (0, ShowWhatsAppService_1.default)(whatsappId, companyId, undefined, +userId);
     if (whatsapp.channel === "whatsapp") {
         await (0, DeleteBaileysService_1.default)(whatsappId);
         await (0, DeleteWhatsAppService_1.default)(whatsappId);
         await cache_1.default.delFromPattern(`sessions:${whatsappId}:*`);
         (0, wbot_1.removeWbot)(+whatsappId);
-        io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+        io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
             action: "delete",
             whatsappId: +whatsappId
         });
@@ -346,7 +325,7 @@ const remove = async (req, res) => {
         catch (error) {
             logger_1.default.info("ERROR", error);
         }
-        io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+        io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
             action: "delete",
             whatsappId: +whatsappId
         });
@@ -364,7 +343,7 @@ const remove = async (req, res) => {
             }
         });
         for await (const whatsapp of getAllSameToken) {
-            io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+            io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
                 action: "delete",
                 whatsappId: whatsapp.id
             });

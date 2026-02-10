@@ -336,13 +336,13 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
               setTimeout(async () => {
                 const wpp = await Whatsapp.findByPk(whatsappId);
 
-                io.of(String(companyId))
+                io.of("/" + String(companyId))
                   .emit(`importMessages-${wpp.companyId}`, {
                     action: "update",
                     status: { this: -1, all: -1 }
                   });
 
-                io.of(String(companyId))
+                io.of("/" + String(companyId))
                   .emit(`company-${companyId}-whatsappSession`, {
                     action: "update",
                     session: wpp
@@ -377,7 +377,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                     }
                   }
                 }
-                io.of(String(companyId))
+                io.of("/" + String(companyId))
                   .emit(`company-${companyId}-whatsappSession`, {
                     action: "update",
                     session: wpp
@@ -408,7 +408,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                 await DeleteBaileysService(whatsapp.id);
                 // await deleteFolder(folderSessions);
                 await cacheLayer.delFromPattern(`sessions:${whatsapp.id}:*`);
-                io.of(String(companyId))
+                io.of("/" + String(companyId))
                   .emit(`company-${whatsapp.companyId}-whatsappSession`, {
                     action: "update",
                     session: whatsapp
@@ -472,8 +472,8 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
 
 
 
-              io.of(String(companyId))
-                .emit(`company-${whatsapp.companyId}-whatsappSession`, {
+              io.of("/" + String(companyId))
+                .emit(`company-${companyId}-whatsappSession`, {
                   action: "update",
                   session: whatsapp
                 });
@@ -498,7 +498,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                 await DeleteBaileysService(whatsappUpdate.id);
                 // await deleteFolder(folderSessions);
                 await cacheLayer.delFromPattern(`sessions:${whatsapp.id}:*`);
-                io.of(String(companyId))
+                io.of("/" + String(companyId))
                   .emit(`company-${whatsapp.companyId}-whatsappSession`, {
                     action: "update",
                     session: whatsappUpdate
@@ -526,9 +526,9 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                   sessions.push(wsocket);
                 }
 
-                console.log(`[WBOT] Emitting QRCode for company ${companyId} - Session ${whatsapp.id}`);
-                io.of(String(companyId))
-                  .emit(`company-${whatsapp.companyId}-whatsappSession`, {
+                console.log(`[WBOT] Emitting QRCode for company ${companyId} - Session ${whatsapp.id} - QR Length: ${qr.length}`);
+                io.of("/" + String(companyId))
+                  .emit(`company-${companyId}-whatsappSession`, {
                     action: "update",
                     session: { ...whatsapp.toJSON(), qrcode: qr }
                   });

@@ -275,7 +275,7 @@ const store = async (req, res) => {
 exports.store = store;
 const update = async (req, res) => {
     const contactData = req.body;
-    const { companyId } = req.user;
+    const { companyId, id: requestUserId } = req.user;
     const { contactId } = req.params;
     const schema = Yup.object().shape({
         name: Yup.string(),
@@ -300,7 +300,7 @@ const update = async (req, res) => {
         const number = validNumber.jid.replace(/\D/g, "");
         contactData.number = number;
     }
-    const oldContact = await (0, ShowContactService_1.default)(contactId, companyId);
+    const oldContact = await (0, ShowContactService_1.default)(contactId, companyId, Number(requestUserId));
     if (contactData.number &&
         oldContact.number != contactData.number &&
         oldContact.channel == "whatsapp") {
@@ -315,7 +315,8 @@ const update = async (req, res) => {
     const contact = await (0, UpdateContactService_1.default)({
         contactData,
         contactId,
-        companyId
+        companyId,
+        requestUserId: +requestUserId
     });
     const io = (0, socket_1.getIO)();
     io.of(String(companyId)).emit(`company-${companyId}-contact`, {
@@ -327,15 +328,15 @@ const update = async (req, res) => {
 exports.update = update;
 const show = async (req, res) => {
     const { contactId } = req.params;
-    const { companyId } = req.user;
-    const contact = await (0, ShowContactService_1.default)(contactId, companyId);
+    const { companyId, id: requestUserId } = req.user;
+    const contact = await (0, ShowContactService_1.default)(contactId, companyId, Number(requestUserId));
     return res.status(200).json(contact);
 };
 exports.show = show;
 const remove = async (req, res) => {
     const { contactId } = req.params;
-    const { companyId } = req.user;
-    await (0, ShowContactService_1.default)(contactId, companyId);
+    const { companyId, id: requestUserId } = req.user;
+    await (0, ShowContactService_1.default)(contactId, companyId, Number(requestUserId));
     await (0, DeleteContactService_1.default)(contactId);
     const io = (0, socket_1.getIO)();
     io.of(String(companyId)).emit(`company-${companyId}-contact`, {

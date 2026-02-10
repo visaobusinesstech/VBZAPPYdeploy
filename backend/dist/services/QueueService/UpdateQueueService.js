@@ -33,7 +33,7 @@ const Chatbot_1 = __importDefault(require("../../models/Chatbot"));
 const Queue_1 = __importDefault(require("../../models/Queue"));
 const ShowQueueService_1 = __importDefault(require("./ShowQueueService"));
 const User_1 = __importDefault(require("../../models/User"));
-const UpdateQueueService = async (queueId, queueData, companyId) => {
+const UpdateQueueService = async (queueId, queueData, companyId, requestUserId) => {
     const { color, name, chatbots } = queueData;
     const queueSchema = Yup.object().shape({
         name: Yup.string()
@@ -73,7 +73,11 @@ const UpdateQueueService = async (queueId, queueData, companyId) => {
         throw new AppError_1.default(err.message);
     }
     const queue = await (0, ShowQueueService_1.default)(queueId, companyId);
-    if (queue.companyId !== companyId) {
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    if (!requestUser?.super && queue.companyId !== companyId) {
         throw new AppError_1.default("Não é permitido alterar registros de outra empresa");
     }
     if (chatbots) {

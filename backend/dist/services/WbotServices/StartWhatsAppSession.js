@@ -40,6 +40,8 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
         logger_1.default.error(`[StartWhatsAppSession] Whatsapp não fornecido para companyId ${companyId}`);
         return;
     }
+    // ✅ CORREÇÃO: Forçar uso do companyId do WhatsApp para garantir namespace correto (Super Admin)
+    const sessionCompanyId = whatsapp.companyId;
     try {
         await whatsapp.update({ status: "OPENING" });
     }
@@ -47,8 +49,8 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
         logger_1.default.error(`[StartWhatsAppSession] Erro ao atualizar status: ${updateErr}`);
     }
     const io = (0, socket_1.getIO)();
-    io.of(String(companyId))
-        .emit(`company-${companyId}-whatsappSession`, {
+    io.of("/" + String(sessionCompanyId))
+        .emit(`company-${sessionCompanyId}-whatsappSession`, {
         action: "update",
         session: whatsapp
     });
@@ -75,8 +77,8 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
                 // ✅ CORREÇÃO: Não interromper sessão se falhar ao buscar grupos
                 logger_1.default.warn(`[StartWhatsAppSession] Erro ao buscar grupos para whatsapp ${whatsapp.id}: ${groupErr}`);
             }
-            (0, wbotMessageListener_1.wbotMessageListener)(wbot, companyId);
-            (0, wbotMonitor_1.default)(wbot, whatsapp, companyId);
+            (0, wbotMessageListener_1.wbotMessageListener)(wbot, sessionCompanyId);
+            (0, wbotMonitor_1.default)(wbot, whatsapp, sessionCompanyId);
         }
     }
     catch (err) {

@@ -9,7 +9,8 @@ const Queue_1 = __importDefault(require("../../models/Queue"));
 const Chatbot_1 = __importDefault(require("../../models/Chatbot"));
 const Prompt_1 = __importDefault(require("../../models/Prompt"));
 const FlowBuilder_1 = require("../../models/FlowBuilder");
-const ShowWhatsAppService = async (id, companyId, session) => {
+const User_1 = __importDefault(require("../../models/User"));
+const ShowWhatsAppService = async (id, companyId, session, requestUserId) => {
     const findOptions = {
         include: [
             {
@@ -41,7 +42,11 @@ const ShowWhatsAppService = async (id, companyId, session) => {
         findOptions.attributes = { exclude: ["session"] };
     }
     const whatsapp = await Whatsapp_1.default.findByPk(id, findOptions);
-    if (whatsapp?.companyId !== companyId) {
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    if (!requestUser?.super && whatsapp?.companyId !== companyId) {
         throw new AppError_1.default("Não é possível acessar registros de outra empresa");
     }
     if (!whatsapp) {

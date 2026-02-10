@@ -54,16 +54,7 @@ const store = async (req, res) => {
         name: Yup.string()
             .required()
             .min(2, "ERR_COMPANY_INVALID_NAME")
-            .required("ERR_COMPANY_INVALID_NAME")
-            .test("Check-unique-name", "ERR_COMPANY_NAME_ALREADY_EXISTS", async (value) => {
-            if (value) {
-                const companyWithSameName = await Company_1.default.findOne({
-                    where: { name: value }
-                });
-                return !companyWithSameName;
-            }
-            return false;
-        }),
+            .required("ERR_COMPANY_INVALID_NAME"),
         document: Yup.string()
             .min(11, "ERR_COMPANY_INVALID_DOCUMENT")
             .max(14, "ERR_COMPANY_INVALID_DOCUMENT")
@@ -116,16 +107,7 @@ const update = async (req, res) => {
         name: Yup.string()
             .required()
             .min(2, "ERR_COMPANY_INVALID_NAME")
-            .required("ERR_COMPANY_INVALID_NAME")
-            .test("Check-unique-name", "ERR_COMPANY_NAME_ALREADY_EXISTS", async (value) => {
-            if (value) {
-                const companyWithSameName = await Company_1.default.findOne({
-                    where: { name: value, id: { [sequelize_1.Op.ne]: companyData.id } }
-                });
-                return !companyWithSameName;
-            }
-            return false;
-        }),
+            .required("ERR_COMPANY_INVALID_NAME"),
         phone: Yup.string(),
         email: Yup.string(),
         document: Yup.string()

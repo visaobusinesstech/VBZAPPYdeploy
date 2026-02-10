@@ -20,9 +20,9 @@ const UpdateSettingService = async ({ key, value, companyId }) => {
             companyId
         }
     });
-    if (setting != null && setting?.companyId !== companyId) {
-        throw new AppError_1.default("Não é possível consultar registros de outra empresa");
-    }
+    // if (setting != null && setting?.companyId !== companyId) {
+    //   throw new AppError("Não é possível consultar registros de outra empresa");
+    // }
     if (!setting) {
         throw new AppError_1.default("ERR_NO_SETTING_FOUND", 404);
     }

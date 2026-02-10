@@ -15,12 +15,17 @@ const Company_1 = __importDefault(require("../../models/Company"));
 const QueueIntegrations_1 = __importDefault(require("../../models/QueueIntegrations"));
 const TicketTag_1 = __importDefault(require("../../models/TicketTag"));
 const ContactWallet_1 = __importDefault(require("../../models/ContactWallet"));
-const ShowTicketService = async (id, companyId) => {
+const ShowTicketService = async (id, companyId, userId) => {
+    let user = null;
+    if (userId) {
+        user = await User_1.default.findByPk(userId);
+    }
+    const whereCondition = { id };
+    if (!user?.super) {
+        whereCondition.companyId = companyId;
+    }
     const ticket = await Ticket_1.default.findOne({
-        where: {
-            id,
-            companyId
-        },
+        where: whereCondition,
         attributes: [
             "id",
             "uuid",
@@ -125,7 +130,7 @@ const ShowTicketService = async (id, companyId) => {
         ]
     });
     if (ticket?.companyId !== companyId) {
-        throw new AppError_1.default("Não é possível consultar registros de outra empresa");
+        // throw new AppError("Não é possível consultar registros de outra empresa");
     }
     if (!ticket) {
         throw new AppError_1.default("ERR_NO_TICKET_FOUND", 404);

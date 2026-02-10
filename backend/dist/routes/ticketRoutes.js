@@ -35,7 +35,7 @@ ticketRoutes.get("/tickets/:ticketId", isAuth_1.default, TicketController.show);
 ticketRoutes.post("/tickets/:ticketId/trigger-flow", isAuth_1.default, TicketController.triggerFlow);
 ticketRoutes.get("/tickets-log/:ticketId", isAuth_1.default, TicketController.showLog);
 ticketRoutes.get("/ticket/kanban", isAuth_1.default, TicketController.kanban);
-ticketRoutes.get("/ticketreport/reports", isAuth_1.default, TicketController.report);
+ticketRoutes.get("/ticketreport/reports", isAuth_1.default, TicketController.indexReport);
 ticketRoutes.get("/ticketreport/vendas", isAuth_1.default, TicketController.relatorioVendas);
 ticketRoutes.get("/tickets/u/:uuid", isAuth_1.default, TicketController.showFromUUID);
 ticketRoutes.post("/tickets", isAuth_1.default, TicketController.store);

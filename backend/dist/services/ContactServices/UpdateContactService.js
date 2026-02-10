@@ -9,6 +9,7 @@ const Contact_1 = __importDefault(require("../../models/Contact"));
 const ContactCustomField_1 = __importDefault(require("../../models/ContactCustomField"));
 const DeleteContactWalletService_1 = __importDefault(require("./DeleteContactWalletService"));
 const UpdateContactWalletsService_1 = __importDefault(require("./UpdateContactWalletsService"));
+const User_1 = __importDefault(require("../../models/User"));
 const updateCustomFields = async (contactId, extraInfo) => {
     const currentFields = await ContactCustomField_1.default.findAll({
         where: { contactId }
@@ -29,7 +30,7 @@ const updateCustomFields = async (contactId, extraInfo) => {
         }
     }));
 };
-const UpdateContactService = async ({ contactData, contactId, companyId }) => {
+const UpdateContactService = async ({ contactData, contactId, companyId, requestUserId }) => {
     const { email, name, number, extraInfo, acceptAudioMessage, active, disableBot, remoteJid, contactWallets, birthDate // 🎂 INCLUIR NO DESTRUCTURING
      } = contactData;
     const contact = await Contact_1.default.findOne({
@@ -39,7 +40,11 @@ const UpdateContactService = async ({ contactData, contactId, companyId }) => {
     if (!contact) {
         throw new AppError_1.default("Contato não encontrado", 404);
     }
-    if (contact.companyId !== companyId) {
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    if (!requestUser?.super && contact.companyId !== companyId) {
         throw new AppError_1.default("Não é possível alterar registros de outra empresa");
     }
     if (extraInfo) {

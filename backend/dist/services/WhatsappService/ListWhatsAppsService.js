@@ -6,11 +6,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Queue_1 = __importDefault(require("../../models/Queue"));
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const Prompt_1 = __importDefault(require("../../models/Prompt"));
-const ListWhatsAppsService = async ({ session, companyId }) => {
+const ListWhatsAppsService = async ({ session, companyId, isSuper }) => {
+    const whereCondition = {};
+    if (!isSuper) {
+        whereCondition.companyId = companyId;
+    }
     const options = {
-        where: {
-            companyId
-        },
+        where: whereCondition,
         include: [
             {
                 model: Queue_1.default,

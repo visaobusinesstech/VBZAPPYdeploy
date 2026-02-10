@@ -9,12 +9,13 @@ const AppError_1 = __importDefault(require("../../errors/AppError"));
 const Queue_1 = __importDefault(require("../../models/Queue"));
 const Company_1 = __importDefault(require("../../models/Company"));
 const Plan_1 = __importDefault(require("../../models/Plan"));
-const ShowUserService = async (id, companyId) => {
+const ShowUserService = async (id, companyId, skipCompanyCheck = false) => {
+    const whereCondition = { id };
+    if (!skipCompanyCheck) {
+        whereCondition.companyId = companyId;
+    }
     const user = await User_1.default.findOne({
-        where: {
-            id,
-            companyId
-        },
+        where: whereCondition,
         attributes: [
             "id",
             "name",

@@ -260,13 +260,13 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   const io = getIO();
-  io.of(String(targetCompanyId)).emit(`company-${targetCompanyId}-whatsapp`, {
+  io.of("/" + String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.of(String(targetCompanyId)).emit(`company-${targetCompanyId}-whatsapp`, {
+    io.of("/" + String(oldDefaultWhatsapp.companyId)).emit(`company-${oldDefaultWhatsapp.companyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -432,13 +432,13 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   });
 
   const io = getIO();
-  io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+  io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
     action: "update",
     whatsapp
   });
 
   if (oldDefaultWhatsapp) {
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of(String(oldDefaultWhatsapp.companyId)).emit(`company-${oldDefaultWhatsapp.companyId}-whatsapp`, {
       action: "update",
       whatsapp: oldDefaultWhatsapp
     });
@@ -475,7 +475,7 @@ export const remove = async (
     await cacheLayer.delFromPattern(`sessions:${whatsappId}:*`);
     removeWbot(+whatsappId);
 
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
       action: "delete",
       whatsappId: +whatsappId
     });
@@ -494,7 +494,7 @@ export const remove = async (
       logger.info("ERROR", error);
     }
 
-    io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+    io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
       action: "delete",
       whatsappId: +whatsappId
     });
@@ -516,7 +516,7 @@ export const remove = async (
     });
 
     for await (const whatsapp of getAllSameToken) {
-      io.of(String(companyId)).emit(`company-${companyId}-whatsapp`, {
+      io.of(String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {
         action: "delete",
         whatsappId: whatsapp.id
       });

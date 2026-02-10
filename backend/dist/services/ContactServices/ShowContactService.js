@@ -9,7 +9,7 @@ const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const ContactWallet_1 = __importDefault(require("../../models/ContactWallet"));
 const Queue_1 = __importDefault(require("../../models/Queue"));
 const User_1 = __importDefault(require("../../models/User"));
-const ShowContactService = async (id, companyId) => {
+const ShowContactService = async (id, companyId, requestUserId) => {
     const contact = await Contact_1.default.findByPk(id, {
         include: ["extraInfo", "tags",
             {
@@ -36,11 +36,15 @@ const ShowContactService = async (id, companyId) => {
             },
         ]
     });
-    if (contact?.companyId !== companyId) {
-        throw new AppError_1.default("Não é possível excluir registro de outra empresa");
-    }
     if (!contact) {
         throw new AppError_1.default("ERR_NO_CONTACT_FOUND", 404);
+    }
+    let requestUser = null;
+    if (requestUserId) {
+        requestUser = await User_1.default.findByPk(requestUserId);
+    }
+    if (!requestUser?.super && contact.companyId !== companyId) {
+        throw new AppError_1.default("Não é possível consultar registros de outra empresa");
     }
     return contact;
 };

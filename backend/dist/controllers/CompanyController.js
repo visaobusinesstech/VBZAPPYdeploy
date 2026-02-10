@@ -228,6 +228,10 @@ const update = async (req, res) => {
     const companyData = req.body;
     const schema = Yup.object().shape({
         name: Yup.string()
+            .required()
+            .min(2, "ERR_COMPANY_INVALID_NAME")
+            .required("ERR_COMPANY_INVALID_NAME"),
+        phone: Yup.string()
     });
     try {
         await schema.validate(companyData);

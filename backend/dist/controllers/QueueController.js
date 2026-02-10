@@ -61,7 +61,7 @@ const show = async (req, res) => {
 exports.show = show;
 const update = async (req, res) => {
     const { queueId } = req.params;
-    const { companyId } = req.user;
+    const { companyId, id: requestUserId } = req.user;
     const { name, color, greetingMessage, outOfHoursMessage, schedules, chatbots, orderQueue, tempoRoteador, ativarRoteador, integrationId, fileListId, closeTicket, typeRandomMode, randomizeImmediate, tipoIntegracao } = req.body;
     const queue = await (0, UpdateQueueService_1.default)(queueId, { name,
         color,
@@ -78,7 +78,7 @@ const update = async (req, res) => {
         typeRandomMode,
         randomizeImmediate,
         tipoIntegracao
-    }, companyId);
+    }, companyId, +requestUserId);
     const io = (0, socket_1.getIO)();
     io.of(String(companyId))
         .emit(`company-${companyId}-queue`, {
