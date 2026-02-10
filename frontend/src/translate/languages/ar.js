@@ -1689,7 +1689,7 @@ const messages = {
             sendQueuePositionMessage: "رسالة الموقع في الطابور",
             AcceptCallWhatsappMessage: "رسالة إعلام عدم قبول المكالمات",
             greetingAcceptedMessage: "رسالة الترحيب عند قبول المحادثة",
-            transferMessage: "رسالة النقل - ${queue.name} = الطابور المقصود",
+            transferMessage: "رسالة النقل - ${queue.name} = الطابور المقصود", // eslint-disable-line no-template-curly-in-string
           },
           LGPD: {
             title: "LGPD",

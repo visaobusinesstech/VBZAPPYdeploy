@@ -1671,7 +1671,7 @@ const messages = {
             AcceptCallWhatsappMessage: "Message to Inform Call Not Accepted",
             greetingAcceptedMessage: "Greeting Message When Accepting Ticket",
             transferMessage:
-              "Transfer Message - ${queue.name} = destination queue",
+              "Transfer Message - ${queue.name} = destination queue", // eslint-disable-line no-template-curly-in-string
           },
           LGPD: {
             title: "LGPD",

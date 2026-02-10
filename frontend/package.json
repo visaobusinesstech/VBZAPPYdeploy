@@ -101,7 +101,7 @@
     "start": "npx serve -s build -l 3000",
     "dev": "react-scripts start",
     "start:dev": "set NODE_OPTIONS='--openssl-legacy-provider' && react-scripts start",
-    "build": "export CI=false && export NODE_OPTIONS='--max-old-space-size=4096 --openssl-legacy-provider' && react-scripts build",
+    "build": "CI=false NODE_OPTIONS='--max-old-space-size=4096 --openssl-legacy-provider' react-scripts build",
     "builddev": "export NODE_OPTIONS='--openssl-legacy-provider' && react-scripts build",
     "winBuild": "react-scripts build",
     "test": "export NODE_OPTIONS='--openssl-legacy-provider' && react-scripts test",

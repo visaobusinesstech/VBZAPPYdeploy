@@ -1716,7 +1716,7 @@ const messages = {
               "Mensagem para informar que não aceita ligações",
             greetingAcceptedMessage: "Mensagem de Saudação ao aceitar ticket",
             transferMessage:
-              `Mensagem de transferência - ${queue.name} = fila destino`,
+              "Mensagem de transferência - ${queue.name} = fila destino", // eslint-disable-line no-template-curly-in-string
           },
           LGPD: {
             title: "LGPD",

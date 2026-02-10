@@ -1635,7 +1635,7 @@ const messages = {
               "Mensaje para informar que no se aceptan llamadas",
             greetingAcceptedMessage: "Mensaje de saludo al aceptar el ticket",
             transferMessage:
-              "Mensaje de transferencia - ${queue.name} = cola de destino",
+              "Mensaje de transferencia - ${queue.name} = cola de destino", // eslint-disable-line no-template-curly-in-string
           },
           LGPD: {
             title: "Politica de Privacidad",
