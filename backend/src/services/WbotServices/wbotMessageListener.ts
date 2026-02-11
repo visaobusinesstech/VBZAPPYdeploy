@@ -5308,7 +5308,7 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
 
         if (!isCampaign) {
           if (REDIS_URI_MSG_CONN !== "") {
-            console.log(`[DEBUG 2026] Adicionando msg ID ${message.key.id} para fila Redis: ${process.env.DB_NAME}-handleMessage`);
+            // console.log(`[DEBUG 2026] Adicionando msg ID ${message.key.id} para fila Redis: ${process.env.DB_NAME}-handleMessage`);
             //} && (!message.key.fromMe || (message.key.fromMe && !message.key.id.startsWith('BAE')))) {
             try {
               await BullQueues.add(
@@ -5319,15 +5319,15 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
                   jobId: `${wbot.id}-handleMessage-${message.key.id}`
                 }
               );
-              console.log(`[DEBUG 2026] Msg ID ${message.key.id} adicionada ao Redis com sucesso.`);
+              // console.log(`[DEBUG 2026] Msg ID ${message.key.id} adicionada ao Redis com sucesso.`);
             } catch (e) {
               console.error(`[DEBUG 2026] ERRO ao adicionar msg ID ${message.key.id} ao Redis:`, e);
               Sentry.captureException(e);
             }
           } else {
-            console.log(`[DEBUG 2026] Processando msg ID ${message.key.id} diretamente (sem Redis).`);
+            // console.log(`[DEBUG 2026] Processando msg ID ${message.key.id} diretamente (sem Redis).`);
             await handleMessage(message, wbot, companyId);
-            console.log(`[DEBUG 2026] handleMessage finalizado para msg ID ${message.key.id}.`);
+            // console.log(`[DEBUG 2026] handleMessage finalizado para msg ID ${message.key.id}.`);
           }
         } else {
             console.log(`[DEBUG 2026] Mensagem de campanha ignorada: ${message.key.id}`);

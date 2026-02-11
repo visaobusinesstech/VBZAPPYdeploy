@@ -362,11 +362,11 @@ async function apiMessageQueue() {
               }
             }
           } catch (whatsappError) {
-            logger.error(`Erro ao processar whatsapp ${whatsapp?.id}:`, {
-              error: whatsappError,
-              message: whatsappError.message,
-              stack: whatsappError.stack
-            });
+            // logger.error(`Erro ao processar whatsapp ${whatsapp?.id}:`, {
+            //   error: whatsappError,
+            //   message: whatsappError.message,
+            //   stack: whatsappError.stack
+            // });
           }
         }));
       } catch (companyError) {

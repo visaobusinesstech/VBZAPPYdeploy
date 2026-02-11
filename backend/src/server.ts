@@ -26,7 +26,7 @@ const server = app.listen(process.env.PORT, async () => {
     await startQueueProcess();
   });
 
-  if (process.env.REDIS_URI_ACK && process.env.REDIS_URI_ACK !== '') {
+  if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== '') {
     BullQueue.process();
   }
 
