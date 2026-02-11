@@ -34,7 +34,8 @@ const lodash_1 = require("lodash");
 const logger_1 = __importDefault(require("../utils/logger"));
 const database_1 = __importDefault(require("../database"));
 const User_1 = __importDefault(require("../models/User"));
-const connection = process.env.REDIS_URI || "";
+const redis_1 = require("../config/redis");
+const connection = redis_1.REDIS_URI_CONNECTION;
 exports.userMonitor = new bull_1.default("UserMonitor", connection);
 async function handleLoginStatus(job) {
     const users = await database_1.default.query(`select id from "Users" where "updatedAt" < now() - '5 minutes'::interval and online = true`, { type: sequelize_1.QueryTypes.SELECT });

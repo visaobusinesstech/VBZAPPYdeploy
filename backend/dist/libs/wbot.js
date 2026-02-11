@@ -193,7 +193,7 @@ const initWASocket = async (whatsapp) => {
                 /** caching makes the store faster to send/recv messages */
                 keys: state.keys,
             },
-            browser: baileys_1.Browsers.ubuntu("Chrome"),
+            browser: ["VBZappy", "Chrome", "10.0"],
             syncFullHistory: true,
             connectTimeoutMs: 60000,
             defaultQueryTimeoutMs: 60000,
@@ -336,6 +336,9 @@ const initWASocket = async (whatsapp) => {
         }, 2500);
         wsocket.ev.on("connection.update", async ({ connection, lastDisconnect, qr }) => {
             logger_1.default.info(`Socket  ${name} Connection Update ${connection || ""} ${lastDisconnect ? lastDisconnect.error.message : ""}`);
+            if (lastDisconnect) {
+                console.log(`[WBOT] Disconnect Reason for ${name}:`, JSON.stringify(lastDisconnect, null, 2));
+            }
             if (connection === "close") {
                 console.log("DESCONECTOU", JSON.stringify(lastDisconnect, null, 2));
                 logger_1.default.info(`Socket  ${name} Connection Update ${connection || ""} ${lastDisconnect ? lastDisconnect.error.message : ""}`);

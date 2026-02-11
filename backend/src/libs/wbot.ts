@@ -238,7 +238,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
         /** caching makes the store faster to send/recv messages */
         keys: state.keys,
       },
-      browser: Browsers.ubuntu("Chrome"),
+      browser: ["VBZappy", "Chrome", "10.0"],
       syncFullHistory: true,
       connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
@@ -410,6 +410,10 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
           `Socket  ${name} Connection Update ${connection || ""} ${lastDisconnect ? lastDisconnect.error.message : ""
           }`
         );
+        
+        if (lastDisconnect) {
+             console.log(`[WBOT] Disconnect Reason for ${name}:`, JSON.stringify(lastDisconnect, null, 2));
+        }
 
         if (connection === "close") {
           console.log("DESCONECTOU", JSON.stringify(lastDisconnect, null, 2))

@@ -9,13 +9,17 @@ const baileys_2 = require("baileys");
 const baileys_3 = require("baileys");
 const cache_1 = __importDefault(require("../libs/cache"));
 const useMultiFileAuthState = async (whatsapp) => {
+    if (!whatsapp?.id) {
+        console.error("[useMultiFileAuthState] Whatsapp ID is missing!", whatsapp);
+        throw new Error("Whatsapp ID is missing");
+    }
     const writeData = async (data, file) => {
         try {
             // console.log(`[useMultiFileAuthState] Writing data for session ${whatsapp.id}: ${file}`);
             await cache_1.default.set(`sessions:${whatsapp.id}:${file}`, JSON.stringify(data, baileys_3.BufferJSON.replacer));
         }
         catch (error) {
-            console.log("writeData error", error);
+            console.error(`[useMultiFileAuthState] writeData error for session ${whatsapp.id} file ${file}:`, error);
             return null;
         }
     };
@@ -24,10 +28,12 @@ const useMultiFileAuthState = async (whatsapp) => {
             // console.log(`[useMultiFileAuthState] Reading data for session ${whatsapp.id}: ${file}`);
             const data = await cache_1.default.get(`sessions:${whatsapp.id}:${file}`);
             // if (!data) console.log(`[useMultiFileAuthState] Data not found for session ${whatsapp.id}: ${file}`);
+            if (!data)
+                return null;
             return JSON.parse(data, baileys_3.BufferJSON.reviver);
         }
         catch (error) {
-            console.log("readData error", error);
+            console.error(`[useMultiFileAuthState] readData error for session ${whatsapp.id} file ${file}:`, error);
             return null;
         }
     };

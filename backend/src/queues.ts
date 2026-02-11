@@ -60,9 +60,10 @@ import FindOrCreateTicketService from "./services/TicketServices/FindOrCreateTic
 import fs from "fs";
 import SendWhatsAppMessageAPI from "./services/WbotServices/SendWhatsAppMessageAPI";
 import delay from "./utils/delay";
-const connection = process.env.REDIS_URI || "";
-const limiterMax = process.env.REDIS_OPT_LIMITER_MAX || 1;
-const limiterDuration = process.env.REDIS_OPT_LIMITER_DURATION || 3000;
+import { REDIS_OPT_LIMITER_DURATION, REDIS_OPT_LIMITER_MAX, REDIS_URI_CONNECTION } from "./config/redis";
+const connection = REDIS_URI_CONNECTION;
+const limiterMax = REDIS_OPT_LIMITER_MAX;
+const limiterDuration = REDIS_OPT_LIMITER_DURATION;
 
 interface ProcessCampaignData {
   id: number;

@@ -7,7 +7,8 @@ import { isNil } from "lodash";
 import logger from "../utils/logger";
 import sequelize from "../database";
 import User from "../models/User";
-const connection = process.env.REDIS_URI || "";
+import { REDIS_URI_CONNECTION } from "../config/redis";
+const connection = REDIS_URI_CONNECTION;
 
 export const userMonitor = new Queue("UserMonitor", connection);
 

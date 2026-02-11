@@ -12,6 +12,11 @@ import Whatsapp from "../models/Whatsapp";
 export const useMultiFileAuthState = async (
   whatsapp: Whatsapp
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
+  if (!whatsapp?.id) {
+    console.error("[useMultiFileAuthState] Whatsapp ID is missing!", whatsapp);
+    throw new Error("Whatsapp ID is missing");
+  }
+
   const writeData = async (data: any, file: string) => {
     try {
       // console.log(`[useMultiFileAuthState] Writing data for session ${whatsapp.id}: ${file}`);
@@ -20,7 +25,7 @@ export const useMultiFileAuthState = async (
         JSON.stringify(data, BufferJSON.replacer)
       );
     } catch (error) {
-      console.log("writeData error", error);
+      console.error(`[useMultiFileAuthState] writeData error for session ${whatsapp.id} file ${file}:`, error);
       return null;
     }
   };
@@ -30,9 +35,10 @@ export const useMultiFileAuthState = async (
       // console.log(`[useMultiFileAuthState] Reading data for session ${whatsapp.id}: ${file}`);
       const data = await cacheLayer.get(`sessions:${whatsapp.id}:${file}`);
       // if (!data) console.log(`[useMultiFileAuthState] Data not found for session ${whatsapp.id}: ${file}`);
+      if (!data) return null;
       return JSON.parse(data, BufferJSON.reviver);
     } catch (error) {
-      console.log("readData error", error);
+      console.error(`[useMultiFileAuthState] readData error for session ${whatsapp.id} file ${file}:`, error);
       return null;
     }
   };

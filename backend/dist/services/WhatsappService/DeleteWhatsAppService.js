@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
 const WhatsappQueue_1 = __importDefault(require("../../models/WhatsappQueue"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
+const cache_1 = __importDefault(require("../../libs/cache"));
 const DeleteWhatsAppService = async (id) => {
     const whatsapp = await Whatsapp_1.default.findOne({
         where: { id }
@@ -16,6 +17,9 @@ const DeleteWhatsAppService = async (id) => {
     await WhatsappQueue_1.default.destroy({
         where: { whatsappId: id }
     });
+    // Limpar sessão do Redis
+    await cache_1.default.delFromPattern(`sessions:${id}:*`);
+    await cache_1.default.delFromPattern(`sessions:${id}:*`); // Double check
     await whatsapp.destroy();
 };
 exports.default = DeleteWhatsAppService;
