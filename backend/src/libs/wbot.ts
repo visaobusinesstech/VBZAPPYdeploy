@@ -15,6 +15,7 @@ import makeWASocket, {
   isJidStatusBroadcast,
   jidNormalizedUser,
   makeCacheableSignalKeyStore,
+  fetchLatestBaileysVersion,
   proto,
 } from "baileys";
 import { FindOptions } from "sequelize/types";
@@ -203,9 +204,15 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
       return undefined;
     }
 
-    const versionWA = await getVersionByIndexFromUrl(2);
-    console.info("[WBOT.ts] Versao sendo puxada de url:", versionWA);
+    const { version, isLatest } = await fetchLatestBaileysVersion();
+    const versionWA = version;
 
+    // const versionWA = await getVersionByIndexFromUrl(1);
+    // console.info(`[WBOT.ts] Using version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
+    
+    // Fallback if fetchLatestBaileysVersion fails or returns undefined
+    const versionWA = version || [2, 2413, 1];
+    
     // const publicFolder = path.join(__dirname, '..', '..', '..', 'backend', 'sessions');
     // const folderSessions = path.join(publicFolder, `company${whatsapp.companyId}`, whatsapp.id.toString());
 
@@ -213,19 +220,17 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     const { state, saveCreds } = await useMultiFileAuthState(whatsapp);
 
     wsocket = makeWASocket({
-      version: versionWA || [2, 3000, 1030220586],
+      version: versionWA,
       logger: loggerBaileys,
+      printQRInTerminal: false,
       auth: {
         creds: state.creds,
         /** caching makes the store faster to send/recv messages */
         keys: state.keys,
       },
+      browser: ["VBZappy", "Chrome", "10.0"],
       syncFullHistory: true,
-      transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
-      generateHighQualityLinkPreview: true,
-      linkPreviewImageThumbnailWidth: 200,
-      emitOwnEvents: true,
-      browser: Browsers.windows("Chrome"),
+      connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
       cachedGroupMetadata: async (jid) => {
         const cachedGroupMetadata = await getGroupMetadataCache(whatsapp.id, jid)
