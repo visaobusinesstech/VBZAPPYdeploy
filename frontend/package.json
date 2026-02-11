@@ -80,6 +80,7 @@
     "socket.io-client": "^4.4.1",
     "styled-components": "^5.3.3",
     "text-mask-addons": "^3.8.0",
+    "underscore": "^1.13.7",
     "use-sound": "^5.0.0",
     "uuid": "^13.0.0",
     "wavoip-api": "^3.1.24",
