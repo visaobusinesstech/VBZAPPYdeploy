@@ -65,6 +65,7 @@ import ReactFlow, {
   useReactFlow
 } from "react-flow-renderer";
 
+import { SiOpenai } from "react-icons/si";
 import {
   AccessTime,
   CallSplit,
