@@ -50,7 +50,7 @@ const FindOrCreateTicketService = async (
 
   const contactId = groupContact ? groupContact.id : contact.id;
 
-  console.log(`[RDS-TICKET] Buscando tickets existentes para contactId=${contactId}, companyId=${companyId}, whatsappId=${whatsapp.id}`);
+  console.log(`[DEBUG 2026] Buscando tickets para contactId=${contactId}, companyId=${companyId}, whatsappId=${whatsapp.id}`);
 
   let ticket = await Ticket.findOne({
     where: {

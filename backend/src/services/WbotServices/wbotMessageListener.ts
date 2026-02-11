@@ -1002,6 +1002,8 @@ export const verifyMediaMessage = async (
       companyId: companyId
     });
 
+    console.log(`[DEBUG 2026] Mensagem criada no DB: ${newMessage.id} para Ticket: ${ticket.id}`);
+
     if (!msg.key.fromMe && ticket.status === "closed") {
       await ticket.update({ status: "pending" });
       await ticket.reload({

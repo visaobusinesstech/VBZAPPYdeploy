@@ -161,6 +161,7 @@ async function apiMessageQueue() {
                 isSending: false,
                 companyId: company.id,
                 whatsappId: whatsapp.id,
+                error: null, // Ignorar mensagens com erro
                 [Op.or]: [
                   { schedule: { [Op.lte]: currentDate } },
                   { schedule: null }
