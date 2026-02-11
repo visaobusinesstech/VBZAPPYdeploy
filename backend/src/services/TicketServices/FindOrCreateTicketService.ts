@@ -141,6 +141,12 @@ const FindOrCreateTicketService = async (
     ticket = await ShowTicketService(ticket.id, companyId);
     console.log(`[RDS-TICKET] Ticket atualizado ID=${ticket.id}, novo status=${ticket.status}`);
 
+    io.of(String(companyId))
+      .emit(`company-${companyId}-ticket`, {
+        action: "update",
+        ticket
+      });
+
     if (!isCampaign && !isForward) {
       // @ts-ignore: Unreachable code error
       if ((Number(ticket?.userId) !== Number(userId) && userId !== 0 && userId !== "" && userId !== "0" && !isNil(userId) && !ticket.isGroup)
@@ -269,6 +275,12 @@ const FindOrCreateTicketService = async (
   }
 
   ticket = await ShowTicketService(ticket.id, companyId);
+
+  io.of(String(companyId))
+  .emit(`company-${companyId}-ticket`, {
+    action: "update",
+    ticket
+  });
 
   await CreateLogTicketService({
     ticketId: ticket.id,
