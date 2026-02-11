@@ -357,18 +357,18 @@ export const getBodyMessage = (msg: proto.IWebMessageInfo): string | null => {
         msg.message?.listResponseMessage?.contextInfo?.externalAdReply?.title
     };
 
-    const objKey = Object.keys(types).find(key => key === type);
+    const objKey = Object.keys(types).find(key => key === msgType);
 
     if (!objKey) {
       logger.warn(
-        `#### Nao achou o type 152: ${type} ${JSON.stringify(msg.message)}`
+        `#### Nao achou o type 152: ${msgType} ${JSON.stringify(msg.message)}`
       );
-      Sentry.setExtra("Mensagem", { BodyMsg: msg.message, msg, type });
+      Sentry.setExtra("Mensagem", { BodyMsg: msg.message, msg, type: msgType });
       Sentry.captureException(
         new Error("Novo Tipo de Mensagem em getTypeMessage")
       );
     }
-    return types[type];
+    return types[msgType];
   } catch (error) {
     Sentry.setExtra("Error getTypeMessage", { msg, BodyMsg: msg?.message });
     Sentry.captureException(error);
