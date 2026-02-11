@@ -210,7 +210,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     // console.info(`[WBOT.ts] Using version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
     
     // Fallback if fetchLatestBaileysVersion fails or returns undefined
-    const versionWA = version || [2, 2413, 1];
+    const versionWA = version || [2, 3000, 1015901307];
     
     // const publicFolder = path.join(__dirname, '..', '..', '..', 'backend', 'sessions');
     // const folderSessions = path.join(publicFolder, `company${whatsapp.companyId}`, whatsapp.id.toString());
@@ -221,7 +221,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     wsocket = makeWASocket({
       version: versionWA,
       logger: loggerBaileys,
-      printQRInTerminal: false,
+      printQRInTerminal: true,
       auth: {
         creds: state.creds,
         /** caching makes the store faster to send/recv messages */
@@ -229,8 +229,8 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
       },
       browser: Browsers.ubuntu("Chrome"),
       syncFullHistory: true,
-      connectTimeoutMs: 60000,
-      defaultQueryTimeoutMs: 60000,
+      connectTimeoutMs: 180000,
+      defaultQueryTimeoutMs: 180000,
       cachedGroupMetadata: async (jid) => {
         const cachedGroupMetadata = await getGroupMetadataCache(whatsapp.id, jid)
 
