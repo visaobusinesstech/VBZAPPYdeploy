@@ -17,7 +17,9 @@
     "@mui/styles": "^5.16.14",
     "@mui/x-date-pickers": "^5.0.20",
     "ace-builds": "^1.43.6",
-    "axios": "0.27.2",
+    "ajv": "^8.17.1",
+    "ajv-keywords": "^5.1.0",
+    "axios": "^1.6.2",
     "baseline-browser-mapping": "^2.9.19",
     "chart.js": "^3.9.1",
     "chartjs-plugin-datalabels": "^2.2.0",
@@ -92,9 +94,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
-  "overrides": {
-    "axios": "0.27.2"
-  },
+  "overrides": {},
   "eslintConfig": {
     "extends": [
       "react-app",
