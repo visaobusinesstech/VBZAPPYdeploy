@@ -42,7 +42,15 @@ class CacheSingleton {
   }
 
   public async getKeys(pattern: string): Promise<string[]> {
-    return this.redis.keys(pattern);
+    const stream = this.redis.scanStream({
+      match: pattern,
+      count: 100
+    });
+    const keys: string[] = [];
+    for await (const resultKeys of stream) {
+      keys.push(...resultKeys);
+    }
+    return keys;
   }
 
   public async del(key: string): Promise<number> {
@@ -50,8 +58,16 @@ class CacheSingleton {
   }
 
   public async delFromPattern(pattern: string): Promise<void> {
-    const all = await this.getKeys(pattern);
-    await Promise.all(all.map(item => this.del(item)));
+    const stream = this.redis.scanStream({
+      match: pattern,
+      count: 100
+    });
+    
+    for await (const resultKeys of stream) {
+      if (resultKeys.length > 0) {
+        await this.redis.del(...resultKeys);
+      }
+    }
   }
 
   public async setFromParams(

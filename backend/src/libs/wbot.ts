@@ -227,7 +227,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
         /** caching makes the store faster to send/recv messages */
         keys: state.keys,
       },
-      browser: Browsers.ubuntu("Chrome"),
+      browser: Browsers.macOS("Desktop"),
       syncFullHistory: true,
       connectTimeoutMs: 180000,
       defaultQueryTimeoutMs: 180000,
