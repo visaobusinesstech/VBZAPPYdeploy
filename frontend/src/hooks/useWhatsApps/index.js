@@ -1,6 +1,9 @@
 import { useState, useEffect, useReducer, useContext } from "react";
+import { toast } from "react-toastify";
+
 import api from "../../services/api";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { i18n } from "../../translate/i18n";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_WHATSAPPS") {
