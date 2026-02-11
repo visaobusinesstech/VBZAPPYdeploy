@@ -32,14 +32,29 @@ class CacheSingleton {
         return this.redis.get(key);
     }
     async getKeys(pattern) {
-        return this.redis.keys(pattern);
+        const stream = this.redis.scanStream({
+            match: pattern,
+            count: 100
+        });
+        const keys = [];
+        for await (const resultKeys of stream) {
+            keys.push(...resultKeys);
+        }
+        return keys;
     }
     async del(key) {
         return this.redis.del(key);
     }
     async delFromPattern(pattern) {
-        const all = await this.getKeys(pattern);
-        await Promise.all(all.map(item => this.del(item)));
+        const stream = this.redis.scanStream({
+            match: pattern,
+            count: 100
+        });
+        for await (const resultKeys of stream) {
+            if (resultKeys.length > 0) {
+                await this.redis.del(...resultKeys);
+            }
+        }
     }
     async setFromParams(key, params, value, option, optionValue) {
         const finalKey = `${key}:${CacheSingleton.encryptParams(params)}`;

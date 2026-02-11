@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
+const WhatsappQueue_1 = __importDefault(require("../../models/WhatsappQueue"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
 const DeleteWhatsAppService = async (id) => {
     const whatsapp = await Whatsapp_1.default.findOne({
@@ -12,6 +13,9 @@ const DeleteWhatsAppService = async (id) => {
     if (!whatsapp) {
         throw new AppError_1.default("ERR_NO_WAPP_FOUND", 404);
     }
+    await WhatsappQueue_1.default.destroy({
+        where: { whatsappId: id }
+    });
     await whatsapp.destroy();
 };
 exports.default = DeleteWhatsAppService;

@@ -137,7 +137,10 @@ const store = async (req, res) => {
         }
     }
     if (["whatsapp"].includes(whatsapp.channel)) {
-        (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, targetCompanyId);
+        // Não aguardar o início da sessão para não bloquear a resposta da API
+        (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, targetCompanyId).catch(err => {
+            logger_1.default.error(`Error starting WhatsApp session: ${err}`);
+        });
     }
     const io = (0, socket_1.getIO)();
     io.of("/" + String(whatsapp.companyId)).emit(`company-${whatsapp.companyId}-whatsapp`, {

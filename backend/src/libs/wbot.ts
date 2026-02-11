@@ -205,7 +205,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     }
 
     // const { version, isLatest } = await fetchLatestBaileysVersion();
-    let versionWA = [2, 3000, 1015901307];
+    let versionWA: [number, number, number] = [2, 3000, 1015901307];
     try {
       const { version, isLatest } = await fetchLatestBaileysVersion();
       if (version) {

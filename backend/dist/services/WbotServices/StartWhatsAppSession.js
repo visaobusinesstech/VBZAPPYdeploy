@@ -33,7 +33,6 @@ const socket_1 = require("../../libs/socket");
 const wbotMonitor_1 = __importDefault(require("./wbotMonitor"));
 const logger_1 = __importDefault(require("../../utils/logger"));
 const Sentry = __importStar(require("@sentry/node"));
-const RedisGroupCache_1 = require("../../utils/RedisGroupCache");
 const StartWhatsAppSession = async (whatsapp, companyId) => {
     // ✅ CORREÇÃO: Verificar se whatsapp existe
     if (!whatsapp) {
@@ -62,21 +61,6 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
             return;
         }
         if (wbot.id) {
-            // ✅ CORREÇÃO: Tratar erro ao buscar grupos separadamente
-            try {
-                const groups = await wbot.groupFetchAllParticipating();
-                if (groups && typeof groups === 'object') {
-                    for (const [id, groupMetadata] of Object.entries(groups)) {
-                        // Limpa os grupos existentes no cache
-                        await RedisGroupCache_1.redisGroupCache.del(whatsapp.id, id);
-                        await RedisGroupCache_1.redisGroupCache.set(whatsapp.id, id, groupMetadata);
-                    }
-                }
-            }
-            catch (groupErr) {
-                // ✅ CORREÇÃO: Não interromper sessão se falhar ao buscar grupos
-                logger_1.default.warn(`[StartWhatsAppSession] Erro ao buscar grupos para whatsapp ${whatsapp.id}: ${groupErr}`);
-            }
             (0, wbotMessageListener_1.wbotMessageListener)(wbot, sessionCompanyId);
             (0, wbotMonitor_1.default)(wbot, whatsapp, sessionCompanyId);
         }
@@ -84,6 +68,12 @@ const StartWhatsAppSession = async (whatsapp, companyId) => {
     catch (err) {
         Sentry.captureException(err);
         logger_1.default.error(`[StartWhatsAppSession] Erro ao iniciar sessão whatsapp ${whatsapp.id}: ${err}`);
+        await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
+        io.of("/" + String(sessionCompanyId))
+            .emit(`company-${sessionCompanyId}-whatsappSession`, {
+            action: "update",
+            session: whatsapp
+        });
     }
 };
 exports.StartWhatsAppSession = StartWhatsAppSession;
