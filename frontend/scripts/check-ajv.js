@@ -14,15 +14,16 @@ try {
         console.error('ERROR: ajv.js NOT found in dist!');
         process.exit(1);
     }
+    // Verificação adicional para ajv-keywords
+    const ajvKeywordsPath = path.join('node_modules', 'ajv-keywords', 'package.json');
+    if (fs.existsSync(ajvKeywordsPath)) {
+      console.log(`SUCCESS: ajv-keywords found at: ${ajvKeywordsPath}`);
+    } else {
+      console.error(`ERROR: ajv-keywords NOT found at: ${ajvKeywordsPath}`);
+      process.exit(1);
+    }
   } else {
     console.error(`ERROR: AJV dist directory NOT found at: ${ajvDistPath}`);
-    console.log('Checking parent directory node_modules/ajv:');
-    const ajvPath = path.join('node_modules', 'ajv');
-    if (fs.existsSync(ajvPath)) {
-        console.log(fs.readdirSync(ajvPath));
-    } else {
-        console.log('node_modules/ajv does not exist!');
-    }
     process.exit(1);
   }
 } catch (error) {
