@@ -5258,10 +5258,13 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
     // console.log("CIAAAAAAA WBOT " , companyId)
     messages.forEach(async (message: proto.IWebMessageInfo) => {
       console.log(`[DEBUG 2026] Processando msg ID: ${message.key.id}, RemoteJid: ${message.key.remoteJid}`);
+      
+      // Log para verificar se passa pelo filtro de stub
       if (
         message?.messageStubParameters?.length &&
         message.messageStubParameters[0].includes("absent")
       ) {
+        console.log(`[DEBUG 2026] Mensagem ignorada (stub/absent): ${message.key.id}`);
         const msg = {
           companyId: companyId,
           whatsappId: wbot.id,
@@ -5272,6 +5275,8 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
       const messageExists = await Message.count({
         where: { wid: message.key.id!, companyId }
       });
+
+      console.log(`[DEBUG 2026] Message exists? ${messageExists} - ID: ${message.key.id}`);
 
       if (!messageExists) {
         let isCampaign = false;
@@ -5288,6 +5293,7 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
 
         if (!isCampaign) {
           if (REDIS_URI_MSG_CONN !== "") {
+            console.log(`[DEBUG 2026] Adicionando msg ID ${message.key.id} para fila Redis: ${process.env.DB_NAME}-handleMessage`);
             //} && (!message.key.fromMe || (message.key.fromMe && !message.key.id.startsWith('BAE')))) {
             try {
               await BullQueues.add(
@@ -5298,12 +5304,18 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
                   jobId: `${wbot.id}-handleMessage-${message.key.id}`
                 }
               );
+              console.log(`[DEBUG 2026] Msg ID ${message.key.id} adicionada ao Redis com sucesso.`);
             } catch (e) {
+              console.error(`[DEBUG 2026] ERRO ao adicionar msg ID ${message.key.id} ao Redis:`, e);
               Sentry.captureException(e);
             }
           } else {
+            console.log(`[DEBUG 2026] Processando msg ID ${message.key.id} diretamente (sem Redis).`);
             await handleMessage(message, wbot, companyId);
+            console.log(`[DEBUG 2026] handleMessage finalizado para msg ID ${message.key.id}.`);
           }
+        } else {
+            console.log(`[DEBUG 2026] Mensagem de campanha ignorada: ${message.key.id}`);
         }
 
         await verifyRecentCampaign(message, companyId);

@@ -348,6 +348,10 @@ async function apiMessageQueue() {
                 }
 
               } catch (messageError) {
+                // Marca mensagem como erro para evitar loop infinito
+                logger.error(`[DEBUG 2026] Marcando mensagem ${message.id} como erro para evitar loop. Erro: ${messageError.message}`);
+                await MessageApi.update({ error: messageError.message, isSending: false }, { where: { id: message.id } });
+
                 logger.error(`Erro ao processar mensagem ${message?.id}:`, {
                   error: messageError,
                   message: messageError.message,
