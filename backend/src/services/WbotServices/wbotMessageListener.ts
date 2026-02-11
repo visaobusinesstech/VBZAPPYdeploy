@@ -30,6 +30,7 @@ import CreateMessageService from "../MessageServices/CreateMessageService";
 import logger from "../../utils/logger";
 import CreateOrUpdateContactService from "../ContactServices/CreateOrUpdateContactService";
 import FindOrCreateTicketService from "../TicketServices/FindOrCreateTicketService";
+import ShowTicketService from "../TicketServices/ShowTicketService";
 import ShowWhatsAppService from "../WhatsappService/ShowWhatsAppService";
 import { debounce } from "../../helpers/Debounce";
 import UpdateTicketService from "../TicketServices/UpdateTicketService";
@@ -1105,12 +1106,16 @@ export const verifyMessage = async (
     lastMessage: body
   });
 
-  console.log(`[DEBUG 2026] verifyMessage: lastMessage atualizada para ticket ${ticket.id}`);
+  console.log(`[DEBUG 2026] verifyMessage: lastMessage atualizada para ticket ${ticket.id}. Reloading ticket for socket emission...`);
+
+  const ticketToEmit = await ShowTicketService(ticket.id, companyId);
+  
+  console.log(`[DEBUG 2026] Emitting socket for ticket ${ticket.id}: status=${ticketToEmit.status}, queueId=${ticketToEmit.queueId}, userId=${ticketToEmit.userId}`);
 
   io.of(String(companyId))
     .emit(`company-${companyId}-ticket`, {
       action: "update",
-      ticket
+      ticket: ticketToEmit
     });
 
   await CreateMessageService({ messageData, companyId: companyId });
