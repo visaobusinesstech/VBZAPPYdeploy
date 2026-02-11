@@ -99,6 +99,9 @@ const useWhatsApps = () => {
         console.log('Recebido evento whatsapp session:', data);
         if (data.action === "update") {
           dispatch({ type: "UPDATE_SESSION", payload: data.session });
+          if (data.session.status === "CONNECTED") {
+            toast.success(i18n.t("connections.toolTips.connected.title") || "Conexão estabelecida com sucesso!");
+          }
         }
       };
 

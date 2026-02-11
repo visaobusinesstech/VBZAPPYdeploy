@@ -86,7 +86,7 @@ class SocketWorker {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null
-      this.instance = null
+      SocketWorker.instance = null
       console.log("Socket desconectado manualmente");
     }
   }

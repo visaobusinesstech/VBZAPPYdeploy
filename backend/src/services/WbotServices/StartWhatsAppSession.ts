@@ -43,21 +43,6 @@ export const StartWhatsAppSession = async (
     }
 
     if (wbot.id) {
-      // ✅ CORREÇÃO: Tratar erro ao buscar grupos separadamente
-      try {
-        const groups = await wbot.groupFetchAllParticipating();
-        if (groups && typeof groups === 'object') {
-          for (const [id, groupMetadata] of Object.entries(groups)) {
-            // Limpa os grupos existentes no cache
-            await redisGroupCache.del(whatsapp.id, id);
-            await redisGroupCache.set(whatsapp.id, id, groupMetadata);
-          }
-        }
-      } catch (groupErr) {
-        // ✅ CORREÇÃO: Não interromper sessão se falhar ao buscar grupos
-        logger.warn(`[StartWhatsAppSession] Erro ao buscar grupos para whatsapp ${whatsapp.id}: ${groupErr}`);
-      }
-
       wbotMessageListener(wbot, sessionCompanyId);
       wbotMonitor(wbot, whatsapp, sessionCompanyId);
     }
