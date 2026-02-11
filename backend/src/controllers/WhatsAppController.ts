@@ -221,32 +221,45 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
   if (["whatsapp_oficial"].includes(whatsapp.channel)) {
     try {
-      const companyData: ICreateConnectionWhatsAppOficialCompany = {
-        companyId: String(whatsapp.companyId),
-        companyName: whatsapp.company.name
-      };
-      const whatsappOficial: ICreateConnectionWhatsAppOficialWhatsApp = {
-        token_mult100: whatsapp.token,
-        phone_number_id: whatsapp.phone_number_id,
-        waba_id: whatsapp.waba_id,
-        send_token: whatsapp.send_token,
-        business_id: whatsapp.business_id,
-        phone_number: whatsapp.phone_number,
-        idEmpresaMult100: whatsapp.companyId
-      };
+      // Se tiver URL da API externa configurada, usa o fluxo antigo
+      if (process.env.URL_API_OFICIAL) {
+        const companyData: ICreateConnectionWhatsAppOficialCompany = {
+          companyId: String(whatsapp.companyId),
+          companyName: whatsapp.company.name
+        };
+        const whatsappOficial: ICreateConnectionWhatsAppOficialWhatsApp = {
+          token_mult100: whatsapp.token,
+          phone_number_id: whatsapp.phone_number_id,
+          waba_id: whatsapp.waba_id,
+          send_token: whatsapp.send_token,
+          business_id: whatsapp.business_id,
+          phone_number: whatsapp.phone_number,
+          idEmpresaMult100: whatsapp.companyId
+        };
 
-      const data = {
-        email: whatsapp.company.email,
-        company: companyData,
-        whatsApp: whatsappOficial
-      };
+        const data = {
+          email: whatsapp.company.email,
+          company: companyData,
+          whatsApp: whatsappOficial
+        };
 
-      const { webhookLink, connectionId } =
-        await CreateCompanyConnectionOficial(data);
+        const { webhookLink, connectionId } =
+          await CreateCompanyConnectionOficial(data);
 
-      if (webhookLink) {
+        if (webhookLink) {
+          whatsapp.waba_webhook = webhookLink;
+          whatsapp.waba_webhook_id = connectionId;
+          whatsapp.status = "CONNECTED";
+          await whatsapp.save();
+        }
+      } else {
+        // Fluxo DIRETO (Sem API Intermediária)
+        // O webhook será o próprio backend
+        const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8080}`;
+        const webhookLink = `${backendUrl}/v1/webhook/${whatsapp.companyId}/${whatsapp.id}`;
+        
         whatsapp.waba_webhook = webhookLink;
-        whatsapp.waba_webhook_id = connectionId;
+        whatsapp.waba_webhook_id = whatsapp.id; // Usa o próprio ID como ID de conexão externa
         whatsapp.status = "CONNECTED";
         await whatsapp.save();
       }

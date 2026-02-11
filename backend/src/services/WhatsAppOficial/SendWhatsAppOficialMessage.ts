@@ -1,3 +1,4 @@
+import axios from "axios";
 import * as Sentry from "@sentry/node";
 import AppError from "../../errors/AppError";
 import Message from "../../models/Message";
@@ -160,22 +161,55 @@ const SendWhatsAppOficialMessage = async ({
   options.quotedId = quotedMsg?.wid;
 
   try {
-    const tokenFromTicket = ticket?.whatsapp?.token;
-    let sendToken = tokenFromTicket;
-
-    if (!sendToken) {
-      const wapp = await Whatsapp.findByPk(ticket.whatsappId);
-      if (!wapp || !wapp.token) {
-        throw new AppError("ERR_NO_WAPP_FOUND");
-      }
-      sendToken = wapp.token;
+    const wapp = await Whatsapp.findByPk(ticket.whatsappId);
+    if (!wapp) {
+      throw new AppError("ERR_NO_WAPP_FOUND");
     }
 
-    const sendMessage = await sendMessageWhatsAppOficial(
-      pathMedia,
-      sendToken,
-      options
-    )
+    let sendMessage;
+
+    // Se tiver URL da API externa, usa o fluxo legado
+    if (process.env.URL_API_OFICIAL) {
+      sendMessage = await sendMessageWhatsAppOficial(
+        pathMedia,
+        wapp.token,
+        options
+      );
+    } else {
+      // Fluxo DIRETO (Cloud API da Meta)
+      const { phone_number_id, token } = wapp;
+      
+      if (!phone_number_id || !token) {
+        throw new Error("Phone Number ID or Token missing for Cloud API");
+      }
+
+      const url = `https://graph.facebook.com/v21.0/${phone_number_id}/messages`;
+      
+      let payload: any = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: contact.number,
+      };
+
+      if (type === "text") {
+        payload.type = "text";
+        payload.text = { body: bodyMsg };
+      } else if (type === "template") {
+        payload.type = "template";
+        payload.template = template;
+      }
+      // TODO: Adicionar suporte a mídia direto se necessário
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      sendMessage = { idMessageWhatsApp: [response.data.messages[0].id] };
+    }
+
     await ticket.update({ lastMessage: !bodyMsg && (!!media || type === 'template') ? bodyTicket : bodyMsg, imported: null, unreadMessages: 0 });
 
     const wid: any = sendMessage
@@ -205,16 +239,6 @@ const SendWhatsAppOficialMessage = async ({
     };
 
     await CreateMessageService({ messageData, companyId: ticket.companyId });
-
-    // const io = getIO();
-
-    // io.of(String(ticket.companyId))
-    //   .emit(`company-${ticket.companyId}-appMessage`, {
-    //     action: "create",
-    //     message: messageData,
-    //     ticket: ticket,
-    //     contact: ticket.contact
-    //   });
 
     return sendMessage;
   } catch (err) {

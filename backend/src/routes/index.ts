@@ -49,11 +49,13 @@ import flowBuilder from "./flowBuilderRoutes";
 import flowCampaignRoutes from "./flowCampaignRoutes";
 import callRoutes from "./callRoutes";
 import companyKanbanRoutes from "./companyKanbanRoutes";
+import metaRoutes from "./metaRoutes";
 
 import ChatController from "../controllers/ChatController";
 
 const routes = Router();
 
+routes.use("/v1", metaRoutes);
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use("/api/messages", apiRoutes);
