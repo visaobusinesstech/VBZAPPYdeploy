@@ -84,7 +84,7 @@ const VersionControl = () => {
   const [showBanner, setShowBanner] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const hasNewVersion = storedVersion !== packageVersion;
+  const hasNewVersion = false; // storedVersion !== packageVersion;
 
   useEffect(() => {
     if (hasNewVersion) {
