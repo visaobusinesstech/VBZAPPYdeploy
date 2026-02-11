@@ -3670,6 +3670,7 @@ const handleMessage = async (
    where: { wid: msg.key.id }
 });
  if (existingMessage) {
+   console.log(`[DEBUG 2026] Mensagem já existe no banco (ID: ${msg.key.id}). Ignorando.`);
    return;
 }
   if (isImported) {
@@ -3702,11 +3703,13 @@ const handleMessage = async (
   // }
 
   if (!isValidMsg(msg)) {
+    console.log(`[DEBUG 2026] Mensagem inválida (isValidMsg returned false) para ID: ${msg.key.id}`);
     return;
   }
 
   // ✅ CORREÇÃO: Ignorar eventos de grupo (messageStubType)
   if (msg.messageStubType) {
+    console.log(`[DEBUG 2026] Ignorando stub message: ${msg.messageStubType}`);
     if (ENABLE_LID_DEBUG) {
       logger.info(
         `[RDS-LID] HandleMessage - Ignorando evento de grupo: ${msg.messageStubType}`
@@ -3714,6 +3717,8 @@ const handleMessage = async (
     }
     return;
   }
+
+  console.log(`[DEBUG 2026] Mensagem válida e nova, iniciando processamento do contato e ticket...`);
 
 
 
@@ -3792,8 +3797,10 @@ const handleMessage = async (
         msgType !== "viewOnceMessage" &&
         msgType !== "editedMessage" &&
         msgType !== "hydratedContentText"
-      )
+      ) {
+        console.log(`[DEBUG 2026] Ignorando mensagem fromMe de tipo inválido: ${msgType}`);
         return;
+      }
       msgContact = await getContactMessage(msg, wbot);
     } else {
       msgContact = await getContactMessage(msg, wbot);
@@ -3809,7 +3816,10 @@ const handleMessage = async (
     // console.log("GETTING WHATSAPP SHOW WHATSAPP 2384", wbot.id, companyId)
     const whatsapp = await ShowWhatsAppService(wbot.id!, companyId);
 
-    if (!whatsapp.allowGroup && isGroup) return;
+    if (!whatsapp.allowGroup && isGroup) {
+      console.log(`[DEBUG 2026] Grupo ignorado (allowGroup=false): ${msg.key.remoteJid}`);
+      return;
+    }
 
     if (isGroup) {
       let grupoMeta = null;
@@ -3835,6 +3845,7 @@ const handleMessage = async (
           grupoMeta = await wbot.groupMetadata(msg.key.remoteJid!)
         } catch (error) {
           logger.error(`Erro ao obter metadados do grupo: ${JSON.stringify(error)}`);
+          console.log(`[DEBUG 2026] Falha ao obter metadados do grupo. Ignorando.`);
           return;
         }
       }
@@ -3860,6 +3871,7 @@ const handleMessage = async (
         })
         if (!groupContact) {
           logger.info("Grupo não encontrado, descarta a mensagem para não abrir como contato...")
+          console.log(`[DEBUG 2026] Grupo não encontrado no DB. Ignorando.`);
           return;
         }
       }
@@ -3917,7 +3929,7 @@ const handleMessage = async (
         false,
         settings
       );
-      console.log(`[DEBUG 2026] Ticket obtido/criado: ${result?.id}`);
+      console.log(`[DEBUG 2026] Ticket obtido/criado: ${result?.id}, Status: ${result?.status}`);
       return result;
     });
 
@@ -3963,6 +3975,7 @@ const handleMessage = async (
         whatsapp.complationMessage &&
         formatBody(whatsapp.complationMessage, ticket) === bodyMessage)
     ) {
+      console.log(`[DEBUG 2026] Ticket fechado ou mensagem de conclusão. Ignorando mensagem. Ticket Status: ${ticket.status}, Body: ${bodyMessage}`);
       return;
     }
 

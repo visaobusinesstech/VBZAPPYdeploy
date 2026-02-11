@@ -5,6 +5,7 @@ export default {
     key: `${process.env.DB_NAME}-handleMessage`,
 
     async handle({ data }) {
+        console.log(`[DEBUG 2026] handleMessageQueue: Job iniciado para msg ID: ${data?.message?.key?.id}`);
         try {
             const { message, wbot, companyId } = data;
 
@@ -15,13 +16,15 @@ export default {
             const w = await getWbot(wbot);
 
             if (!w) {
-                console.log("wbot not found", wbot)
+                console.error(`[DEBUG 2026] wbot not found for ID: ${wbot}. Abortando job.`);
+                return;
             }
 
             try {
                 await handleMessage(message, w, companyId);
+                console.log(`[DEBUG 2026] handleMessageQueue: Job finalizado com sucesso para msg ID: ${data?.message?.key?.id}`);
             } catch (error) {
-                console.log(error)
+                console.error(`[DEBUG 2026] Erro ao processar handleMessage para msg ID: ${data?.message?.key?.id}:`, error);
             }
         } catch (error) {
             console.log("error", error)
