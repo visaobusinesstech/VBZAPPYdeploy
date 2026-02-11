@@ -285,9 +285,11 @@ const msgLocation = (image, latitude, longitude) => {
 
 export const getBodyMessage = (msg: proto.IWebMessageInfo): string | null => {
   try {
-    let type = getTypeMessage(msg);
-
-    if (type === undefined) console.log(JSON.stringify(msg));
+    const msgType = getTypeMessage(msg);
+    if (msgType === undefined) console.log(JSON.stringify(msg));
+    
+    // DEBUG: Log de mensagem recebida
+    console.log(`[RDS-DEBUG] Recebida mensagem do Baileys: ID=${msg.key.id}, JID=${msg.key.remoteJid}, Tipo=${msgType}`);
 
     const types = {
       conversation: msg.message?.conversation,
@@ -989,6 +991,12 @@ export const verifyMediaMessage = async (
       lastMessage: body || media.filename
     });
 
+    io.of(String(companyId))
+      .emit(`company-${companyId}-ticket`, {
+        action: "update",
+        ticket
+      });
+
     const newMessage = await CreateMessageService({
       messageData,
       companyId: companyId
@@ -1094,6 +1102,14 @@ export const verifyMessage = async (
   await ticket.update({
     lastMessage: body
   });
+
+  console.log(`[DEBUG 2026] verifyMessage: lastMessage atualizada para ticket ${ticket.id}`);
+
+  io.of(String(companyId))
+    .emit(`company-${companyId}-ticket`, {
+      action: "update",
+      ticket
+    });
 
   await CreateMessageService({ messageData, companyId: companyId });
 
@@ -3643,6 +3659,8 @@ const handleMessage = async (
   isImported: boolean = false
 ): Promise<void> => {
 
+  console.log(`[DEBUG 2026] handleMessage iniciado. ID: ${msg.key.id}`);
+
   let campaignExecuted = false;
 
   console.log("[DEBUG RODRIGO] msg.key.id", JSON.stringify(msg.key))
@@ -3883,6 +3901,7 @@ const handleMessage = async (
     const mutex = new Mutex();
     // Inclui a busca de ticket aqui, se realmente não achar um ticket, então vai para o findorcreate
     const ticket = await mutex.runExclusive(async () => {
+      console.log(`[DEBUG 2026] Chamando FindOrCreateTicketService para contato ${contact.id}`);
       const result = await FindOrCreateTicketService(
         contact,
         whatsapp,
@@ -3896,6 +3915,7 @@ const handleMessage = async (
         false,
         settings
       );
+      console.log(`[DEBUG 2026] Ticket obtido/criado: ${result?.id}`);
       return result;
     });
 
@@ -5228,6 +5248,7 @@ const filterMessages = (msg: WAMessage): boolean => {
 // Logs de debug de eventos Baileys removidos para produção
 const wbotMessageListener = (wbot: Session, companyId: number): void => {
   wbot.ev.on("messages.upsert", async (messageUpsert: ImessageUpsert) => {
+    console.log(`[DEBUG 2026] messages.upsert recebido. Tipo: ${messageUpsert.type}. Qtd: ${messageUpsert.messages.length}`);
     const messages = messageUpsert.messages
       .filter(filterMessages)
       .map(msg => msg);
@@ -5236,6 +5257,7 @@ const wbotMessageListener = (wbot: Session, companyId: number): void => {
 
     // console.log("CIAAAAAAA WBOT " , companyId)
     messages.forEach(async (message: proto.IWebMessageInfo) => {
+      console.log(`[DEBUG 2026] Processando msg ID: ${message.key.id}, RemoteJid: ${message.key.remoteJid}`);
       if (
         message?.messageStubParameters?.length &&
         message.messageStubParameters[0].includes("absent")
