@@ -205,7 +205,6 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     }
 
     const { version, isLatest } = await fetchLatestBaileysVersion();
-    const versionWA = version;
 
     // const versionWA = await getVersionByIndexFromUrl(1);
     // console.info(`[WBOT.ts] Using version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
