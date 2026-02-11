@@ -204,14 +204,24 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
       return undefined;
     }
 
-    const { version, isLatest } = await fetchLatestBaileysVersion();
+    // const { version, isLatest } = await fetchLatestBaileysVersion();
+    let versionWA = [2, 3000, 1015901307];
+    try {
+      const { version, isLatest } = await fetchLatestBaileysVersion();
+      if (version) {
+        versionWA = version;
+        console.info(`[WBOT.ts] Using fetched version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
+      }
+    } catch (err) {
+      console.warn(`[WBOT.ts] Failed to fetch latest version, using fallback: ${versionWA.join('.')}`);
+    }
 
     // const versionWA = await getVersionByIndexFromUrl(1);
     // console.info(`[WBOT.ts] Using version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
     
     // Fallback if fetchLatestBaileysVersion fails or returns undefined
-    // Usar uma versão estável conhecida se a busca falhar
-    const versionWA = version || [2, 3000, 1015901307];
+    // const versionWA = version || [2, 2413, 1];
+    // const versionWA = [2, 3000, 1015901307];
     
     // const publicFolder = path.join(__dirname, '..', '..', '..', 'backend', 'sessions');
     // const folderSessions = path.join(publicFolder, `company${whatsapp.companyId}`, whatsapp.id.toString());
@@ -228,11 +238,11 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
         /** caching makes the store faster to send/recv messages */
         keys: state.keys,
       },
-      browser: ["Zappy", "Chrome", "10.15.7"], // Assinatura personalizada para evitar bloqueio
+      browser: Browsers.ubuntu("Chrome"),
       syncFullHistory: true,
-      connectTimeoutMs: 60000, // Reduzir timeout para falhar rápido se não conectar
+      connectTimeoutMs: 60000,
       defaultQueryTimeoutMs: 60000,
-      keepAliveIntervalMs: 10000, // Manter conexão ativa
+      keepAliveIntervalMs: 10000,
       retryRequestDelayMs: 250,
       cachedGroupMetadata: async (jid) => {
         const cachedGroupMetadata = await getGroupMetadataCache(whatsapp.id, jid)
@@ -423,11 +433,18 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
             (lastDisconnect?.error as Boom)?.output?.statusCode !==
             DisconnectReason.loggedOut
           ) {
+            // Update status to DISCONNECTED to stop frontend loading spinner
+            await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
+            io.of("/" + String(companyId))
+              .emit(`company-${whatsapp.companyId}-whatsappSession`, {
+                action: "update",
+                session: whatsapp
+              });
             removeWbot(id, false);
-            setTimeout(
-              () => StartWhatsAppSession(whatsapp, whatsapp.companyId),
-              2000
-            );
+            // setTimeout(
+            //   () => StartWhatsAppSession(whatsapp, whatsapp.companyId),
+            //   2000
+            // );
           } else {
             await whatsapp.update({ status: "PENDING", session: "" });
             await DeleteBaileysService(whatsapp.id);
@@ -439,10 +456,10 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                 session: whatsapp
               });
             removeWbot(id, false);
-            setTimeout(
-              () => StartWhatsAppSession(whatsapp, whatsapp.companyId),
-              2000
-            );
+            // setTimeout(
+            //   () => StartWhatsAppSession(whatsapp, whatsapp.companyId),
+            //   2000
+            // );
           }
         }
 

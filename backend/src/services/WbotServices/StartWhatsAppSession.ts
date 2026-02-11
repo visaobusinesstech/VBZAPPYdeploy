@@ -49,5 +49,11 @@ export const StartWhatsAppSession = async (
   } catch (err) {
     Sentry.captureException(err);
     logger.error(`[StartWhatsAppSession] Erro ao iniciar sessão whatsapp ${whatsapp.id}: ${err}`);
+    await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
+    io.of("/" + String(sessionCompanyId))
+      .emit(`company-${sessionCompanyId}-whatsappSession`, {
+        action: "update",
+        session: whatsapp
+      });
   }
 };

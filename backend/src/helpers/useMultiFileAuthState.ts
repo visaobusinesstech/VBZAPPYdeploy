@@ -14,6 +14,7 @@ export const useMultiFileAuthState = async (
 ): Promise<{ state: AuthenticationState; saveCreds: () => Promise<void> }> => {
   const writeData = async (data: any, file: string) => {
     try {
+      // console.log(`[useMultiFileAuthState] Writing data for session ${whatsapp.id}: ${file}`);
       await cacheLayer.set(
         `sessions:${whatsapp.id}:${file}`,
         JSON.stringify(data, BufferJSON.replacer)
@@ -26,15 +27,19 @@ export const useMultiFileAuthState = async (
 
   const readData = async (file: string) => {
     try {
+      // console.log(`[useMultiFileAuthState] Reading data for session ${whatsapp.id}: ${file}`);
       const data = await cacheLayer.get(`sessions:${whatsapp.id}:${file}`);
+      // if (!data) console.log(`[useMultiFileAuthState] Data not found for session ${whatsapp.id}: ${file}`);
       return JSON.parse(data, BufferJSON.reviver);
     } catch (error) {
+      console.log("readData error", error);
       return null;
     }
   };
 
   const removeData = async (file: string) => {
     try {
+      console.log(`[useMultiFileAuthState] Removing data for session ${whatsapp.id}: ${file}`);
       await cacheLayer.del(`sessions:${whatsapp.id}:${file}`);
     } catch {}
   };
