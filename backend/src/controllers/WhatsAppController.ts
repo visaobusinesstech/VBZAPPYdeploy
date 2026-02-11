@@ -256,7 +256,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   }
 
   if (["whatsapp"].includes(whatsapp.channel)) {
-    StartWhatsAppSession(whatsapp, targetCompanyId);
+    // Não aguardar o início da sessão para não bloquear a resposta da API
+    StartWhatsAppSession(whatsapp, targetCompanyId).catch(err => {
+      logger.error(`Error starting WhatsApp session: ${err}`);
+    });
   }
 
   const io = getIO();

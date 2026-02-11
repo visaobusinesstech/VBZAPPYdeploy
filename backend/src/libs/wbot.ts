@@ -210,6 +210,7 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
     // console.info(`[WBOT.ts] Using version: ${versionWA.join('.')} (isLatest: ${isLatest})`);
     
     // Fallback if fetchLatestBaileysVersion fails or returns undefined
+    // Usar uma versão estável conhecida se a busca falhar
     const versionWA = version || [2, 3000, 1015901307];
     
     // const publicFolder = path.join(__dirname, '..', '..', '..', 'backend', 'sessions');
@@ -227,10 +228,12 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
         /** caching makes the store faster to send/recv messages */
         keys: state.keys,
       },
-      browser: Browsers.macOS("Desktop"),
+      browser: ["Zappy", "Chrome", "10.15.7"], // Assinatura personalizada para evitar bloqueio
       syncFullHistory: true,
-      connectTimeoutMs: 180000,
-      defaultQueryTimeoutMs: 180000,
+      connectTimeoutMs: 60000, // Reduzir timeout para falhar rápido se não conectar
+      defaultQueryTimeoutMs: 60000,
+      keepAliveIntervalMs: 10000, // Manter conexão ativa
+      retryRequestDelayMs: 250,
       cachedGroupMetadata: async (jid) => {
         const cachedGroupMetadata = await getGroupMetadataCache(whatsapp.id, jid)
 
