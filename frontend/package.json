@@ -20,8 +20,8 @@
     "@mui/styles": "^5.16.14",
     "@mui/x-date-pickers": "^5.0.20",
     "ace-builds": "^1.43.6",
-    "ajv": "8.12.0",
-    "ajv-keywords": "5.1.0",
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
     "axios": "^1.6.2",
     "baseline-browser-mapping": "^2.9.19",
     "chart.js": "^3.9.1",
@@ -99,8 +99,8 @@
     "eject": "react-scripts eject"
   },
   "overrides": {
-    "ajv": "8.12.0",
-    "ajv-keywords": "5.1.0",
+    "ajv": "6.12.6",
+    "ajv-keywords": "3.5.2",
     "@babel/generator": "7.25.9",
     "@babel/parser": "7.25.9",
     "@babel/traverse": "7.25.9",
