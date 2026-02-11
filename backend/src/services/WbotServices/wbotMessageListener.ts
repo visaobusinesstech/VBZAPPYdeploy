@@ -1113,9 +1113,11 @@ export const verifyMessage = async (
   console.log(`[DEBUG 2026] Emitting socket for ticket ${ticket.id}: status=${ticketToEmit.status}, queueId=${ticketToEmit.queueId}, userId=${ticketToEmit.userId}`);
 
   io.of(String(companyId))
+    //.to(ticketToEmit.status)
     .emit(`company-${companyId}-ticket`, {
       action: "update",
-      ticket: ticketToEmit
+      ticket: ticketToEmit,
+      ticketId: ticket.id
     });
 
   await CreateMessageService({ messageData, companyId: companyId });
