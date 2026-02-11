@@ -421,7 +421,10 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
             `Socket  ${name} Connection Update ${connection || ""} ${lastDisconnect ? lastDisconnect.error.message : ""
             }`
           );
-          if ((lastDisconnect?.error as Boom)?.output?.statusCode === 403) {
+          
+          const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
+
+          if (statusCode === 403) {
             await whatsapp.update({ status: "PENDING", session: "" });
             await DeleteBaileysService(whatsapp.id);
             // await deleteFolder(folderSessions);
@@ -432,10 +435,13 @@ export const initWASocket = async (whatsapp: Whatsapp): Promise<Session> => {
                 session: whatsapp
               });
             removeWbot(id, false);
-          }
-          if (
-            (lastDisconnect?.error as Boom)?.output?.statusCode !==
-            DisconnectReason.loggedOut
+          } else if (statusCode === DisconnectReason.restartRequired || statusCode === 515) {
+            // Erro 515 (Stream Errored): Reiniciar sessão automaticamente
+            logger.info(`[WBOT] Reiniciando sessão devido a erro 515 (Stream Errored) para ${name}`);
+            removeWbot(id, false);
+            setTimeout(() => StartWhatsAppSession(whatsapp, whatsapp.companyId), 2000);
+          } else if (
+            statusCode !== DisconnectReason.loggedOut
           ) {
             // Update status to DISCONNECTED to stop frontend loading spinner
             await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
