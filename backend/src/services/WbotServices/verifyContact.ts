@@ -77,11 +77,13 @@ export async function verifyContact(
 
 
 
-  // try {
-  //   profilePicUrl = await wbot.profilePictureUrl(msgContact.id);
-  // } catch (e) {
-  //   profilePicUrl = `${process.env.FRONTEND_URL}/nopicture.png`;
-  // }
+  try {
+    if (wbot) {
+      profilePicUrl = await wbot.profilePictureUrl(msgContact.id);
+    }
+  } catch (e) {
+    profilePicUrl = `${process.env.FRONTEND_URL}/nopicture.png`;
+  }
 
   const isLid = msgContact.id.includes("@lid") || false;
   console.log("[DEBUG RODRIGO] isLid", isLid)

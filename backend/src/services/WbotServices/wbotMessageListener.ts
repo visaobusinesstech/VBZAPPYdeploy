@@ -1122,6 +1122,15 @@ export const verifyMessage = async (
 
   await CreateMessageService({ messageData, companyId: companyId });
 
+  // REFORÇO: Emitir appMessage com dados completos do ticket para garantir atualização no frontend
+  io.of(String(companyId))
+    .emit(`company-${companyId}-appMessage`, {
+      action: "create",
+      message: { ...messageData, body: body, ticketId: ticket.id }, // Simplificado pois o CreateMessageService já emite, mas sem ticket completo as vezes
+      ticket: ticketToEmit,
+      contact: ticketToEmit.contact
+    });
+
   if (!msg.key.fromMe && ticket.status === "closed") {
     await ticket.update({ status: "pending" });
     await ticket.reload({
