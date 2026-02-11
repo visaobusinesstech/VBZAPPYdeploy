@@ -4,7 +4,7 @@
   "description": "VBZappy Frontend",
   "private": true,
   "engines": {
-    "node": "18.x"
+    "node": "20.x"
   },
   "dependencies": {
     "@date-io/date-fns": "^2.13.1",
