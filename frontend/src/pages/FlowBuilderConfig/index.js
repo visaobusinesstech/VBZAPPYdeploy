@@ -5,7 +5,6 @@ import React, {
   useContext,
   useCallback
 } from "react";
-import { SiOpenai } from "react-icons/si";
 import { toast } from "react-toastify";
 import "./mobile-styles.css";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
@@ -79,7 +78,9 @@ import {
   Videocam,
   Tag,
   Queue,
-  Person
+  Person,
+  Google,
+  SmartToy
 } from "@mui/icons-material";
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 

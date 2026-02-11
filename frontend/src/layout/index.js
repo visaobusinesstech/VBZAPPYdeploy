@@ -55,7 +55,7 @@ import { getBackendUrl } from "../config";
 import useSettings from "../hooks/useSettings";
 import VersionControl from "../components/VersionControl";
 import useSocketListener from "../hooks/useSocketListener";
-import { FaGlobe } from "react-icons/fa";
+import PublicIcon from "@material-ui/icons/Public";
 import { logInfo, logError } from "../utils/logger";
 
 const backendUrl = getBackendUrl();
@@ -845,7 +845,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                     paddingTop: "8px",
                   }}
                 >
-                  <FaGlobe />
+                  <PublicIcon />
                 </button>
 
                 {showOptions && (

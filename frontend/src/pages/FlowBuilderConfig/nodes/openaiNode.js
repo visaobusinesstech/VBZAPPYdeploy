@@ -2,11 +2,11 @@ import {
   ArrowForwardIos,
   ContentCopy,
   Delete,
+  SmartToy,
 } from "@mui/icons-material";
 import React, { memo } from "react";
 import { useNodeStorage } from "../../../stores/useNodeStorage";
 import { Handle } from "react-flow-renderer";
-import { SiOpenai } from "react-icons/si";
 
 export default memo(({ data, isConnectable, id }) => {
   const storageItems = useNodeStorage();
@@ -82,7 +82,7 @@ export default memo(({ data, isConnectable, id }) => {
           display: "flex",
         }}
       >
-        <SiOpenai
+        <SmartToy
           style={{
             width: "16px",
             height: "16px",
