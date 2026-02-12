@@ -1,13 +1,14 @@
 class FormatMask {
   setPhoneFormatMask(phoneToFormat) {
-    if(!phoneToFormat || phoneToFormat.length < 12){
+    if(!phoneToFormat){
       return phoneToFormat;
     }
 
     const number = ("" + phoneToFormat).replace(/\D/g, "");
 
-    if (number.length <= 12) {
+    if (number.length === 12) {
       const phoneNumberFormatted = number.match(/^(\d{2})(\d{2})(\d{4})(\d{4})$/);
+      if (!phoneNumberFormatted) return phoneToFormat;
       return (
         "+" +
         phoneNumberFormatted[1] +
@@ -20,6 +21,7 @@ class FormatMask {
       );
     }else if(number.length === 13){
       const phoneNumberFormatted = number.match(/^(\d{2})(\d{2})(\d{5})(\d{4})$/);
+      if (!phoneNumberFormatted) return phoneToFormat;
       return (
         "+" +
         phoneNumberFormatted[1] +
