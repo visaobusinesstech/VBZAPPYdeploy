@@ -43,6 +43,12 @@ module.exports = {
     username: process.env.DB_USER,
     password: process.env.DB_PASS,
     logging: false,
+    dialectOptions: {
+      ssl: {
+        require: true,
+        rejectUnauthorized: false,
+      },
+    },
     define: {
       charset: 'utf8mb4',
       collate: 'utf8mb4_bin',
