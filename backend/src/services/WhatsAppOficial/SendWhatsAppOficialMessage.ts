@@ -184,14 +184,26 @@ const SendWhatsAppOficialMessage = async ({
       }
 
       // Sanitização de segurança no uso
-      const cleanToken = token.trim();
+      // Remove espaços e caracteres não imprimíveis (como quebras de linha ocultas)
+      const cleanToken = token.replace(/[\x00-\x1F\x7F-\x9F]/g, "").trim();
 
-      // LOG DE DIAGNÓSTICO DO TOKEN (Mostra primeiros 10 e últimos 5 caracteres)
+      // LOG DE DIAGNÓSTICO DO TOKEN
       const tokenMasked = cleanToken.length > 15 
           ? `${cleanToken.substring(0, 10)}...${cleanToken.substring(cleanToken.length - 5)}` 
           : "TOKEN_INVALIDO_CURTO";
       
-      console.log(`[SendWhatsAppOficialMessage] Usando Token: ${tokenMasked} (Len: ${cleanToken.length})`);
+      console.log(`[SendWhatsAppOficialMessage] Token Original Len: ${token.length} | Limpo Len: ${cleanToken.length}`);
+      
+      if (token.length === 255) {
+        console.error(`[SendWhatsAppOficialMessage] 🚨 ALERTA CRÍTICO: O token tem exatos 255 caracteres. Isso indica que o banco de dados TRUNCOU o token. Rode as migrations para alterar a coluna para TEXT.`);
+        throw new AppError("Erro Crítico: Token cortado pelo banco de dados (Limite de 255 chars). Atualize o sistema.", 500);
+      }
+
+      console.log(`[SendWhatsAppOficialMessage] Usando Token: ${tokenMasked}`);
+      
+      if (cleanToken !== token) {
+        console.warn(`[SendWhatsAppOficialMessage] AVISO: O token continha caracteres inválidos que foram removidos.`);
+      }
 
       // ✅ CORREÇÃO BRASIL: Verifica se o número é brasileiro (55), tem 12 dígitos (sem o 9) e é móvel
       let finalNumber = contact.number;
