@@ -4,6 +4,8 @@ import Whatsapp from "../models/Whatsapp";
 import { ReceibedWhatsAppService } from "../services/WhatsAppOficial/ReceivedWhatsApp";
 import logger from "../utils/logger";
 import axios from "axios";
+import Message from "../models/Message";
+import { getIO } from "../libs/socket";
 
 export const verify = async (req: Request, res: Response): Promise<Response> => {
   const mode = req.query["hub.mode"];
@@ -66,12 +68,35 @@ export const handleMessage = async (req: Request, res: Response): Promise<Respon
           // 1. STATUS DE MENSAGENS (SENT, DELIVERED, READ)
           if (value.statuses && value.statuses.length > 0) {
             for (const status of value.statuses) {
-              // status: { id: 'wamid...', status: 'sent'|'delivered'|'read', timestamp: ... }
               console.log(`[Meta Webhook] Status Update: ${status.status} para msg ${status.id}`);
               
-              // Aqui você pode chamar um serviço para atualizar o ACK da mensagem no banco
-              // Exemplo: await receivedService.updateMessageStatus(status, companyId);
-              // Por enquanto, apenas logamos para você ver no Railway.
+              try {
+                const message = await Message.findOne({
+                  where: { wid: status.id, companyId }
+                });
+
+                if (message) {
+                  let ack = 0;
+                  if (status.status === 'sent') ack = 1;
+                  if (status.status === 'delivered') ack = 2;
+                  if (status.status === 'read') ack = 3;
+                  if (status.status === 'failed') ack = -1;
+
+                  if (ack !== 0 && (ack > message.ack || ack === -1)) {
+                    await message.update({ ack });
+
+                    const io = getIO();
+                    io.to(`tenant:${companyId}:status`).emit(`company-${companyId}-appMessage`, {
+                      action: "update",
+                      message
+                    });
+                    
+                    console.log(`[Meta Webhook] Mensagem ${status.id} atualizada para ACK: ${ack}`);
+                  }
+                }
+              } catch (err) {
+                console.error(`[Meta Webhook] Erro ao atualizar status:`, err);
+              }
             }
           }
 

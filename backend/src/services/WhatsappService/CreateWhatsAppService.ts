@@ -234,7 +234,8 @@ const CreateWhatsAppService = async ({
       ratingMessage,
       isDefault,
       companyId,
-      token,
+      // Se token vier vazio e send_token vier preenchido, usa send_token para token
+      token: (token === null || token === "") && send_token ? send_token : token,
       provider,
       channel,
       facebookUserId,
@@ -269,7 +270,8 @@ const CreateWhatsAppService = async ({
       queueIdImportMessages,
       phone_number_id,
       waba_id,
-      send_token,
+      // Se send_token vier vazio e token vier preenchido, usa token para send_token
+      send_token: (!send_token && token) ? token : send_token,
       business_id,
       phone_number,
       waba_webhook,
