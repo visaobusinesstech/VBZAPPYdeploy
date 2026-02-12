@@ -28,7 +28,7 @@ const App = () => {
   
   const getSafeColor = (color) => {
     if (color && isValidHex(color)) return color;
-    return "#065183";
+    return "#131B2D"; // Azul escuro padrão para novos usuários
   };
 
   const appColorLocalStorage = getSafeColor(

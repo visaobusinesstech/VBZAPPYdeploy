@@ -28,7 +28,10 @@ import {
   ListItemText,
   FormControlLabel,
   Checkbox,
+  InputBase,
+  alpha,
 } from "@material-ui/core";
+import SearchIcon from "@material-ui/icons/Search";
 import MenuIcon from "@material-ui/icons/Menu";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import NotificationsIcon from "@material-ui/icons/Notifications";
@@ -57,6 +60,7 @@ import VersionControl from "../components/VersionControl";
 import useSocketListener from "../hooks/useSocketListener";
 import PublicIcon from "@material-ui/icons/Public";
 import { logInfo, logError } from "../utils/logger";
+import SecondaryNavbar from "./SecondaryNavbar";
 
 const backendUrl = getBackendUrl();
 const drawerWidth = 240;
@@ -66,8 +70,10 @@ const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     height: "100vh",
+    paddingTop: "112px", // AppBar (64px) + SecondaryNavbar (48px)
     [theme.breakpoints.down("sm")]: {
       height: "calc(100vh - 56px)",
+      paddingTop: "56px", // AppBar (56px)
     },
     backgroundColor: theme.palette.fancyBackground,
     "& .MuiButton-outlinedPrimary": {
@@ -102,8 +108,7 @@ const useStyles = makeStyles((theme) => ({
   toolbar: {
     paddingRight: 24,
     color: theme.palette.dark.main,
-    // Usa a cor primária do tema para o fundo do AppBar
-    background: theme.palette.primary.main, // Mudança principal aqui
+    background: "#131B2D", // Cor azul escuro
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)", // Sombra sutil
     transition: "all 0.3s ease",
   },
@@ -125,7 +130,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   appBar: {
-    zIndex: theme.zIndex.drawer + 1,
+    zIndex: theme.zIndex.drawer + 100,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
@@ -148,12 +153,45 @@ const useStyles = makeStyles((theme) => ({
     display: "none",
   },
 
+  searchInput: {
+    padding: theme.spacing(0.5, 2),
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: alpha(theme.palette.common.white, 0.15),
+    "&:hover": {
+      backgroundColor: alpha(theme.palette.common.white, 0.25),
+    },
+    display: "flex",
+    alignItems: "center",
+  },
+  searchIcon: {
+    marginRight: theme.spacing(1),
+  },
+  inputRoot: {
+    color: "inherit",
+  },
+  inputInput: {
+    padding: theme.spacing(1, 1, 1, 0),
+    transition: theme.transitions.create("width"),
+    width: "100%",
+    [theme.breakpoints.up("md")]: {
+      width: "20ch",
+    },
+  },
+  topbarIcon: {
+    fontSize: "20px",
+  },
+  
+  welcomeMessage: {
+    fontSize: "14px",
+    fontWeight: 500,
+    color: "rgba(255, 255, 255, 0.9)",
+  },
   title: {
     flexGrow: 1,
-    fontSize: 14,
-    color: "white",
-    fontWeight: 600,
-    letterSpacing: "0.025em",
+    display: "none",
+    [theme.breakpoints.up("sm")]: {
+      display: "block",
+    },
   },
 
   drawerPaper: {
@@ -183,7 +221,7 @@ const useStyles = makeStyles((theme) => ({
     }),
     width: theme.spacing(7),
     [theme.breakpoints.up("sm")]: {
-      width: theme.spacing(9),
+      width: theme.spacing(7),
     },
   },
 
@@ -724,85 +762,20 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
 
   return (
     <div className={clsx(classes.root, "logged-in-layout")}>
-      {!hideMenu && (
-        <Drawer
-          variant={drawerVariant}
-          className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
-          classes={{
-            paper: clsx(
-              classes.drawerPaper,
-              !drawerOpen && classes.drawerPaperClose
-            ),
-          }}
-          open={drawerOpen}
-        >
-          <div className={classes.toolbarIcon}>
-            <div style={{ display: drawerOpen ? "flex" : "none", alignItems: "center", gap: "12px" }}>
-              <img
-                className={classes.logo}
-                style={{
-                  display: "block",
-                  margin: "0",
-                  height: "40px",
-                  width: "auto",
-                }}
-                alt="logo"
-              />
-              <Link to="/dashboard" style={{ textDecoration: "none" }}>
-                <Typography
-                  variant="h5"
-                  style={{
-                    fontFamily: '"Helvetica Neue", Helvetica, Arial, sans-serif',
-                    color: "#000",
-                    fontWeight: "bold",
-                    lineHeight: "1",
-                    fontSize: "24px",
-                    marginTop: "4px"
-                  }}
-                >
-                  Zappy
-                </Typography>
-              </Link>
-            </div>
-            <IconButton onClick={() => setDrawerOpen(!drawerOpen)}>
-              <ChevronLeftIcon />
-            </IconButton>
-          </div>
-          <List className={classes.containerWithScroll}>
-            {/* {mainListItems} */}
-            <MainListItems collapsed={!drawerOpen} />
-          </List>
-          <Divider />
-        </Drawer>
-      )}
-
       <AppBar
-        position="absolute"
-        className={clsx(classes.appBar, !hideMenu && drawerOpen && classes.appBarShift)}
+        position="fixed"
+        className={classes.appBar}
         color="primary"
       >
         <Toolbar variant="dense" className={classes.toolbar}>
-          {!hideMenu && (
-            <IconButton
-              edge="start"
-              variant="contained"
-              aria-label="open drawer"
-              style={{ color: "white" }}
-              onClick={() => setDrawerOpen(!drawerOpen)}
-              className={clsx(drawerOpen && classes.menuButtonHidden)}
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
 
           <Typography
             component="h2"
             variant="h6"
             color="inherit"
             noWrap
-            className={classes.title}
+            className={clsx(classes.title, classes.welcomeMessage)}
           >
-            {/* {greaterThenSm && user?.profile === "admin" && getDateAndDifDays(user?.company?.dueDate).difData < 7 ? ( */}
             {greaterThenSm &&
               user?.profile === "admin" &&
               user?.company?.dueDate ? (
@@ -821,6 +794,19 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               </>
             )}
           </Typography>
+          <div className={classes.searchInput}>
+            <div className={classes.searchIcon}>
+              <SearchIcon />
+            </div>
+            <InputBase
+              placeholder="Pesquisar..."
+              classes={{
+                root: classes.inputRoot,
+                input: classes.inputInput,
+              }}
+              inputProps={{ "aria-label": "search" }}
+            />
+          </div>
 
           {!hideMenu && (
             <>
@@ -829,104 +815,89 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 onUpdateComplete={handleUpdateComplete}
               />
 
-              <div
-                style={{ position: "relative", display: "inline-block" }}
-                className="language-dropdown"
+              {filteredLanguageOptions.length > 1 && (
+                <div className={classes.languageSelector}>
+                  <button onClick={() => setShowOptions(!showOptions)}>
+                    <PublicIcon />
+                  </button>
+                  {showOptions && (
+                    <div>
+                      {filteredLanguageOptions.map((lang) => (
+                        <button
+                          key={lang.code}
+                          onClick={() => handleLanguageChange(lang.code)}
+                        >
+                          {lang.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <IconButton
+                onClick={colorMode.toggleColorMode}
+                className={clsx(classes.toolbarButton, classes.topbarIcon)}
               >
-                <button
-                  onClick={() => setShowOptions(!showOptions)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "22px",
-                    paddingRight: "20px",
-                    paddingTop: "8px",
-                  }}
-                >
-                  <PublicIcon />
-                </button>
-
-                {showOptions && (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: "35px",
-                      left: "0",
-                      background: "#fff",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-                      borderRadius: "8px",
-                      padding: "8px",
-                      zIndex: 1000,
-                      minWidth: "120px",
-                      maxWidth: "200px",
-                    }}
-                  >
-                    {filteredLanguageOptions.map((lang) => (
-                      <button
-                        key={lang.code}
-                        onClick={() => handleLanguageChange(lang.code)}
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          display: "block",
-                          width: "100%",
-                          padding: "4px",
-                        }}
-                      >
-                        {lang.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <IconButton edge="start" onClick={colorMode.toggleColorMode}>
-                {theme.mode === "dark" ? (
-                  <Brightness7Icon style={{ color: "white" }} />
-                ) : (
-                  <Brightness4Icon style={{ color: "white" }} />
-                )}
+                {theme.mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
               </IconButton>
 
-              <NotificationsVolume setVolume={setVolume} volume={volume} />
+              <NotificationsVolume
+                volume={volume}
+                setVolume={setVolume}
+                className={classes.toolbarButton}
+              />
 
               <IconButton
                 onClick={handleRefreshPage}
                 aria-label={i18n.t("mainDrawer.appBar.refresh")}
-                color="inherit"
+                className={clsx(classes.toolbarButton, classes.topbarIcon)}
               >
-                <CachedIcon style={{ color: "white" }} />
+                <CachedIcon />
               </IconButton>
 
-              {/* <DarkMode themeToggle={themeToggle} /> */}
+              {user.id && (
+                <NotificationsPopOver
+                  volume={volume}
+                  className={clsx(classes.toolbarButton, classes.toolbarIcon)}
+                  onOpen={fetchAnnouncements}
+                />
+              )}
 
-              {user.id && <NotificationsPopOver volume={volume} />}
+              <AnnouncementsPopover
+                className={clsx(classes.toolbarButton, classes.toolbarIcon)}
+                onOpen={fetchAnnouncements}
+              />
 
-              <AnnouncementsPopover />
-
-              <ChatPopover />
-
-
+              <ChatPopover
+                className={clsx(classes.toolbarButton, classes.topbarIcon)}
+              />
 
               <div className="user-menu-wrapper">
-                <StyledBadge
-                  overlap="circular"
-                  anchorOrigin={{
-                    vertical: "bottom",
-                    horizontal: "right",
-                  }}
-                  variant="dot"
+                <IconButton
+                  aria-label="account of current user"
+                  aria-controls="menu-appbar"
+                  aria-haspopup="true"
                   onClick={handleMenu}
+                  variant="contained"
+                  className={clsx(classes.toolbarButton, classes.topbarIcon)}
                 >
-                  <Avatar
-                    alt="VBSolution"
-                    className={classes.avatar2}
-                    src={profileUrl}
-                  />
-                </StyledBadge>
+                  <Badge
+                    overlap="circular"
+                    anchorOrigin={{
+                      vertical: "bottom",
+                      horizontal: "right",
+                    }}
+                    badgeContent={
+                      <SmallAvatar
+                        alt="User status"
+                        src={`${backendUrl}/public/online.png`}
+                      />
+                    }
+                  >
+                    <Avatar src={profileUrl} className={classes.avatar2} />
+                  </Badge>
+                </IconButton>
 
                 <UserModal
                   open={userModalOpen}
@@ -969,6 +940,33 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           )}
         </Toolbar>
       </AppBar>
+      <SecondaryNavbar 
+        onMenuClick={() => setDrawerOpen(!drawerOpen)}
+        drawerOpen={drawerOpen}
+      />
+      {!hideMenu && (
+        <Drawer
+          variant={drawerVariant}
+          className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
+          classes={{
+            paper: clsx(
+              classes.drawerPaper,
+              !drawerOpen && classes.drawerPaperClose
+            ),
+          }}
+          open={drawerOpen}
+        >
+          <div className={classes.toolbarIcon}>
+            <div style={{ display: drawerOpen ? "flex" : "none", alignItems: "center", gap: "12px" }}>
+              <img src={logoDark} alt="VBSolution" style={{ height: 40, margin: '0 auto' }} />
+            </div>
+          </div>
+          <List className={classes.containerWithScroll}>
+            <MainListItems collapsed={!drawerOpen} />
+          </List>
+          <Divider />
+        </Drawer>
+      )}
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />
         {children ? children : null}

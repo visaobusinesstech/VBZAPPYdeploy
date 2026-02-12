@@ -89,7 +89,7 @@ const useStyles = makeStyles((theme) => ({
     transition: "color 0.3s ease", // Só transição de cor
     fontWeight: 500,
     "& .MuiTypography-root": {
-      fontFamily: "'Inter', 'Roboto', sans-serif",
+      fontFamily: "'Helvetica Neue', sans-serif",
     }
   },
 
@@ -118,6 +118,9 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: theme.palette.primary.main, // Usa cor do tema
       color: "#fff",
       boxShadow: `0 4px 12px ${theme.palette.primary.main}30`, // Sombra dinâmica
+    },
+    "&.active": {
+      backgroundColor: "#e0e0e0", // Fundo cinza para item ativo
     },
     "& .MuiSvgIcon-root": {
       fontSize: "1.4rem", // Mantém tamanho original
