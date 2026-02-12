@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "node node_modules/typescript/bin/tsc --skipLibCheck --noEmit",
+    "build": "node node_modules/typescript/bin/tsc --skipLibCheck",
     "watch": "tsc -w",
     "dev": "npm run dev:server",
     "start": "npm run db:migrate && node dist/server.js",

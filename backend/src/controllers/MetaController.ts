@@ -78,6 +78,7 @@ export const handleMessage = async (req: Request, res: Response): Promise<Respon
           // 2. MENSAGENS RECEBIDAS
           if (value.messages && value.messages.length > 0) {
             const message = value.messages[0];
+            const contact = value.contacts ? value.contacts[0] : null;
 
             const messageType = message.type;
             let convertedMessage: any = {
