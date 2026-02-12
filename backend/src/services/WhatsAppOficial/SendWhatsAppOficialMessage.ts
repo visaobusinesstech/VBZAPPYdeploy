@@ -183,12 +183,24 @@ const SendWhatsAppOficialMessage = async ({
         throw new Error("Phone Number ID or Token missing for Cloud API");
       }
 
+      // ✅ CORREÇÃO BRASIL: Verifica se o número é brasileiro (55), tem 12 dígitos (sem o 9) e é móvel
+      let finalNumber = contact.number;
+      if (finalNumber.startsWith("55") && finalNumber.length === 12) {
+        const ddd = finalNumber.substring(2, 4);
+        const numberPart = finalNumber.substring(4);
+        // Se o número começar com 7, 8 ou 9, assume-se que é móvel e adiciona o 9
+        if (["7", "8", "9"].includes(numberPart[0])) {
+           finalNumber = `55${ddd}9${numberPart}`;
+           console.log(`[SendWhatsAppOficialMessage] ⚠️ Corrigindo número BR sem 9º dígito: ${contact.number} -> ${finalNumber}`);
+        }
+      }
+
       const url = `https://graph.facebook.com/v21.0/${phone_number_id}/messages`;
       
       let payload: any = {
         messaging_product: "whatsapp",
         recipient_type: "individual",
-        to: contact.number,
+        to: finalNumber,
       };
 
       if (type === "text") {
@@ -200,14 +212,23 @@ const SendWhatsAppOficialMessage = async ({
       }
       // TODO: Adicionar suporte a mídia direto se necessário
 
-      const response = await axios.post(url, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      console.log(`[SendWhatsAppOficialMessage] Enviando para URL: ${url}`);
+      console.log(`[SendWhatsAppOficialMessage] Payload:`, JSON.stringify(payload, null, 2));
 
-      sendMessage = { idMessageWhatsApp: [response.data.messages[0].id] };
+      try {
+        const response = await axios.post(url, payload, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        console.log(`[SendWhatsAppOficialMessage] Resposta Meta:`, response.data);
+        sendMessage = { idMessageWhatsApp: [response.data.messages[0].id] };
+      } catch (err: any) {
+        console.error(`[SendWhatsAppOficialMessage] Erro Axios:`, err.response?.data || err.message);
+        throw new Error(JSON.stringify(err.response?.data?.error || err.message));
+      }
     }
 
     await ticket.update({ lastMessage: !bodyMsg && (!!media || type === 'template') ? bodyTicket : bodyMsg, imported: null, unreadMessages: 0 });
@@ -241,10 +262,26 @@ const SendWhatsAppOficialMessage = async ({
     await CreateMessageService({ messageData, companyId: ticket.companyId });
 
     return sendMessage;
-  } catch (err) {
-    console.log(`erro ao enviar mensagem na company ${ticket.companyId} - `, body)
-    Sentry.captureException(err);
-    console.log(err);
+  } catch (err: any) {
+    console.log(`[SendWhatsAppOficialMessage] Erro Catch Principal:`, err);
+
+    // Tenta extrair o erro da resposta da Meta
+    if (err.response && err.response.data && err.response.data.error) {
+        const metaError = err.response.data.error;
+        const errorMessage = metaError.message || JSON.stringify(metaError);
+        const errorDetails = metaError.error_data ? JSON.stringify(metaError.error_data) : '';
+        
+        console.error(`[SendWhatsAppOficialMessage] Erro Meta Detalhado: ${errorMessage} ${errorDetails}`);
+        
+        // Retorna o erro exato da Meta para o frontend
+        throw new AppError(`Erro Meta: ${errorMessage} ${errorDetails}`, 400);
+    }
+
+    // Se for erro de rede ou outro sem response
+    if (err.message) {
+        throw new AppError(`Erro Envio: ${err.message}`, 400);
+    }
+    
     throw new AppError("ERR_SENDING_WAPP_MSG");
   }
 

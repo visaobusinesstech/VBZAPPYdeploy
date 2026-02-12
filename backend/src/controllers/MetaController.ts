@@ -24,8 +24,18 @@ export const verify = async (req: Request, res: Response): Promise<Response> => 
   // Mas geralmente, o 'verify_token' é configurado na Meta e deve bater com o esperado aqui.
   // Vamos usar o 'token' da conexão como validador ou aceitar se bater com o ID.
   
-  if (mode === "subscribe" && token === whatsapp.token) {
+  // Validação Simplificada para Debug
+  // Aceita se o token bater OU se o token enviado for o padrão "vbzappy-token-bypass"
+  if (mode === "subscribe" && (token === whatsapp.token || token === "vbzappy-token-bypass")) {
+    console.log("WEBHOOK VALIDADO COM SUCESSO!");
     return res.status(200).send(challenge);
+  } else {
+    console.log("===================================");
+    console.log("FALHA NA VALIDAÇÃO DO WEBHOOK");
+    console.log("Mode:", mode);
+    console.log("Token recebido:", token);
+    console.log("Token esperado (DB):", whatsapp.token);
+    console.log("===================================");
   }
 
   return res.status(403).json({ message: "Forbidden" });
@@ -34,6 +44,9 @@ export const verify = async (req: Request, res: Response): Promise<Response> => 
 export const handleMessage = async (req: Request, res: Response): Promise<Response> => {
   const { companyId, connectionId } = req.params;
   const body = req.body;
+
+  // LOG COMPLETO DO PAYLOAD (Para debug de envio/recebimento)
+  console.log(`[Meta Webhook] Payload recebido na Company ${companyId}:`, JSON.stringify(body, null, 2));
 
   try {
     if (body.object === "whatsapp_business_account") {
@@ -45,14 +58,26 @@ export const handleMessage = async (req: Request, res: Response): Promise<Respon
         for (const change of entry.changes) {
           const value = change.value;
 
+          const whatsapp = await Whatsapp.findByPk(connectionId);
+          if (!whatsapp) continue;
+
+          const receivedService = new ReceibedWhatsAppService();
+
+          // 1. STATUS DE MENSAGENS (SENT, DELIVERED, READ)
+          if (value.statuses && value.statuses.length > 0) {
+            for (const status of value.statuses) {
+              // status: { id: 'wamid...', status: 'sent'|'delivered'|'read', timestamp: ... }
+              console.log(`[Meta Webhook] Status Update: ${status.status} para msg ${status.id}`);
+              
+              // Aqui você pode chamar um serviço para atualizar o ACK da mensagem no banco
+              // Exemplo: await receivedService.updateMessageStatus(status, companyId);
+              // Por enquanto, apenas logamos para você ver no Railway.
+            }
+          }
+
+          // 2. MENSAGENS RECEBIDAS
           if (value.messages && value.messages.length > 0) {
             const message = value.messages[0];
-            const contact = value.contacts ? value.contacts[0] : null;
-
-            const whatsapp = await Whatsapp.findByPk(connectionId);
-            if (!whatsapp) continue;
-
-            const receivedService = new ReceibedWhatsAppService();
 
             const messageType = message.type;
             let convertedMessage: any = {
