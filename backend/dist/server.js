@@ -14,7 +14,9 @@ const queue_1 = __importDefault(require("./libs/queue"));
 const queues_1 = require("./queues");
 const LidSyncJob_1 = require("./jobs/LidSyncJob");
 const redis_1 = require("./config/redis");
+const ensureDatabase_1 = require("./utils/ensureDatabase");
 const server = app_1.default.listen(process.env.PORT, async () => {
+    await (0, ensureDatabase_1.ensureDatabase)();
     const companies = await Company_1.default.findAll({
         where: { status: true },
         attributes: ["id"]

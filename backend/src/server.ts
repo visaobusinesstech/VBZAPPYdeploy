@@ -9,8 +9,10 @@ import BullQueue from './libs/queue';
 import { startQueueProcess } from "./queues";
 import { startLidSyncJob } from "./jobs/LidSyncJob";
 import { REDIS_URI_MSG_CONN } from "./config/redis";
+import { ensureDatabase } from "./utils/ensureDatabase";
 
 const server = app.listen(process.env.PORT, async () => {
+  await ensureDatabase();
   const companies = await Company.findAll({
     where: { status: true },
     attributes: ["id"]
