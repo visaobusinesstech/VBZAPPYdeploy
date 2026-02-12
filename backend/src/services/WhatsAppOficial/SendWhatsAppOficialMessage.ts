@@ -183,6 +183,16 @@ const SendWhatsAppOficialMessage = async ({
         throw new Error("Phone Number ID or Token missing for Cloud API");
       }
 
+      // Sanitização de segurança no uso
+      const cleanToken = token.trim();
+
+      // LOG DE DIAGNÓSTICO DO TOKEN (Mostra primeiros 10 e últimos 5 caracteres)
+      const tokenMasked = cleanToken.length > 15 
+          ? `${cleanToken.substring(0, 10)}...${cleanToken.substring(cleanToken.length - 5)}` 
+          : "TOKEN_INVALIDO_CURTO";
+      
+      console.log(`[SendWhatsAppOficialMessage] Usando Token: ${tokenMasked} (Len: ${cleanToken.length})`);
+
       // ✅ CORREÇÃO BRASIL: Verifica se o número é brasileiro (55), tem 12 dígitos (sem o 9) e é móvel
       let finalNumber = contact.number;
       if (finalNumber.startsWith("55") && finalNumber.length === 12) {
@@ -218,7 +228,7 @@ const SendWhatsAppOficialMessage = async ({
       try {
         const response = await axios.post(url, payload, {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${cleanToken}`,
             "Content-Type": "application/json",
           },
         });
@@ -268,9 +278,14 @@ const SendWhatsAppOficialMessage = async ({
     // Tenta extrair o erro da resposta da Meta
     if (err.response && err.response.data && err.response.data.error) {
         const metaError = err.response.data.error;
-        const errorMessage = metaError.message || JSON.stringify(metaError);
+        let errorMessage = metaError.message || JSON.stringify(metaError);
         const errorDetails = metaError.error_data ? JSON.stringify(metaError.error_data) : '';
         
+        // Dica amigável para erro de Token Expirado (Code 190)
+        if (metaError.code === 190) {
+            errorMessage += " (DICA: Seu token de acesso expirou. Gere um novo Token Permanente na Meta e atualize na Conexão.)";
+        }
+
         console.error(`[SendWhatsAppOficialMessage] Erro Meta Detalhado: ${errorMessage} ${errorDetails}`);
         
         // Retorna o erro exato da Meta para o frontend

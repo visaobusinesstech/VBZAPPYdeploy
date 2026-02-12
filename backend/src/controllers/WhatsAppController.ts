@@ -127,7 +127,6 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     complationMessage,
     outOfHoursMessage,
     queueIds,
-    token,
     maxUseBotQueues,
     timeUseBotQueues,
     expiresTicket,
@@ -153,15 +152,18 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     collectiveVacationMessage,
     collectiveVacationStart,
     queueIdImportMessages,
-    phone_number_id,
-    waba_id,
-    send_token,
     business_id,
     phone_number,
     color,
     waba_webhook,
     channel
   }: WhatsappData = data;
+
+  // Sanitização de dados críticos para evitar espaços em branco acidentais
+  const token = data.token ? data.token.trim() : null;
+  const phone_number_id = data.phone_number_id ? data.phone_number_id.trim() : null;
+  const waba_id = data.waba_id ? data.waba_id.trim() : null;
+  const send_token = data.send_token ? data.send_token.trim() : null;
 
   const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
 
@@ -439,6 +441,12 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   const { whatsappId } = req.params;
   const whatsappData = req.body;
   const { companyId, id: userId } = req.user;
+
+  // Sanitização de dados críticos no update também
+  if (whatsappData.token) whatsappData.token = whatsappData.token.trim();
+  if (whatsappData.phone_number_id) whatsappData.phone_number_id = whatsappData.phone_number_id.trim();
+  if (whatsappData.waba_id) whatsappData.waba_id = whatsappData.waba_id.trim();
+  if (whatsappData.send_token) whatsappData.send_token = whatsappData.send_token.trim();
 
   const { whatsapp, oldDefaultWhatsapp } = await UpdateWhatsAppService({
     whatsappData,
