@@ -94,6 +94,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "react-scripts start",
     "prebuild": "node scripts/check-ajv.js",
     "build": "cross-env CI=false NODE_OPTIONS=\"--max-old-space-size=4096\" react-scripts build",
     "test": "react-scripts test",
