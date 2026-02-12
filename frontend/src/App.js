@@ -415,7 +415,7 @@ const App = () => {
       });
     getPublicSetting("appName")
       .then((name) => {
-        setAppName(name || "VBZappy");
+        setAppName(name || "VBSolution");
       })
       .catch((error) => {
         console.log("Error reading setting", error);

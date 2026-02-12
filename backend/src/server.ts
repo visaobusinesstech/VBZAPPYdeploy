@@ -1,25 +1,27 @@
-import 'dotenv/config';
+import "dotenv/config";
 import gracefulShutdown from "http-graceful-shutdown";
 import app from "./app";
 import { initIO } from "./libs/socket";
 import logger from "./utils/logger";
 import { StartAllWhatsAppsSessions } from "./services/WbotServices/StartAllWhatsAppsSessions";
 import Company from "./models/Company";
-import BullQueue from './libs/queue';
+import BullQueue from "./libs/queue";
 import { startQueueProcess } from "./queues";
 import { startLidSyncJob } from "./jobs/LidSyncJob";
 import { REDIS_URI_MSG_CONN } from "./config/redis";
 import { ensureDatabase } from "./utils/ensureDatabase";
 
-const server = app.listen(process.env.PORT, async () => {
+const port = Number(process.env.PORT) || 8080;
+
+const server = app.listen(port, async () => {
   await ensureDatabase();
   const companies = await Company.findAll({
     where: { status: true },
-    attributes: ["id"]
+    attributes: ["id"],
   });
 
   const allPromises: any[] = [];
-  companies.map(async c => {
+  companies.map(async (c) => {
     const promise = StartAllWhatsAppsSessions(c.id);
     allPromises.push(promise);
   });
@@ -29,12 +31,12 @@ const server = app.listen(process.env.PORT, async () => {
     await startQueueProcess();
   });
 
-  if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== '') {
+  if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
     BullQueue.process();
   }
 
   startLidSyncJob();
-  logger.info(`Servidor iniciado na porta ${process.env.PORT}`);
+  logger.info(`Servidor iniciado na porta ${port}`);
 });
 
 process.on("uncaughtException", err => {

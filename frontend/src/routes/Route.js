@@ -10,9 +10,9 @@ const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 
 	useEffect(() => {
 		if (title) {
-			document.title = `VBZappy | ${title}`;
+			document.title = `VBSolution | ${title}`;
 		} else {
-			document.title = "VBZappy";
+			document.title = "VBSolution";
 		}
 	}, [title]);
 

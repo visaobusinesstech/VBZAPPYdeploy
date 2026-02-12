@@ -498,7 +498,7 @@ const Login = () => {
     return (
         <>
             <Helmet>
-                <title>{appName || "VBZappy"}</title>
+                <title>{appName || "VBSolution"}</title>
                 <link rel="icon" href={appLogoFavicon || "/default-favicon.ico"} />
             </Helmet>
 
