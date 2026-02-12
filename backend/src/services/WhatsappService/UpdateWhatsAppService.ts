@@ -133,11 +133,7 @@ const UpdateWhatsAppService = async ({
     // Força atualização dos campos da API Oficial
     phone_number_id,
     waba_id,
-    // O campo "Token de envio" do frontend é mapeado para send_token? 
-    // Se o usuário preenche send_token mas o sistema usa token, precisamos garantir a sincronia.
-    // ATENÇÃO: Se send_token vier preenchido e token vier vazio (ou vice-versa), vamos tentar garantir que o token seja atualizado.
-    token: token || send_token, // Se token for nulo, usa send_token
-    send_token: send_token || token, // Mantém a redundância se necessário
+    send_token,
     business_id,
     phone_number,
     timeToReturnQueue = 0,
@@ -191,6 +187,7 @@ const UpdateWhatsAppService = async ({
     isDefault,
     companyId,
     token: token || send_token,
+    send_token: send_token || token,
     maxUseBotQueues: maxUseBotQueues || 0,
     timeUseBotQueues: timeUseBotQueues || 0,
     expiresTicket: expiresTicket || 0,
@@ -226,7 +223,6 @@ const UpdateWhatsAppService = async ({
     color,
     phone_number_id,
     waba_id,
-    send_token,
     business_id,
     phone_number,
     timeToReturnQueue,

@@ -13,6 +13,7 @@ const Company_1 = __importDefault(require("./models/Company"));
 const queue_1 = __importDefault(require("./libs/queue"));
 const queues_1 = require("./queues");
 const LidSyncJob_1 = require("./jobs/LidSyncJob");
+const redis_1 = require("./config/redis");
 const server = app_1.default.listen(process.env.PORT, async () => {
     const companies = await Company_1.default.findAll({
         where: { status: true },
@@ -27,7 +28,7 @@ const server = app_1.default.listen(process.env.PORT, async () => {
         logger_1.default.info("Fila de processamento iniciando após sessões do WhatsApp");
         await (0, queues_1.startQueueProcess)();
     });
-    if (process.env.REDIS_URI_ACK && process.env.REDIS_URI_ACK !== '') {
+    if (redis_1.REDIS_URI_MSG_CONN && redis_1.REDIS_URI_MSG_CONN !== '') {
         queue_1.default.process();
     }
     (0, LidSyncJob_1.startLidSyncJob)();

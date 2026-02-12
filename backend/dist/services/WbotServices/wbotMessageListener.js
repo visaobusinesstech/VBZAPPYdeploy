@@ -44,6 +44,7 @@ const CreateMessageService_1 = __importDefault(require("../MessageServices/Creat
 const logger_1 = __importDefault(require("../../utils/logger"));
 const CreateOrUpdateContactService_1 = __importDefault(require("../ContactServices/CreateOrUpdateContactService"));
 const FindOrCreateTicketService_1 = __importDefault(require("../TicketServices/FindOrCreateTicketService"));
+const ShowTicketService_1 = __importDefault(require("../TicketServices/ShowTicketService"));
 const ShowWhatsAppService_1 = __importDefault(require("../WhatsappService/ShowWhatsAppService"));
 const Debounce_1 = require("../../helpers/Debounce");
 const UpdateTicketService_1 = __importDefault(require("../TicketServices/UpdateTicketService"));
@@ -220,9 +221,11 @@ const msgLocation = (image, latitude, longitude) => {
 };
 const getBodyMessage = (msg) => {
     try {
-        let type = getTypeMessage(msg);
-        if (type === undefined)
+        const msgType = getTypeMessage(msg);
+        if (msgType === undefined)
             console.log(JSON.stringify(msg));
+        // DEBUG: Log de mensagem recebida
+        console.log(`[RDS-DEBUG] Recebida mensagem do Baileys: ID=${msg.key.id}, JID=${msg.key.remoteJid}, Tipo=${msgType}`);
         const types = {
             conversation: msg.message?.conversation,
             imageMessage: msg.message?.imageMessage?.caption,
@@ -263,13 +266,13 @@ const getBodyMessage = (msg) => {
             advertising: getAd(msg) ||
                 msg.message?.listResponseMessage?.contextInfo?.externalAdReply?.title
         };
-        const objKey = Object.keys(types).find(key => key === type);
+        const objKey = Object.keys(types).find(key => key === msgType);
         if (!objKey) {
-            logger_1.default.warn(`#### Nao achou o type 152: ${type} ${JSON.stringify(msg.message)}`);
-            Sentry.setExtra("Mensagem", { BodyMsg: msg.message, msg, type });
+            logger_1.default.warn(`#### Nao achou o type 152: ${msgType} ${JSON.stringify(msg.message)}`);
+            Sentry.setExtra("Mensagem", { BodyMsg: msg.message, msg, type: msgType });
             Sentry.captureException(new Error("Novo Tipo de Mensagem em getTypeMessage"));
         }
-        return types[type];
+        return types[msgType];
     }
     catch (error) {
         Sentry.setExtra("Error getTypeMessage", { msg, BodyMsg: msg?.message });
@@ -778,10 +781,16 @@ const verifyMediaMessage = async (msg, ticket, contact, ticketTraking, isForward
         await ticket.update({
             lastMessage: body || media.filename
         });
+        io.of(String(companyId))
+            .emit(`company-${companyId}-ticket`, {
+            action: "update",
+            ticket
+        });
         const newMessage = await (0, CreateMessageService_1.default)({
             messageData,
             companyId: companyId
         });
+        console.log(`[DEBUG 2026] Mensagem criada no DB: ${newMessage.id} para Ticket: ${ticket.id}`);
         if (!msg.key.fromMe && ticket.status === "closed") {
             await ticket.update({ status: "pending" });
             await ticket.reload({
@@ -869,7 +878,25 @@ const verifyMessage = async (msg, ticket, contact, ticketTraking, isPrivate, isF
     await ticket.update({
         lastMessage: body
     });
+    console.log(`[DEBUG 2026] verifyMessage: lastMessage atualizada para ticket ${ticket.id}. Reloading ticket for socket emission...`);
+    const ticketToEmit = await (0, ShowTicketService_1.default)(ticket.id, companyId);
+    console.log(`[DEBUG 2026] Emitting socket for ticket ${ticket.id}: status=${ticketToEmit.status}, queueId=${ticketToEmit.queueId}, userId=${ticketToEmit.userId}`);
+    io.of(String(companyId))
+        //.to(ticketToEmit.status)
+        .emit(`company-${companyId}-ticket`, {
+        action: "update",
+        ticket: ticketToEmit,
+        ticketId: ticket.id
+    });
     await (0, CreateMessageService_1.default)({ messageData, companyId: companyId });
+    // REFORÇO: Emitir appMessage com dados completos do ticket para garantir atualização no frontend
+    io.of(String(companyId))
+        .emit(`company-${companyId}-appMessage`, {
+        action: "create",
+        message: { ...messageData, body: body, ticketId: ticket.id },
+        ticket: ticketToEmit,
+        contact: ticketToEmit.contact
+    });
     if (!msg.key.fromMe && ticket.status === "closed") {
         await ticket.update({ status: "pending" });
         await ticket.reload({
@@ -2600,12 +2627,14 @@ const handleOpenAi = async (msg, wbot, ticket, contact, mediaSent, ticketTraking
     messagesOpenAi = [];
 };
 const handleMessage = async (msg, wbot, companyId, isImported = false) => {
+    console.log(`[DEBUG 2026] handleMessage iniciado. ID: ${msg.key.id}`);
     let campaignExecuted = false;
     console.log("[DEBUG RODRIGO] msg.key.id", JSON.stringify(msg.key));
     const existingMessage = await Message_1.default.findOne({
         where: { wid: msg.key.id }
     });
     if (existingMessage) {
+        console.log(`[DEBUG 2026] Mensagem já existe no banco (ID: ${msg.key.id}). Ignorando.`);
         return;
     }
     if (isImported) {
@@ -2631,15 +2660,18 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
     //   i++
     // }
     if (!isValidMsg(msg)) {
+        console.log(`[DEBUG 2026] Mensagem inválida (isValidMsg returned false) para ID: ${msg.key.id}`);
         return;
     }
     // ✅ CORREÇÃO: Ignorar eventos de grupo (messageStubType)
     if (msg.messageStubType) {
+        console.log(`[DEBUG 2026] Ignorando stub message: ${msg.messageStubType}`);
         if (debug_1.ENABLE_LID_DEBUG) {
             logger_1.default.info(`[RDS-LID] HandleMessage - Ignorando evento de grupo: ${msg.messageStubType}`);
         }
         return;
     }
+    console.log(`[DEBUG 2026] Mensagem válida e nova, iniciando processamento do contato e ticket...`);
     try {
         let msgContact;
         let groupContact;
@@ -2708,8 +2740,10 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
                 msgType !== "protocolMessage" &&
                 msgType !== "viewOnceMessage" &&
                 msgType !== "editedMessage" &&
-                msgType !== "hydratedContentText")
+                msgType !== "hydratedContentText") {
+                console.log(`[DEBUG 2026] Ignorando mensagem fromMe de tipo inválido: ${msgType}`);
                 return;
+            }
             msgContact = await getContactMessage(msg, wbot);
         }
         else {
@@ -2723,8 +2757,10 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
         // });
         // console.log("GETTING WHATSAPP SHOW WHATSAPP 2384", wbot.id, companyId)
         const whatsapp = await (0, ShowWhatsAppService_1.default)(wbot.id, companyId);
-        if (!whatsapp.allowGroup && isGroup)
+        if (!whatsapp.allowGroup && isGroup) {
+            console.log(`[DEBUG 2026] Grupo ignorado (allowGroup=false): ${msg.key.remoteJid}`);
             return;
+        }
         if (isGroup) {
             let grupoMeta = null;
             try {
@@ -2748,6 +2784,7 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
                 }
                 catch (error) {
                     logger_1.default.error(`Erro ao obter metadados do grupo: ${JSON.stringify(error)}`);
+                    console.log(`[DEBUG 2026] Falha ao obter metadados do grupo. Ignorando.`);
                     return;
                 }
             }
@@ -2770,6 +2807,7 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
                 });
                 if (!groupContact) {
                     logger_1.default.info("Grupo não encontrado, descarta a mensagem para não abrir como contato...");
+                    console.log(`[DEBUG 2026] Grupo não encontrado no DB. Ignorando.`);
                     return;
                 }
             }
@@ -2804,7 +2842,9 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
         const mutex = new async_mutex_1.Mutex();
         // Inclui a busca de ticket aqui, se realmente não achar um ticket, então vai para o findorcreate
         const ticket = await mutex.runExclusive(async () => {
+            console.log(`[DEBUG 2026] Chamando FindOrCreateTicketService para contato ${contact.id}`);
             const result = await (0, FindOrCreateTicketService_1.default)(contact, whatsapp, unreadMessages, companyId, queueId, userId, groupContact, "whatsapp", isImported, false, settings);
+            console.log(`[DEBUG 2026] Ticket obtido/criado: ${result?.id}, Status: ${result?.status}`);
             return result;
         });
         const ticketTraking = await (0, FindOrCreateATicketTrakingService_1.default)({
@@ -2841,6 +2881,7 @@ const handleMessage = async (msg, wbot, companyId, isImported = false) => {
             (unreadMessages === 0 &&
                 whatsapp.complationMessage &&
                 (0, Mustache_1.default)(whatsapp.complationMessage, ticket) === bodyMessage)) {
+            console.log(`[DEBUG 2026] Ticket fechado ou mensagem de conclusão. Ignorando mensagem. Ticket Status: ${ticket.status}, Body: ${bodyMessage}`);
             return;
         }
         if (rollbackTag &&
@@ -3760,6 +3801,7 @@ const filterMessages = (msg) => {
 // Logs de debug de eventos Baileys removidos para produção
 const wbotMessageListener = (wbot, companyId) => {
     wbot.ev.on("messages.upsert", async (messageUpsert) => {
+        console.log(`[DEBUG 2026] messages.upsert recebido. Tipo: ${messageUpsert.type}. Qtd: ${messageUpsert.messages.length}`);
         const messages = messageUpsert.messages
             .filter(filterMessages)
             .map(msg => msg);
@@ -3767,8 +3809,11 @@ const wbotMessageListener = (wbot, companyId) => {
             return;
         // console.log("CIAAAAAAA WBOT " , companyId)
         messages.forEach(async (message) => {
+            console.log(`[DEBUG 2026] Processando msg ID: ${message.key.id}, RemoteJid: ${message.key.remoteJid}`);
+            // Log para verificar se passa pelo filtro de stub
             if (message?.messageStubParameters?.length &&
                 message.messageStubParameters[0].includes("absent")) {
+                console.log(`[DEBUG 2026] Mensagem ignorada (stub/absent): ${message.key.id}`);
                 const msg = {
                     companyId: companyId,
                     whatsappId: wbot.id,
@@ -3779,6 +3824,7 @@ const wbotMessageListener = (wbot, companyId) => {
             const messageExists = await Message_1.default.count({
                 where: { wid: message.key.id, companyId }
             });
+            console.log(`[DEBUG 2026] Message exists? ${messageExists} - ID: ${message.key.id}`);
             if (!messageExists) {
                 let isCampaign = false;
                 let body = await (0, exports.getBodyMessage)(message);
@@ -3793,20 +3839,28 @@ const wbotMessageListener = (wbot, companyId) => {
                 }
                 if (!isCampaign) {
                     if (redis_1.REDIS_URI_MSG_CONN !== "") {
+                        // console.log(`[DEBUG 2026] Adicionando msg ID ${message.key.id} para fila Redis: ${process.env.DB_NAME}-handleMessage`);
                         //} && (!message.key.fromMe || (message.key.fromMe && !message.key.id.startsWith('BAE')))) {
                         try {
                             await queue_1.default.add(`${process.env.DB_NAME}-handleMessage`, { message, wbot: wbot.id, companyId }, {
                                 priority: 1,
                                 jobId: `${wbot.id}-handleMessage-${message.key.id}`
                             });
+                            // console.log(`[DEBUG 2026] Msg ID ${message.key.id} adicionada ao Redis com sucesso.`);
                         }
                         catch (e) {
+                            console.error(`[DEBUG 2026] ERRO ao adicionar msg ID ${message.key.id} ao Redis:`, e);
                             Sentry.captureException(e);
                         }
                     }
                     else {
+                        // console.log(`[DEBUG 2026] Processando msg ID ${message.key.id} diretamente (sem Redis).`);
                         await handleMessage(message, wbot, companyId);
+                        // console.log(`[DEBUG 2026] handleMessage finalizado para msg ID ${message.key.id}.`);
                     }
+                }
+                else {
+                    console.log(`[DEBUG 2026] Mensagem de campanha ignorada: ${message.key.id}`);
                 }
                 await verifyRecentCampaign(message, companyId);
                 await verifyCampaignMessageAndCloseTicket(message, companyId, wbot);

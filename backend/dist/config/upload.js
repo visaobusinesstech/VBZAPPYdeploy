@@ -31,7 +31,7 @@ exports.default = {
                 companyId = whatsapp.companyId;
             }
             let folder;
-            if (typeArch === "user") {
+            if (typeArch === "user" || file.fieldname === "profileImage") {
                 // Para usuários, criar pasta específica da empresa
                 folder = path_1.default.resolve(publicFolder, `company${companyId}`, "user");
             }
@@ -85,7 +85,7 @@ exports.default = {
                 typeArch
             });
             // Para imagens de perfil, gerar nome único
-            if (typeArch === "user" && file.mimetype.startsWith('image/')) {
+            if ((typeArch === "user" || file.fieldname === "profileImage") && file.mimetype.startsWith('image/')) {
                 const timestamp = new Date().getTime();
                 const extension = path_1.default.extname(file.originalname) || '.jpg';
                 const fileName = `profile_${timestamp}${extension}`;

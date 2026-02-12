@@ -140,6 +140,7 @@ async function apiMessageQueue() {
                                 isSending: false,
                                 companyId: company.id,
                                 whatsappId: whatsapp.id,
+                                error: null,
                                 [sequelize_1.Op.or]: [
                                     { schedule: { [sequelize_1.Op.lte]: currentDate } },
                                     { schedule: null }
@@ -292,6 +293,9 @@ async function apiMessageQueue() {
                                 }
                             }
                             catch (messageError) {
+                                // Marca mensagem como erro para evitar loop infinito
+                                logger_1.default.error(`[DEBUG 2026] Marcando mensagem ${message.id} como erro para evitar loop. Erro: ${messageError.message}`);
+                                await MessageApi_1.default.update({ error: messageError.message, isSending: false }, { where: { id: message.id } });
                                 logger_1.default.error(`Erro ao processar mensagem ${message?.id}:`, {
                                     error: messageError,
                                     message: messageError.message,
@@ -302,11 +306,11 @@ async function apiMessageQueue() {
                         }
                     }
                     catch (whatsappError) {
-                        logger_1.default.error(`Erro ao processar whatsapp ${whatsapp?.id}:`, {
-                            error: whatsappError,
-                            message: whatsappError.message,
-                            stack: whatsappError.stack
-                        });
+                        // logger.error(`Erro ao processar whatsapp ${whatsapp?.id}:`, {
+                        //   error: whatsappError,
+                        //   message: whatsappError.message,
+                        //   stack: whatsappError.stack
+                        // });
                     }
                 }));
             }

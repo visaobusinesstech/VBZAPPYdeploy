@@ -132,7 +132,7 @@ __decorate([
     __metadata("design:type", Company_1.default)
 ], Whatsapp.prototype, "company", void 0);
 __decorate([
-    sequelize_typescript_1.Column,
+    (0, sequelize_typescript_1.Column)(sequelize_typescript_1.DataType.TEXT),
     __metadata("design:type", String)
 ], Whatsapp.prototype, "token", void 0);
 __decorate([

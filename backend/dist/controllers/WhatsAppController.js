@@ -51,7 +51,12 @@ exports.indexFilter = indexFilter;
 const store = async (req, res) => {
     const { companyId, super: isSuper } = req.user;
     const data = req.body;
-    const { name, status, isDefault, greetingMessage, complationMessage, outOfHoursMessage, queueIds, token, maxUseBotQueues, timeUseBotQueues, expiresTicket, allowGroup, timeSendQueue, sendIdQueue, timeInactiveMessage, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS, whenExpiresTicket, expiresInactiveMessage, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, groupAsTicket, timeCreateNewTicket, schedules, promptId, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, phone_number_id, waba_id, send_token, business_id, phone_number, color, waba_webhook, channel } = data;
+    const { name, status, isDefault, greetingMessage, complationMessage, outOfHoursMessage, queueIds, maxUseBotQueues, timeUseBotQueues, expiresTicket, allowGroup, timeSendQueue, sendIdQueue, timeInactiveMessage, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS, whenExpiresTicket, expiresInactiveMessage, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, groupAsTicket, timeCreateNewTicket, schedules, promptId, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, business_id, phone_number, color, waba_webhook, channel } = data;
+    // Sanitização de dados críticos para evitar espaços em branco acidentais
+    const token = data.token ? data.token.trim() : null;
+    const phone_number_id = data.phone_number_id ? data.phone_number_id.trim() : null;
+    const waba_id = data.waba_id ? data.waba_id.trim() : null;
+    const send_token = data.send_token ? data.send_token.trim() : null;
     const targetCompanyId = isSuper && data.companyId ? data.companyId : companyId;
     const company = await (0, ShowCompanyService_1.default)(targetCompanyId);
     const plan = await (0, ShowPlanService_1.default)(company.planId);
@@ -106,28 +111,41 @@ const store = async (req, res) => {
     });
     if (["whatsapp_oficial"].includes(whatsapp.channel)) {
         try {
-            const companyData = {
-                companyId: String(whatsapp.companyId),
-                companyName: whatsapp.company.name
-            };
-            const whatsappOficial = {
-                token_mult100: whatsapp.token,
-                phone_number_id: whatsapp.phone_number_id,
-                waba_id: whatsapp.waba_id,
-                send_token: whatsapp.send_token,
-                business_id: whatsapp.business_id,
-                phone_number: whatsapp.phone_number,
-                idEmpresaMult100: whatsapp.companyId
-            };
-            const data = {
-                email: whatsapp.company.email,
-                company: companyData,
-                whatsApp: whatsappOficial
-            };
-            const { webhookLink, connectionId } = await (0, whatsAppOficial_service_1.CreateCompanyConnectionOficial)(data);
-            if (webhookLink) {
+            // Se tiver URL da API externa configurada, usa o fluxo antigo
+            if (process.env.URL_API_OFICIAL) {
+                const companyData = {
+                    companyId: String(whatsapp.companyId),
+                    companyName: whatsapp.company.name
+                };
+                const whatsappOficial = {
+                    token_mult100: whatsapp.token,
+                    phone_number_id: whatsapp.phone_number_id,
+                    waba_id: whatsapp.waba_id,
+                    send_token: whatsapp.send_token,
+                    business_id: whatsapp.business_id,
+                    phone_number: whatsapp.phone_number,
+                    idEmpresaMult100: whatsapp.companyId
+                };
+                const data = {
+                    email: whatsapp.company.email,
+                    company: companyData,
+                    whatsApp: whatsappOficial
+                };
+                const { webhookLink, connectionId } = await (0, whatsAppOficial_service_1.CreateCompanyConnectionOficial)(data);
+                if (webhookLink) {
+                    whatsapp.waba_webhook = webhookLink;
+                    whatsapp.waba_webhook_id = connectionId;
+                    whatsapp.status = "CONNECTED";
+                    await whatsapp.save();
+                }
+            }
+            else {
+                // Fluxo DIRETO (Sem API Intermediária)
+                // O webhook será o próprio backend
+                const backendUrl = process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 8080}`;
+                const webhookLink = `${backendUrl}/v1/webhook/${whatsapp.companyId}/${whatsapp.id}`;
                 whatsapp.waba_webhook = webhookLink;
-                whatsapp.waba_webhook_id = connectionId;
+                whatsapp.waba_webhook_id = whatsapp.id; // Usa o próprio ID como ID de conexão externa
                 whatsapp.status = "CONNECTED";
                 await whatsapp.save();
             }
@@ -272,6 +290,15 @@ const update = async (req, res) => {
     const { whatsappId } = req.params;
     const whatsappData = req.body;
     const { companyId, id: userId } = req.user;
+    // Sanitização de dados críticos no update também
+    if (whatsappData.token)
+        whatsappData.token = whatsappData.token.trim();
+    if (whatsappData.phone_number_id)
+        whatsappData.phone_number_id = whatsappData.phone_number_id.trim();
+    if (whatsappData.waba_id)
+        whatsappData.waba_id = whatsappData.waba_id.trim();
+    if (whatsappData.send_token)
+        whatsappData.send_token = whatsappData.send_token.trim();
     const { whatsapp, oldDefaultWhatsapp } = await (0, UpdateWhatsAppService_1.default)({
         whatsappData,
         whatsappId,

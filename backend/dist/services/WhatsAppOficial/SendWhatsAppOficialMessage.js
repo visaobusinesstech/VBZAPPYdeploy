@@ -1,32 +1,9 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const Sentry = __importStar(require("@sentry/node"));
+const axios_1 = __importDefault(require("axios"));
 const AppError_1 = __importDefault(require("../../errors/AppError"));
 const Contact_1 = __importDefault(require("../../models/Contact"));
 const Whatsapp_1 = __importDefault(require("../../models/Whatsapp"));
@@ -150,16 +127,80 @@ const SendWhatsAppOficialMessage = async ({ body, ticket, media, type, vCard, te
     options.type = type;
     options.quotedId = quotedMsg?.wid;
     try {
-        const tokenFromTicket = ticket?.whatsapp?.token;
-        let sendToken = tokenFromTicket;
-        if (!sendToken) {
-            const wapp = await Whatsapp_1.default.findByPk(ticket.whatsappId);
-            if (!wapp || !wapp.token) {
-                throw new AppError_1.default("ERR_NO_WAPP_FOUND");
-            }
-            sendToken = wapp.token;
+        const wapp = await Whatsapp_1.default.findByPk(ticket.whatsappId);
+        if (!wapp) {
+            throw new AppError_1.default("ERR_NO_WAPP_FOUND");
         }
-        const sendMessage = await (0, whatsAppOficial_service_1.sendMessageWhatsAppOficial)(pathMedia, sendToken, options);
+        let sendMessage;
+        // Se tiver URL da API externa, usa o fluxo legado
+        if (process.env.URL_API_OFICIAL) {
+            sendMessage = await (0, whatsAppOficial_service_1.sendMessageWhatsAppOficial)(pathMedia, wapp.token, options);
+        }
+        else {
+            // Fluxo DIRETO (Cloud API da Meta)
+            const { phone_number_id, token } = wapp;
+            if (!phone_number_id || !token) {
+                throw new Error("Phone Number ID or Token missing for Cloud API");
+            }
+            // Sanitização de segurança no uso
+            // Remove espaços e caracteres não imprimíveis (como quebras de linha ocultas)
+            const cleanToken = token.replace(/[\x00-\x1F\x7F-\x9F]/g, "").trim();
+            // LOG DE DIAGNÓSTICO DO TOKEN
+            const tokenMasked = cleanToken.length > 15
+                ? `${cleanToken.substring(0, 10)}...${cleanToken.substring(cleanToken.length - 5)}`
+                : "TOKEN_INVALIDO_CURTO";
+            console.log(`[SendWhatsAppOficialMessage] Token Original Len: ${token.length} | Limpo Len: ${cleanToken.length}`);
+            if (token.length === 255) {
+                console.error(`[SendWhatsAppOficialMessage] 🚨 ALERTA CRÍTICO: O token tem exatos 255 caracteres. Isso indica que o banco de dados TRUNCOU o token. Rode as migrations para alterar a coluna para TEXT.`);
+                throw new AppError_1.default("Erro Crítico: Token cortado pelo banco de dados (Limite de 255 chars). Atualize o sistema.", 500);
+            }
+            console.log(`[SendWhatsAppOficialMessage] Usando Token: ${tokenMasked}`);
+            if (cleanToken !== token) {
+                console.warn(`[SendWhatsAppOficialMessage] AVISO: O token continha caracteres inválidos que foram removidos.`);
+            }
+            // ✅ CORREÇÃO BRASIL: Verifica se o número é brasileiro (55), tem 12 dígitos (sem o 9) e é móvel
+            let finalNumber = contact.number;
+            if (finalNumber.startsWith("55") && finalNumber.length === 12) {
+                const ddd = finalNumber.substring(2, 4);
+                const numberPart = finalNumber.substring(4);
+                // Se o número começar com 7, 8 ou 9, assume-se que é móvel e adiciona o 9
+                if (["7", "8", "9"].includes(numberPart[0])) {
+                    finalNumber = `55${ddd}9${numberPart}`;
+                    console.log(`[SendWhatsAppOficialMessage] ⚠️ Corrigindo número BR sem 9º dígito: ${contact.number} -> ${finalNumber}`);
+                }
+            }
+            const url = `https://graph.facebook.com/v21.0/${phone_number_id}/messages`;
+            let payload = {
+                messaging_product: "whatsapp",
+                recipient_type: "individual",
+                to: finalNumber,
+            };
+            if (type === "text") {
+                payload.type = "text";
+                payload.text = { body: bodyMsg };
+            }
+            else if (type === "template") {
+                payload.type = "template";
+                payload.template = template;
+            }
+            // TODO: Adicionar suporte a mídia direto se necessário
+            console.log(`[SendWhatsAppOficialMessage] Enviando para URL: ${url}`);
+            console.log(`[SendWhatsAppOficialMessage] Payload:`, JSON.stringify(payload, null, 2));
+            try {
+                const response = await axios_1.default.post(url, payload, {
+                    headers: {
+                        Authorization: `Bearer ${cleanToken}`,
+                        "Content-Type": "application/json",
+                    },
+                });
+                console.log(`[SendWhatsAppOficialMessage] Resposta Meta:`, response.data);
+                sendMessage = { idMessageWhatsApp: [response.data.messages[0].id] };
+            }
+            catch (err) {
+                console.error(`[SendWhatsAppOficialMessage] Erro Axios:`, err.response?.data || err.message);
+                throw new Error(JSON.stringify(err.response?.data?.error || err.message));
+            }
+        }
         await ticket.update({ lastMessage: !bodyMsg && (!!media || type === 'template') ? bodyTicket : bodyMsg, imported: null, unreadMessages: 0 });
         const wid = sendMessage;
         const bodyMessage = !(0, lodash_1.isNil)(vCard) ? vcard : !bodyMsg ? '' : bodyMsg;
@@ -186,20 +227,27 @@ const SendWhatsAppOficialMessage = async ({ body, ticket, media, type, vCard, te
             originalName: !!media ? media.filename : null
         };
         await (0, CreateMessageService_1.default)({ messageData, companyId: ticket.companyId });
-        // const io = getIO();
-        // io.of(String(ticket.companyId))
-        //   .emit(`company-${ticket.companyId}-appMessage`, {
-        //     action: "create",
-        //     message: messageData,
-        //     ticket: ticket,
-        //     contact: ticket.contact
-        //   });
         return sendMessage;
     }
     catch (err) {
-        console.log(`erro ao enviar mensagem na company ${ticket.companyId} - `, body);
-        Sentry.captureException(err);
-        console.log(err);
+        console.log(`[SendWhatsAppOficialMessage] Erro Catch Principal:`, err);
+        // Tenta extrair o erro da resposta da Meta
+        if (err.response && err.response.data && err.response.data.error) {
+            const metaError = err.response.data.error;
+            let errorMessage = metaError.message || JSON.stringify(metaError);
+            const errorDetails = metaError.error_data ? JSON.stringify(metaError.error_data) : '';
+            // Dica amigável para erro de Token Expirado (Code 190)
+            if (metaError.code === 190) {
+                errorMessage += " (DICA: Seu token de acesso expirou. Gere um novo Token Permanente na Meta e atualize na Conexão.)";
+            }
+            console.error(`[SendWhatsAppOficialMessage] Erro Meta Detalhado: ${errorMessage} ${errorDetails}`);
+            // Retorna o erro exato da Meta para o frontend
+            throw new AppError_1.default(`Erro Meta: ${errorMessage} ${errorDetails}`, 400);
+        }
+        // Se for erro de rede ou outro sem response
+        if (err.message) {
+            throw new AppError_1.default(`Erro Envio: ${err.message}`, 400);
+        }
         throw new AppError_1.default("ERR_SENDING_WAPP_MSG");
     }
 };

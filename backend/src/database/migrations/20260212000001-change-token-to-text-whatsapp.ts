@@ -1,7 +1,7 @@
-const { DataTypes } = require("sequelize");
+import { QueryInterface, DataTypes } from "sequelize";
 
 module.exports = {
-  up: (queryInterface) => {
+  up: (queryInterface: QueryInterface) => {
     return Promise.all([
       queryInterface.changeColumn("Whatsapps", "token", {
         type: DataTypes.TEXT,
@@ -14,7 +14,7 @@ module.exports = {
     ]);
   },
 
-  down: (queryInterface) => {
+  down: (queryInterface: QueryInterface) => {
     return Promise.all([
       queryInterface.changeColumn("Whatsapps", "token", {
         type: DataTypes.STRING,

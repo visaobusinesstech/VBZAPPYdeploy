@@ -36,6 +36,7 @@ const logger_2 = __importDefault(require("baileys/lib/Utils/logger"));
 const useMultiFileAuthState_1 = require("../helpers/useMultiFileAuthState");
 const AppError_1 = __importDefault(require("../errors/AppError"));
 const socket_1 = require("./socket");
+const StartWhatsAppSession_1 = require("../services/WbotServices/StartWhatsAppSession");
 const DeleteBaileysService_1 = __importDefault(require("../services/BaileysServices/DeleteBaileysService"));
 const cache_1 = __importDefault(require("../libs/cache"));
 const ImportWhatsAppMessageService_1 = __importDefault(require("../services/WhatsappService/ImportWhatsAppMessageService"));
@@ -342,7 +343,8 @@ const initWASocket = async (whatsapp) => {
             if (connection === "close") {
                 console.log("DESCONECTOU", JSON.stringify(lastDisconnect, null, 2));
                 logger_1.default.info(`Socket  ${name} Connection Update ${connection || ""} ${lastDisconnect ? lastDisconnect.error.message : ""}`);
-                if (lastDisconnect?.error?.output?.statusCode === 403) {
+                const statusCode = lastDisconnect?.error?.output?.statusCode;
+                if (statusCode === 403) {
                     await whatsapp.update({ status: "PENDING", session: "" });
                     await (0, DeleteBaileysService_1.default)(whatsapp.id);
                     // await deleteFolder(folderSessions);
@@ -354,8 +356,13 @@ const initWASocket = async (whatsapp) => {
                     });
                     (0, exports.removeWbot)(id, false);
                 }
-                if (lastDisconnect?.error?.output?.statusCode !==
-                    baileys_1.DisconnectReason.loggedOut) {
+                else if (statusCode === baileys_1.DisconnectReason.restartRequired || statusCode === 515) {
+                    // Erro 515 (Stream Errored): Reiniciar sessão automaticamente
+                    logger_1.default.info(`[WBOT] Reiniciando sessão devido a erro 515 (Stream Errored) para ${name}`);
+                    (0, exports.removeWbot)(id, false);
+                    setTimeout(() => (0, StartWhatsAppSession_1.StartWhatsAppSession)(whatsapp, whatsapp.companyId), 2000);
+                }
+                else if (statusCode !== baileys_1.DisconnectReason.loggedOut) {
                     // Update status to DISCONNECTED to stop frontend loading spinner
                     await whatsapp.update({ status: "DISCONNECTED", qrcode: "" });
                     io.of("/" + String(companyId))

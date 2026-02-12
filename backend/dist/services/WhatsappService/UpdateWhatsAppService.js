@@ -38,7 +38,9 @@ const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId, requ
         status: Yup.string(),
         isDefault: Yup.boolean()
     });
-    const { name, status, isDefault, session, greetingMessage, complationMessage, outOfHoursMessage, queueIds = [], token, maxUseBotQueues = 0, timeUseBotQueues = 0, expiresTicket = 0, allowGroup, timeSendQueue = 0, sendIdQueue = null, timeInactiveMessage = 0, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS = 0, whenExpiresTicket, expiresInactiveMessage, groupAsTicket, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, timeCreateNewTicket = null, integrationId, integrationTypeId, schedules, promptId, requestQR = false, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, flowIdNotPhrase, flowIdWelcome, flowIdInactiveTime, flowInactiveTime, maxUseInactiveTime, color, phone_number_id, waba_id, send_token, business_id, phone_number, timeToReturnQueue = 0, timeAwaitActiveFlowId, timeAwaitActiveFlow = 0, triggerIntegrationOnClose, wavoip } = whatsappData;
+    const { name, status, isDefault, session, greetingMessage, complationMessage, outOfHoursMessage, queueIds = [], token, maxUseBotQueues = 0, timeUseBotQueues = 0, expiresTicket = 0, allowGroup, timeSendQueue = 0, sendIdQueue = null, timeInactiveMessage = 0, inactiveMessage, ratingMessage, maxUseBotQueuesNPS, expiresTicketNPS = 0, whenExpiresTicket, expiresInactiveMessage, groupAsTicket, importOldMessages, importRecentMessages, closedTicketsPostImported, importOldMessagesGroups, timeCreateNewTicket = null, integrationId, integrationTypeId, schedules, promptId, requestQR = false, collectiveVacationEnd, collectiveVacationMessage, collectiveVacationStart, queueIdImportMessages, flowIdNotPhrase, flowIdWelcome, flowIdInactiveTime, flowInactiveTime, maxUseInactiveTime, color, 
+    // Força atualização dos campos da API Oficial
+    phone_number_id, waba_id, send_token, business_id, phone_number, timeToReturnQueue = 0, timeAwaitActiveFlowId, timeAwaitActiveFlow = 0, triggerIntegrationOnClose, wavoip } = whatsappData;
     try {
         await schema.validate({ name, status, isDefault });
     }
@@ -78,7 +80,8 @@ const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId, requ
         outOfHoursMessage,
         isDefault,
         companyId,
-        token,
+        token: token || send_token,
+        send_token: send_token || token,
         maxUseBotQueues: maxUseBotQueues || 0,
         timeUseBotQueues: timeUseBotQueues || 0,
         expiresTicket: expiresTicket || 0,
@@ -114,7 +117,6 @@ const UpdateWhatsAppService = async ({ whatsappData, whatsappId, companyId, requ
         color,
         phone_number_id,
         waba_id,
-        send_token,
         business_id,
         phone_number,
         timeToReturnQueue,

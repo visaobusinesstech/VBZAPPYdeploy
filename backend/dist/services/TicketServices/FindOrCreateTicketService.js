@@ -31,7 +31,7 @@ const FindOrCreateTicketService = async (contact, whatsapp, unreadMessages, comp
     const io = (0, socket_1.getIO)();
     const DirectTicketsToWallets = settings.DirectTicketsToWallets;
     const contactId = groupContact ? groupContact.id : contact.id;
-    console.log(`[RDS-TICKET] Buscando tickets existentes para contactId=${contactId}, companyId=${companyId}, whatsappId=${whatsapp.id}`);
+    console.log(`[DEBUG 2026] Buscando tickets para contactId=${contactId}, companyId=${companyId}, whatsappId=${whatsapp.id}`);
     let ticket = await Ticket_1.default.findOne({
         where: {
             status: {
@@ -114,6 +114,11 @@ const FindOrCreateTicketService = async (contact, whatsapp, unreadMessages, comp
         }
         ticket = await (0, ShowTicketService_1.default)(ticket.id, companyId);
         console.log(`[RDS-TICKET] Ticket atualizado ID=${ticket.id}, novo status=${ticket.status}`);
+        io.of(String(companyId))
+            .emit(`company-${companyId}-ticket`, {
+            action: "update",
+            ticket
+        });
         if (!isCampaign && !isForward) {
             // @ts-ignore: Unreachable code error
             if ((Number(ticket?.userId) !== Number(userId) && userId !== 0 && userId !== "" && userId !== "0" && !(0, lodash_1.isNil)(userId) && !ticket.isGroup)
@@ -223,6 +228,11 @@ const FindOrCreateTicketService = async (contact, whatsapp, unreadMessages, comp
         await ticket.update({ userId: userId });
     }
     ticket = await (0, ShowTicketService_1.default)(ticket.id, companyId);
+    io.of(String(companyId))
+        .emit(`company-${companyId}-ticket`, {
+        action: "update",
+        ticket
+    });
     await (0, CreateLogTicketService_1.default)({
         ticketId: ticket.id,
         type: openAsLGPD ? "lgpd" : "create"
