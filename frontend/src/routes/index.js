@@ -161,7 +161,7 @@ const RoutesContent = () => {
                 <Route exact path="/users" component={Users} isPrivate title="Usuários" />
                 <Route
                   exact
-                  path="/messages-api"
+                  path="/api"
                   component={MessagesAPI}
                   isPrivate
                   title="API"
@@ -181,6 +181,13 @@ const RoutesContent = () => {
                   component={RelatorioVendas}
                   isPrivate
                   title="Relatório de Vendas"
+                />
+                <Route
+                  exact
+                  path="/integrations"
+                  component={QueueIntegration}
+                  isPrivate
+                  title="Integrações"
                 />
                 <Route
                   exact

@@ -172,11 +172,9 @@ const SettingsCustom = () => {
               {isSuper() ? (
                 <Tab label={i18n.t("settings.tabs.plans")} value={"plans"} />
               ) : null}
+
               {isSuper() ? (
-                <Tab label={i18n.t("settings.tabs.helps")} value={"helps"} />
-              ) : null}
-              {isSuper() ? (
-                <Tab label="Whitelabel" value={"whitelabel"} />
+                <Tab label="Identidade Visual" value={"whitelabel"} />
               ) : null}
             </Tabs>
             <Paper className={classes.paper} elevation={0}>
@@ -203,11 +201,7 @@ const SettingsCustom = () => {
                 </div>
               )}
 
-              {tab === "helps" && isSuper() && (
-                <div className={classes.container}>
-                  <HelpsManager />
-                </div>
-              )}
+
 
               {tab === "whitelabel" && isSuper() && (
                 <div className={classes.container}>

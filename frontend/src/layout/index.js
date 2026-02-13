@@ -32,11 +32,13 @@ import {
   Tabs,
   Tab,
   Paper,
+  Tooltip,
 } from "@material-ui/core";
-import { Link as RouterLink } from "react-router-dom";
+import { Link as RouterLink, useHistory } from "react-router-dom";
 import { PageTitleContext } from "../context/PageTitleContext";
 import MenuIcon from "@material-ui/icons/Menu";
 import SearchIcon from "@material-ui/icons/Search";
+import EventIcon from "@material-ui/icons/Event";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import NotificationsIcon from "@material-ui/icons/Notifications";
 import api from "../services/api";
@@ -65,9 +67,6 @@ import { logInfo, logError } from "../utils/logger";
 
 const backendUrl = getBackendUrl();
 const drawerWidth = 240;
-
-
-import EventIcon from "@material-ui/icons/Event";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -126,10 +125,10 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     padding: 0,
-    height: "100px", // Aumentado de 80px para 100px
-    minHeight: "100px",
+    height: "70px", // Reduzido
+    minHeight: "70px",
     backgroundColor: theme.palette.background.paper, // Ajusta ao tema
-    borderBottom: `1px solid ${theme.palette.divider}`,
+    // borderBottom: `1px solid ${theme.palette.divider}`,
     transition: "all 0.3s ease",
     marginTop: 0,
     marginBottom: 0,
@@ -137,11 +136,12 @@ const useStyles = makeStyles((theme) => ({
   },
   chevronButton: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    padding: 4, // Botão menor
+    top: 10,
+    right: 10,
+    padding: 2, // Botão ainda menor
+    color: "#000000", // Preto mais vivo
     "& svg": {
-      fontSize: "1.2rem", // Ícone menor
+      fontSize: "1rem", // Ícone ainda menor
     },
     [theme.breakpoints.down("sm")]: {
       display: "none", // Esconde em mobile
@@ -310,7 +310,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   appBarSpacer: {
-    minHeight: "80px",
+    minHeight: "40px",
   },
 
   content: {
@@ -319,6 +319,7 @@ const useStyles = makeStyles((theme) => ({
     padding: 0,
     margin: 0,
     paddingLeft: theme.spacing(2), // Adicionado espaçamento do menu lateral
+    ...theme.scrollbarStyles,
   },
 
   container: {
@@ -330,7 +331,7 @@ const useStyles = makeStyles((theme) => ({
 
   containerWithScroll: {
     flex: 1,
-    overflowY: "scroll",
+    overflowY: "auto",
     overflowX: "hidden",
     ...theme.scrollbarStyles,
     borderRadius: "8px",
@@ -541,6 +542,61 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   const greaterThenSm = useMediaQuery(theme.breakpoints.up("sm"));
 
   const [volume, setVolume] = useState(localStorage.getItem("volume") || 1);
+  const history = useHistory();
+  const [searchParam, setSearchParam] = useState("");
+
+  const handleSearch = (e) => {
+    setSearchParam(e.target.value);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Enter" && searchParam.trim()) {
+      const term = searchParam.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      
+      const routes = [
+        { name: "inicio", path: "/" },
+        { name: "gerencia", path: "/" },
+        { name: "dashboard", path: "/" },
+        { name: "relatorios", path: "/reports" },
+        { name: "chats em tempo real", path: "/moments" },
+        { name: "historico de chamadas", path: "/call-historicals" },
+        { name: "contatos", path: "/contacts" },
+        { name: "calendario", path: "/schedules" },
+        { name: "chat", path: "/chats" },
+        { name: "api", path: "/api" },
+        { name: "vbzappy", path: "/tickets" },
+        { name: "tickets", path: "/tickets" },
+        { name: "filas e chatbot", path: "/queues" },
+        { name: "filas", path: "/queues" },
+        { name: "chatbot", path: "/queues" },
+        { name: "config. aniversario", path: "/birthday-settings" },
+        { name: "aniversario", path: "/birthday-settings" },
+        { name: "disparo automatico", path: "/quick-messages" },
+        { name: "gerenciar conexoes", path: "/connections" },
+        { name: "conexoes", path: "/connections" },
+        { name: "informativos", path: "/announcements" },
+        { name: "kanban", path: "/kanban" },
+        { name: "campanhas", path: "/campaigns" },
+        { name: "agente ia", path: "/prompts" },
+        { name: "automacoes", path: "/flowbuilders" },
+        { name: "configuracoes", path: "/settings" },
+        { name: "identidade visual", path: "/settings" },
+        { name: "empresas", path: "/companies" },
+        { name: "usuarios", path: "/users" },
+        { name: "integracoes", path: "/integrations" },
+        { name: "financeiro", path: "/financeiro" },
+        { name: "tags", path: "/tags" },
+        { name: "ajuda", path: "/helps" },
+      ];
+
+      const found = routes.find(r => r.name.includes(term) || term.includes(r.name));
+      
+      if (found) {
+        history.push(found.path);
+        setSearchParam("");
+      }
+    }
+  };
 
   const { dateToClient } = useDate();
   const [profileUrl, setProfileUrl] = useState(null);
@@ -862,7 +918,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
             />
             <IconButton onClick={() => setDrawerOpen(!drawerOpen)} className={classes.chevronButton}>
-              <ChevronLeftIcon />
+              <MenuIcon />
             </IconButton>
           </div>
           <List className={classes.containerWithScroll}>
@@ -905,13 +961,16 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           </Typography>
 
           <div style={{ flexGrow: 1 }} />
-          <IconButton
-            component={Link}
-            to="/schedules"
-            style={{ color: "white", marginRight: 10 }}
-          >
-            <EventIcon />
-          </IconButton>
+          <Tooltip title="Calendário">
+            <IconButton
+              component={Link}
+              to="/schedules"
+              style={{ color: "white", marginLeft: 10, marginRight: 10 }}
+            >
+              <EventIcon />
+            </IconButton>
+          </Tooltip>
+
           <div className={classes.search}>
             <div className={classes.searchIcon}>
               <SearchIcon />
@@ -923,8 +982,12 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 input: classes.inputInput,
               }}
               inputProps={{ 'aria-label': 'search' }}
+              value={searchParam}
+              onChange={handleSearch}
+              onKeyDown={handleSearchKeyDown}
             />
           </div>
+
           <div style={{ flexGrow: 1 }} />
 
           {!hideMenu && (
@@ -1068,12 +1131,6 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           )}
         </Toolbar>
       </AppBar>
-
-      <div className={clsx(classes.secondaryNavbar, !hideMenu && drawerOpen && classes.secondaryNavbarShift)}>
-        <Typography variant="body2" style={{ padding: "8px 20px", fontWeight: 500, fontSize: "12px", color: "#666" }}>
-          Bem vindo a VBSolution
-        </Typography>
-      </div>
 
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />

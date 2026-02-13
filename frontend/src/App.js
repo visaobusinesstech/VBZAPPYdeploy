@@ -188,6 +188,15 @@ const App = () => {
             borderRadius: 8, // Bordas arredondadas mas não excessivas
           },
           overrides: {
+            MuiCssBaseline: {
+              "@global": {
+                body: {
+                  backgroundColor: mode === "light" ? "#f5f5f5" : "#333",
+                  overflowX: "hidden",
+                  overflowY: "hidden", // Hide native scrollbar
+                },
+              },
+            },
             // Botões usando cor do tema
             MuiButton: {
               root: {
@@ -209,30 +218,6 @@ const App = () => {
                   boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
                 }
               }
-            },
-
-            MuiContainer: {
-              root: {
-                paddingLeft: '0 !important',
-                paddingRight: '0 !important',
-                maxWidth: 'none !important',
-                width: '100% !important',
-              },
-              maxWidthLg: {
-                maxWidth: 'none !important',
-              },
-              maxWidthMd: {
-                maxWidth: 'none !important',
-              },
-              maxWidthSm: {
-                maxWidth: 'none !important',
-              },
-              maxWidthXl: {
-                maxWidth: 'none !important',
-              },
-              maxWidthXs: {
-                maxWidth: 'none !important',
-              },
             },
           
             // ✅ VOLTAR: Papers com largura total
