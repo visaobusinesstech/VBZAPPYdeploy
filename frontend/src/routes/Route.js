@@ -3,18 +3,21 @@ import { Route as RouterRoute, Redirect } from "react-router-dom";
 import moment from "moment";
 
 import { AuthContext } from "../context/Auth/AuthContext";
+import { PageTitleContext } from "../context/PageTitleContext";
 import BackdropLoading from "../components/BackdropLoading";
 
 const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 	const { isAuth, loading, user } = useContext(AuthContext);
+	const { setPageTitle } = useContext(PageTitleContext);
 
 	useEffect(() => {
+		document.title = "VBSolution";
 		if (title) {
-			document.title = `VBSolution | ${title}`;
+			setPageTitle(title);
 		} else {
-			document.title = "VBSolution";
+			setPageTitle("VBSolution");
 		}
-	}, [title]);
+	}, [title, setPageTitle]);
 
 	// Verificar se a empresa está vencida
 	const isCompanyExpired = () => {

@@ -85,11 +85,11 @@ const useStyles = makeStyles((theme) => ({
 
   listItemText: {
     fontSize: "14px",
-    color: theme.mode === "light" ? "#666" : "#FFF",
+    color: theme.mode === "light" ? "#000" : "#FFF",
     transition: "color 0.3s ease", // Só transição de cor
     fontWeight: 500,
     "& .MuiTypography-root": {
-      fontFamily: "'Helvetica Neue', sans-serif",
+      fontFamily: '"Helvetica Neue", "Helvetica", "Arial", sans-serif',
     }
   },
 
@@ -105,29 +105,26 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    borderRadius: "50%", // Mantém circular original
-    height: 36, // Mantém tamanho original
-    width: 36,  // Mantém tamanho original
+    borderRadius: "50%",
+    height: 28, // Reduzido de 36
+    width: 28,  // Reduzido de 36
     backgroundColor:
       theme.mode === "light"
         ? "rgba(120,120,120,0.1)"
         : "rgba(120,120,120,0.5)",
-    color: theme.mode === "light" ? "#666" : "#FFF",
-    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", // Transição mais suave
+    color: theme.mode === "light" ? "#000" : "#FFF",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     "&:hover, &.active": {
-      backgroundColor: theme.palette.primary.main, // Usa cor do tema
+      backgroundColor: theme.palette.primary.main,
       color: "#fff",
-      boxShadow: `0 4px 12px ${theme.palette.primary.main}30`, // Sombra dinâmica
-    },
-    "&.active": {
-      backgroundColor: "#e0e0e0", // Fundo cinza para item ativo
+      boxShadow: `0 4px 12px ${theme.palette.primary.main}30`,
     },
     "& .MuiSvgIcon-root": {
-      fontSize: "1.4rem", // Mantém tamanho original
+      fontSize: "1.2rem", // Reduzido de 1.4rem
       transition: "transform 0.3s ease",
     },
     "&:hover .MuiSvgIcon-root": {
-      transform: "scale(1.1)", // Pequena animação no hover
+      transform: "scale(1.1)",
     }
   },
 
@@ -226,12 +223,13 @@ const useStyles = makeStyles((theme) => ({
 
   // Estado ativo melhorado mantendo funcionalidade original
   activeItem: {
+    backgroundColor: theme.mode === "light" ? "rgba(0, 0, 0, 0.05)" : "rgba(255, 255, 255, 0.05)",
     "& $iconHoverActive": {
-      backgroundColor: theme.palette.primary.main, // Usa cor do tema
+      backgroundColor: "#808080",
       color: "#fff",
     },
     "& $listItemText": {
-      color: theme.palette.primary.main, // Usa cor do tema
+      color: "#808080",
       fontWeight: 700,
     }
   }
@@ -643,7 +641,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
                     <ListItemLink
                       small
                       to="/"
-                      primary="Dashboard"
+                      primary={i18n.t("mainDrawer.listItems.start")}
                       icon={<DashboardOutlinedIcon />}
                       tooltip={collapsed}
                     />
@@ -689,7 +687,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
       />
       <ListItemLink
         to="/tickets"
-        primary={i18n.t("mainDrawer.listItems.tickets")}
+        primary={"VBZappy"}
         icon={<WhatsAppIcon />}
         tooltip={collapsed}
       />
@@ -734,7 +732,7 @@ const MainListItems = ({ collapsed, drawerClose }) => {
         <>
           <ListItemLink
             to="/schedules"
-            primary={i18n.t("mainDrawer.listItems.schedules")}
+            primary={"Calendário"}
             icon={<Schedule />}
             tooltip={collapsed}
           />

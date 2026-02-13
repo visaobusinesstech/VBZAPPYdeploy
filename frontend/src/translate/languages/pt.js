@@ -1,6 +1,11 @@
 const messages = {
   pt: {
     translations: {
+      mainDrawer: {
+        listItems: {
+          start: "Início",
+        },
+      },
       signup: {
         title: "Cadastre-se",
         toasts: {
@@ -948,6 +953,7 @@ const messages = {
       },
       mainDrawer: {
         listItems: {
+          start: "Início",
           dashboard: "Dashboard",
           connections: "Conexões",
           chatsTempoReal: "Painel",

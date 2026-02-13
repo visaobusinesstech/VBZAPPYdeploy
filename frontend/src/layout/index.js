@@ -29,17 +29,19 @@ import {
   FormControlLabel,
   Checkbox,
   InputBase,
-  alpha,
+  Tabs,
+  Tab,
+  Paper,
 } from "@material-ui/core";
-import SearchIcon from "@material-ui/icons/Search";
+import { Link as RouterLink } from "react-router-dom";
+import { PageTitleContext } from "../context/PageTitleContext";
 import MenuIcon from "@material-ui/icons/Menu";
+import SearchIcon from "@material-ui/icons/Search";
 import ChevronLeftIcon from "@material-ui/icons/ChevronLeft";
 import NotificationsIcon from "@material-ui/icons/Notifications";
-import CachedIcon from "@material-ui/icons/Cached";
 import api from "../services/api";
 import MainListItems from "./MainListItems";
 import NotificationsPopOver from "../components/NotificationsPopOver";
-import NotificationsVolume from "../components/NotificationsVolume";
 import UserModal from "../components/UserModal";
 import { AuthContext } from "../context/Auth/AuthContext";
 import BackdropLoading from "../components/BackdropLoading";
@@ -47,8 +49,8 @@ import { i18n } from "../translate/i18n";
 import toastError from "../errors/toastError";
 import AnnouncementsPopover from "../components/AnnouncementsPopover";
 import BirthdayModal from "../components/BirthdayModal";
-import logo from "../assets/logo.png";
-import logoDark from "../assets/logo-black.png";
+import logo from "../assets/LOGO VB-PNG.png";
+import logoDark from "../assets/LOGO VB PRETO.png";
 import ChatPopover from "../pages/Chat/ChatPopover";
 import { useDate } from "../hooks/useDate";
 import ColorModeContext from "../layout/themeContext";
@@ -60,7 +62,6 @@ import VersionControl from "../components/VersionControl";
 import useSocketListener from "../hooks/useSocketListener";
 import PublicIcon from "@material-ui/icons/Public";
 import { logInfo, logError } from "../utils/logger";
-import SecondaryNavbar from "./SecondaryNavbar";
 
 const backendUrl = getBackendUrl();
 const drawerWidth = 240;
@@ -70,10 +71,8 @@ const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     height: "100vh",
-    paddingTop: "112px", // AppBar (64px) + SecondaryNavbar (48px)
     [theme.breakpoints.down("sm")]: {
       height: "calc(100vh - 56px)",
-      paddingTop: "56px", // AppBar (56px)
     },
     backgroundColor: theme.palette.fancyBackground,
     "& .MuiButton-outlinedPrimary": {
@@ -108,38 +107,92 @@ const useStyles = makeStyles((theme) => ({
   toolbar: {
     paddingRight: 24,
     color: theme.palette.dark.main,
-    background: "#131B2D", // Cor azul escuro
-    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)", // Sombra sutil
+    background: "#131B2D",
+    boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
     transition: "all 0.3s ease",
+    minHeight: "40px", // Reduzido
+    "& .MuiIconButton-root": {
+      padding: 8,
+    },
+    "& .MuiSvgIcon-root": {
+      fontSize: "1.2rem",
+    }
   },
 
   toolbarIcon: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
     padding: "0 8px",
-    paddingLeft: theme.spacing(2),
-    minHeight: "48px",
+    // minHeight: "40px", // Removido minHeight
     [theme.breakpoints.down("sm")]: {
-      height: "48px",
+      height: "40px",
     },
-    // ALTERAÇÃO: Removido o gradiente e definido fundo branco
-    backgroundColor: "#ffffff", // Fundo branco fixo
-    borderBottom: `1px solid ${theme.palette.divider}`, // Linha sutil para separação
+    backgroundColor: "#ffffff",
+    borderBottom: `1px solid ${theme.palette.divider}`,
     transition: "all 0.3s ease",
+    marginTop: "8px", // Pequeno ajuste top se necessário
+    marginBottom: "8px",
+  },
+
+  search: {
+    position: 'relative',
+    borderRadius: theme.shape.borderRadius,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    '&:hover': {
+      backgroundColor: "rgba(255, 255, 255, 0.25)",
+    },
+    marginRight: theme.spacing(2),
+    marginLeft: 0,
+    width: '100%',
+    [theme.breakpoints.up('sm')]: {
+      marginLeft: theme.spacing(3),
+      width: 'auto',
+    },
+    flexGrow: 1,
+    maxWidth: "255px", // Redezio de 44le
+    alignItems: "center",
+  },
+  searchIcon: {
+    padding: theme.spacing(0, 2),
+    height: '100%',
+    position: 'absolute',
+    pointerEvents: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: "white",
+  },
+  inputRoot: {
+    color: 'inherit',
+    width: "100%",
+  },
+  inputInput: {
+    padding: theme.spacing(1, 1, 1, 0),
+    // vertical padding + font size from searchIcon
+    paddingLeft: `calc(1em + ${theme.spacing(4)}px)`,
+    transition: theme.transitions.create('width'),
+    width: '100%',
+    color: "white",
+    "&::placeholder": {
+        color: "rgba(255, 255, 255, 0.8)",
+        opacity: 1,
+    }
   },
 
   appBar: {
-    zIndex: theme.zIndex.drawer + 100,
+    zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
+    height: "40px", // Altura fixa
   },
 
   appBarShift: {
-    marginLeft: drawerWidth,
-    width: `calc(100% - ${drawerWidth}px)`,
+    // marginLeft: drawerWidth, // REMOVIDO PARA OCUPAR LARGURA TOTAL
+    // width: `calc(100% - ${drawerWidth}px)`, // REMOVIDO
+    width: "100%",
     transition: theme.transitions.create(["width", "margin"], {
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.enteringScreen,
@@ -149,49 +202,58 @@ const useStyles = makeStyles((theme) => ({
     },
   },
 
+  secondaryNavbar: {
+    position: "fixed",
+    top: 48,
+    right: 0,
+    left: theme.spacing(7),
+    backgroundColor: theme.palette.background.paper,
+    borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+    zIndex: theme.zIndex.drawer + 1,
+    transition: theme.transitions.create(["width", "margin", "left"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
+    [theme.breakpoints.up("sm")]: {
+      left: theme.spacing(9),
+    },
+    [theme.breakpoints.down("sm")]: {
+      left: 0,
+    },
+  },
+  secondaryNavbarShift: {
+    left: drawerWidth,
+    transition: theme.transitions.create(["width", "margin", "left"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
+  },
+
   menuButtonHidden: {
     display: "none",
   },
 
-  searchInput: {
-    padding: theme.spacing(0.5, 2),
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: alpha(theme.palette.common.white, 0.15),
-    "&:hover": {
-      backgroundColor: alpha(theme.palette.common.white, 0.25),
-    },
-    display: "flex",
-    alignItems: "center",
-  },
-  searchIcon: {
-    marginRight: theme.spacing(1),
-  },
-  inputRoot: {
-    color: "inherit",
-  },
-  inputInput: {
-    padding: theme.spacing(1, 1, 1, 0),
-    transition: theme.transitions.create("width"),
-    width: "100%",
-    [theme.breakpoints.up("md")]: {
-      width: "20ch",
-    },
-  },
-  topbarIcon: {
-    fontSize: "20px",
-  },
-  
-  welcomeMessage: {
-    fontSize: "14px",
-    fontWeight: 500,
-    color: "rgba(255, 255, 255, 0.9)",
-  },
   title: {
-    flexGrow: 1,
-    display: "none",
+    fontSize: 12,
+    color: "white",
+    fontWeight: 600,
+    letterSpacing: "0.025em",
+    marginLeft: theme.spacing(7),
+    transition: theme.transitions.create(["margin"], {
+      easing: theme.transitions.easing.sharp,
+      duration: theme.transitions.duration.leavingScreen,
+    }),
     [theme.breakpoints.up("sm")]: {
-      display: "block",
+      marginLeft: theme.spacing(9),
     },
+  },
+
+  titleShift: {
+    marginLeft: drawerWidth,
+    transition: theme.transitions.create(["margin"], {
+      easing: theme.transitions.easing.easeOut,
+      duration: theme.transitions.duration.enteringScreen,
+    }),
   },
 
   drawerPaper: {
@@ -205,11 +267,14 @@ const useStyles = makeStyles((theme) => ({
     overflowX: "hidden",
     overflowY: "hidden",
     // Melhorias sutis no drawer
+    // Melhorias sutis no drawer
     borderRight: `1px solid ${theme.mode === "light" ? "#e0e0e0" : "#424242"}`,
     boxShadow:
       theme.mode === "light"
         ? "2px 0 8px rgba(0, 0, 0, 0.1)"
         : "2px 0 8px rgba(0, 0, 0, 0.3)",
+    top: "40px",
+    height: "calc(100% - 40px)",
   },
 
   drawerPaperClose: {
@@ -221,12 +286,12 @@ const useStyles = makeStyles((theme) => ({
     }),
     width: theme.spacing(7),
     [theme.breakpoints.up("sm")]: {
-      width: theme.spacing(7),
+      width: theme.spacing(9),
     },
   },
 
   appBarSpacer: {
-    minHeight: "48px",
+    minHeight: "40px",
   },
 
   content: {
@@ -234,6 +299,7 @@ const useStyles = makeStyles((theme) => ({
     overflow: "auto",
     padding: 0,
     margin: 0,
+    paddingLeft: theme.spacing(2), // Adicionado espaçamento do menu lateral
   },
 
   container: {
@@ -262,29 +328,27 @@ const useStyles = makeStyles((theme) => ({
   },
 
   logo: {
-    width: "70%",
+    width: "100%",
     height: "auto",
-    maxWidth: 120,
+    maxWidth: 140, // Reduzido de 180
     [theme.breakpoints.down("sm")]: {
       width: "auto",
       height: "100%",
-      maxWidth: 120,
+      maxWidth: 100,
     },
-    logo: theme.logo,
-    content:
-      "url(" +
-      (theme.mode === "light"
-        ? theme.calculatedLogoLight()
-        : theme.calculatedLogoDark()) +
-      ")",
-    transition: "all 0.3s ease", // Transição suave
+    content: `url(${theme.mode === "light" ? logoDark : logo})`,
+    transition: "all 0.3s ease",
     "&:hover": {
-      transform: "scale(1.02)", // Pequeno zoom no hover
+      transform: "scale(1.02)",
     },
   },
 
+
   hideLogo: {
-    display: "none",
+    width: "35px", // Reduzido de 40px
+    maxWidth: "35px",
+    content: `url(${theme.mode === "light" ? logoDark : logo})`,
+    margin: "0 auto", // Centraliza
   },
 
   avatar2: {
@@ -441,6 +505,7 @@ const SmallAvatar = withStyles((theme) => ({
 
 const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   const classes = useStyles();
+  const { pageTitle } = useContext(PageTitleContext);
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -762,20 +827,63 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
 
   return (
     <div className={clsx(classes.root, "logged-in-layout")}>
+      {!hideMenu && (
+        <Drawer
+          variant={drawerVariant}
+          className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
+          classes={{
+            paper: clsx(
+              classes.drawerPaper,
+              !drawerOpen && classes.drawerPaperClose
+            ),
+          }}
+          open={drawerOpen}
+        >
+          <div className={classes.toolbarIcon}>
+            <img
+              src={theme.mode === "light" ? logoDark : logo}
+              alt="VBSolution"
+              className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
+            />
+            <IconButton onClick={() => setDrawerOpen(!drawerOpen)}>
+              <ChevronLeftIcon />
+            </IconButton>
+          </div>
+          <List className={classes.containerWithScroll}>
+            {/* {mainListItems} */}
+            <MainListItems collapsed={!drawerOpen} />
+          </List>
+          <Divider />
+        </Drawer>
+      )}
+
       <AppBar
-        position="fixed"
-        className={classes.appBar}
+        position="absolute"
+        className={clsx(classes.appBar, !hideMenu && drawerOpen && classes.appBarShift)}
         color="primary"
       >
         <Toolbar variant="dense" className={classes.toolbar}>
-
+          {!hideMenu && (
+            <IconButton
+              edge="start"
+              variant="contained"
+              aria-label="open drawer"
+              style={{ color: "white" }}
+              onClick={() => setDrawerOpen(!drawerOpen)}
+              className={clsx(drawerOpen && classes.menuButtonHidden)}
+            >
+              <MenuIcon />
+            </IconButton>
+          )}
+          {/* Logo removida da AppBar para ficar apenas no Menu Lateral */}
+          
           <Typography
-            component="h2"
-            variant="h6"
+            variant="body2"
             color="inherit"
             noWrap
-            className={clsx(classes.title, classes.welcomeMessage)}
+            className={clsx(classes.title, drawerOpen && classes.titleShift)}
           >
+            {/* {greaterThenSm && user?.profile === "admin" && getDateAndDifDays(user?.company?.dueDate).difData < 7 ? ( */}
             {greaterThenSm &&
               user?.profile === "admin" &&
               user?.company?.dueDate ? (
@@ -794,7 +902,9 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               </>
             )}
           </Typography>
-          <div className={classes.searchInput}>
+
+          <div style={{ flexGrow: 1 }} />
+          <div className={classes.search}>
             <div className={classes.searchIcon}>
               <SearchIcon />
             </div>
@@ -804,9 +914,10 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 root: classes.inputRoot,
                 input: classes.inputInput,
               }}
-              inputProps={{ "aria-label": "search" }}
+              inputProps={{ 'aria-label': 'search' }}
             />
           </div>
+          <div style={{ flexGrow: 1 }} />
 
           {!hideMenu && (
             <>
@@ -815,89 +926,98 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                 onUpdateComplete={handleUpdateComplete}
               />
 
-              {filteredLanguageOptions.length > 1 && (
-                <div className={classes.languageSelector}>
-                  <button onClick={() => setShowOptions(!showOptions)}>
-                    <PublicIcon />
-                  </button>
-                  {showOptions && (
-                    <div>
-                      {filteredLanguageOptions.map((lang) => (
-                        <button
-                          key={lang.code}
-                          onClick={() => handleLanguageChange(lang.code)}
-                        >
-                          {lang.label}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <IconButton
-                onClick={colorMode.toggleColorMode}
-                className={clsx(classes.toolbarButton, classes.topbarIcon)}
+              <div
+                style={{ position: "relative", display: "inline-block" }}
+                className="language-dropdown"
               >
-                {theme.mode === "dark" ? <Brightness7Icon /> : <Brightness4Icon />}
+                <button
+                  onClick={() => setShowOptions(!showOptions)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "white",
+                    cursor: "pointer",
+                    fontSize: "22px",
+                    paddingRight: "20px",
+                    paddingTop: "8px",
+                  }}
+                >
+                  <PublicIcon />
+                </button>
+
+                {showOptions && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "35px",
+                      left: "0",
+                      background: "#fff",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+                      borderRadius: "8px",
+                      padding: "8px",
+                      zIndex: 1000,
+                      minWidth: "120px",
+                      maxWidth: "200px",
+                    }}
+                  >
+                    {filteredLanguageOptions.map((lang) => (
+                      <button
+                        key={lang.code}
+                        onClick={() => handleLanguageChange(lang.code)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          display: "block",
+                          width: "100%",
+                          padding: "4px",
+                        }}
+                      >
+                        {lang.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <IconButton edge="start" onClick={colorMode.toggleColorMode}>
+                {theme.mode === "dark" ? (
+                  <Brightness7Icon style={{ color: "white" }} />
+                ) : (
+                  <Brightness4Icon style={{ color: "white" }} />
+                )}
               </IconButton>
 
-              <NotificationsVolume
-                volume={volume}
-                setVolume={setVolume}
-                className={classes.toolbarButton}
-              />
+              
 
-              <IconButton
-                onClick={handleRefreshPage}
-                aria-label={i18n.t("mainDrawer.appBar.refresh")}
-                className={clsx(classes.toolbarButton, classes.topbarIcon)}
-              >
-                <CachedIcon />
-              </IconButton>
 
-              {user.id && (
-                <NotificationsPopOver
-                  volume={volume}
-                  className={clsx(classes.toolbarButton, classes.toolbarIcon)}
-                  onOpen={fetchAnnouncements}
-                />
-              )}
 
-              <AnnouncementsPopover
-                className={clsx(classes.toolbarButton, classes.toolbarIcon)}
-                onOpen={fetchAnnouncements}
-              />
+              {/* <DarkMode themeToggle={themeToggle} /> */}
 
-              <ChatPopover
-                className={clsx(classes.toolbarButton, classes.topbarIcon)}
-              />
+              {user.id && <NotificationsPopOver volume={volume} />}
+
+              <AnnouncementsPopover />
+
+              <ChatPopover />
+
+
 
               <div className="user-menu-wrapper">
-                <IconButton
-                  aria-label="account of current user"
-                  aria-controls="menu-appbar"
-                  aria-haspopup="true"
+                <StyledBadge
+                  overlap="circular"
+                  anchorOrigin={{
+                    vertical: "bottom",
+                    horizontal: "right",
+                  }}
+                  variant="dot"
                   onClick={handleMenu}
-                  variant="contained"
-                  className={clsx(classes.toolbarButton, classes.topbarIcon)}
                 >
-                  <Badge
-                    overlap="circular"
-                    anchorOrigin={{
-                      vertical: "bottom",
-                      horizontal: "right",
-                    }}
-                    badgeContent={
-                      <SmallAvatar
-                        alt="User status"
-                        src={`${backendUrl}/public/online.png`}
-                      />
-                    }
-                  >
-                    <Avatar src={profileUrl} className={classes.avatar2} />
-                  </Badge>
-                </IconButton>
+                  <Avatar
+                    alt="VBSolution"
+                    className={classes.avatar2}
+                    src={profileUrl}
+                  />
+                </StyledBadge>
 
                 <UserModal
                   open={userModalOpen}
@@ -940,33 +1060,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           )}
         </Toolbar>
       </AppBar>
-      <SecondaryNavbar 
-        onMenuClick={() => setDrawerOpen(!drawerOpen)}
-        drawerOpen={drawerOpen}
-      />
-      {!hideMenu && (
-        <Drawer
-          variant={drawerVariant}
-          className={drawerOpen ? classes.drawerPaper : classes.drawerPaperClose}
-          classes={{
-            paper: clsx(
-              classes.drawerPaper,
-              !drawerOpen && classes.drawerPaperClose
-            ),
-          }}
-          open={drawerOpen}
-        >
-          <div className={classes.toolbarIcon}>
-            <div style={{ display: drawerOpen ? "flex" : "none", alignItems: "center", gap: "12px" }}>
-              <img src={logoDark} alt="VBSolution" style={{ height: 40, margin: '0 auto' }} />
-            </div>
-          </div>
-          <List className={classes.containerWithScroll}>
-            <MainListItems collapsed={!drawerOpen} />
-          </List>
-          <Divider />
-        </Drawer>
-      )}
+
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />
         {children ? children : null}

@@ -473,7 +473,7 @@ const Dashboard = () => {
             className={classes.mainPaper}
             variant="outlined"
           >
-            <Container maxWidth={false} className={classes.container} style={{ padding: '16px 8px', maxWidth: '100%', overflowX: 'hidden' }}>
+            <Container maxWidth={false} className={classes.container} style={{ padding: '16px', maxWidth: '100%', overflowX: 'hidden' }}>
               <Grid2 container spacing={2} className={classes.container} style={{ margin: 0, width: '100%' }}>
                 {/* FILTROS */}
                 <Grid2 xs={12} container justifyContent="flex-end">
@@ -502,7 +502,7 @@ const Dashboard = () => {
                 )}
                 
                 {/* Indicadores Gerais */}
-                <Grid2 item xs={12} style={{ marginTop: '20px', paddingLeft: '4px' }}>
+                <Grid2 item xs={12} style={{ paddingLeft: '4px' }}>
                   <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Indicadores</Typography>
                 </Grid2>
                 {[

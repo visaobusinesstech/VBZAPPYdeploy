@@ -7,6 +7,7 @@ import { createTheme, ThemeProvider } from "@material-ui/core/styles";
 import { useMediaQuery } from "@material-ui/core";
 import ColorModeContext from "./layout/themeContext";
 import { ActiveMenuProvider } from "./context/ActiveMenuContext";
+import { PageTitleProvider } from "./context/PageTitleContext";
 import Favicon from "react-favicon";
 import { getBackendUrl } from "./config";
 import Routes from "./routes";
@@ -28,7 +29,7 @@ const App = () => {
   
   const getSafeColor = (color) => {
     if (color && isValidHex(color)) return color;
-    return "#131B2D"; // Azul escuro padrão para novos usuários
+    return "#131B2D";
   };
 
   const appColorLocalStorage = getSafeColor(
@@ -374,14 +375,14 @@ const App = () => {
   useEffect(() => {
     getPublicSetting("primaryColorLight")
       .then((color) => {
-        setPrimaryColorLight(color || "#25142DC7");
+        setPrimaryColorLight(color || "#131B2D");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
       });
     getPublicSetting("primaryColorDark")
       .then((color) => {
-        setPrimaryColorDark(color || "#25142DC7");
+        setPrimaryColorDark(color || "#131B2D");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
@@ -419,7 +420,7 @@ const App = () => {
       })
       .catch((error) => {
         console.log("Error reading setting", error);
-        setAppName("VBZAPPY");
+        setAppName("VBSolution");
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -458,7 +459,9 @@ const App = () => {
         <ThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
             <ActiveMenuProvider>
-              <Routes />
+              <PageTitleProvider>
+                <Routes />
+              </PageTitleProvider>
             </ActiveMenuProvider>
           </QueryClientProvider>
         </ThemeProvider>
