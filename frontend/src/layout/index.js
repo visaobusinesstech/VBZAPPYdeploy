@@ -67,6 +67,8 @@ const backendUrl = getBackendUrl();
 const drawerWidth = 240;
 
 
+import EventIcon from "@material-ui/icons/Event";
+
 const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
@@ -124,8 +126,8 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
     padding: 0,
-    height: "40px", // Altura fixa para alinhar com Topbar
-    minHeight: "40px",
+    height: "100px", // Aumentado de 80px para 100px
+    minHeight: "100px",
     backgroundColor: theme.palette.background.paper, // Ajusta ao tema
     borderBottom: `1px solid ${theme.palette.divider}`,
     transition: "all 0.3s ease",
@@ -157,15 +159,17 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: 0,
     width: '100%',
     [theme.breakpoints.up('sm')]: {
-      marginLeft: theme.spacing(3),
+      marginLeft: theme.spacing(1), // Reduzido
       width: 'auto',
     },
     flexGrow: 1,
-    maxWidth: "140px", // Reduzido de 160px
+    maxWidth: "300px", // Reduzido proporcionalmente
+    height: "30px", // Reduzido altura
     alignItems: "center",
+    display: "flex",
   },
   searchIcon: {
-    padding: theme.spacing(0, 2),
+    padding: theme.spacing(0, 1), // Reduzido padding
     height: '100%',
     position: 'absolute',
     pointerEvents: 'none',
@@ -177,17 +181,19 @@ const useStyles = makeStyles((theme) => ({
   inputRoot: {
     color: 'inherit',
     width: "100%",
+    fontSize: "0.875rem", // Reduzido tamanho do texto
   },
   inputInput: {
     padding: theme.spacing(1, 1, 1, 0),
     // vertical padding + font size from searchIcon
-    paddingLeft: `calc(1em + ${theme.spacing(4)}px)`,
+    paddingLeft: `calc(1em + ${theme.spacing(2)}px)`, // Ajustado padding
     transition: theme.transitions.create('width'),
     width: '100%',
     color: "white",
     "&::placeholder": {
         color: "rgba(255, 255, 255, 0.8)",
         opacity: 1,
+        fontSize: "0.8rem", // Placeholder menor
     }
   },
 
@@ -215,10 +221,10 @@ const useStyles = makeStyles((theme) => ({
 
   secondaryNavbar: {
     position: "fixed",
-    top: 48,
+    top: 40,
     right: 0,
     left: theme.spacing(7),
-    backgroundColor: theme.palette.background.paper,
+    backgroundColor: theme.mode === "light" ? "#f5f5f5" : "#333",
     borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
     zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin", "left"], {
@@ -268,7 +274,6 @@ const useStyles = makeStyles((theme) => ({
   },
 
   drawerPaper: {
-    position: "relative",
     whiteSpace: "nowrap",
     width: drawerWidth,
     transition: theme.transitions.create("width", {
@@ -277,7 +282,8 @@ const useStyles = makeStyles((theme) => ({
     }),
     overflowX: "hidden",
     overflowY: "hidden",
-    // Melhorias sutis no drawer
+    display: "flex",
+    flexDirection: "column",
     // Melhorias sutis no drawer
     borderRight: `1px solid ${theme.mode === "light" ? "#e0e0e0" : "#424242"}`,
     boxShadow:
@@ -304,7 +310,7 @@ const useStyles = makeStyles((theme) => ({
   },
 
   appBarSpacer: {
-    minHeight: "40px",
+    minHeight: "80px",
   },
 
   content: {
@@ -341,22 +347,17 @@ const useStyles = makeStyles((theme) => ({
   },
 
   logo: {
-        width: "auto", // Ajustado para manter proporção
-        height: "auto",
-        maxHeight: "30px", // Limite de altura para caber na toolbar de 40px
-        maxWidth: 120, 
-        [theme.breakpoints.down("sm")]: {
-          width: "auto",
-          height: "auto",
-          maxHeight: "30px",
-          maxWidth: 100,
-        },
-        content: `url(${theme.mode === "light" ? logoDark : logo})`,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "scale(1.02)",
-        },
-      },
+    width: "auto",
+    height: "auto",
+    maxHeight: "90px", // Aumentado um pouco mais
+    maxWidth: "100%", // Permite ocupar largura disponível
+    objectFit: "contain", // Garante que a imagem caiba sem distorcer
+    content: `url(${theme.mode === "light" ? logoDark : logo})`,
+    transition: "all 0.3s ease",
+    "&:hover": {
+      transform: "scale(1.02)",
+    },
+  },
 
 
   hideLogo: {
@@ -865,10 +866,12 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
             </IconButton>
           </div>
           <List className={classes.containerWithScroll}>
-            {/* {mainListItems} */}
-            <MainListItems collapsed={!drawerOpen} />
+            <MainListItems collapsed={!drawerOpen} section="main" />
           </List>
           <Divider />
+          <List style={{ marginTop: "auto", flexShrink: 0 }}>
+             <MainListItems collapsed={!drawerOpen} section="bottom" />
+          </List>
         </Drawer>
       )}
 
@@ -898,27 +901,17 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
             noWrap
             className={clsx(classes.title, drawerOpen && classes.titleShift)}
           >
-            {/* {greaterThenSm && user?.profile === "admin" && getDateAndDifDays(user?.company?.dueDate).difData < 7 ? ( */}
-            {greaterThenSm &&
-              user?.profile === "admin" &&
-              user?.company?.dueDate ? (
-              <>
-                {i18n.t("mainDrawer.appBar.user.message")} <b>{user.name}</b>,{" "}
-                {i18n.t("mainDrawer.appBar.user.messageEnd")}{" "}
-                <b>{user?.company?.name}</b>! (
-                {i18n.t("mainDrawer.appBar.user.active")}{" "}
-                {dateToClient(user?.company?.dueDate)})
-              </>
-            ) : (
-              <>
-                {i18n.t("mainDrawer.appBar.user.message")} <b>{user.name}</b>,{" "}
-                {i18n.t("mainDrawer.appBar.user.messageEnd")}{" "}
-                <b>{user?.company?.name}</b>!
-              </>
-            )}
+             {/* Boas vindas removido da topbar */}
           </Typography>
 
           <div style={{ flexGrow: 1 }} />
+          <IconButton
+            component={Link}
+            to="/schedules"
+            style={{ color: "white", marginRight: 10 }}
+          >
+            <EventIcon />
+          </IconButton>
           <div className={classes.search}>
             <div className={classes.searchIcon}>
               <SearchIcon />
@@ -1075,6 +1068,12 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           )}
         </Toolbar>
       </AppBar>
+
+      <div className={clsx(classes.secondaryNavbar, !hideMenu && drawerOpen && classes.secondaryNavbarShift)}>
+        <Typography variant="body2" style={{ padding: "8px 20px", fontWeight: 500, fontSize: "12px", color: "#666" }}>
+          Bem vindo a VBSolution
+        </Typography>
+      </div>
 
       <main className={classes.content}>
         <div className={classes.appBarSpacer} />

@@ -177,6 +177,10 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.primary.main,
     marginBottom: theme.spacing(2),
   },
+  mainContainer: {
+    padding: 0,
+    paddingTop: 0,
+  },
   mainPaper: {
     flex: 1,
     overflowY: "auto",
@@ -471,10 +475,10 @@ const Dashboard = () => {
         <MainContainer className={classes.mainContainer}>
           <Paper
             className={classes.mainPaper}
-            variant="outlined"
+            elevation={0}
           >
-            <Container maxWidth={false} className={classes.container} style={{ padding: '0 16px', maxWidth: '100%', overflowX: 'hidden' }}>
-              <Grid2 container spacing={2} className={classes.container} style={{ margin: 0, width: '100%' }}>
+            <Container maxWidth={false} className={classes.container} style={{ padding: '0 16px', maxWidth: '100%', overflowX: 'hidden', marginTop: 0 }}>
+              <Grid2 container spacing={2} className={classes.container} style={{ margin: 0, width: '100%', marginTop: 0 }}>
                 {/* FILTROS */}
                 <Grid2 xs={12} container justifyContent="flex-end">
                   <Button
@@ -502,7 +506,7 @@ const Dashboard = () => {
                 )}
                 
                 {/* Indicadores Gerais */}
-                <Grid2 item xs={12} style={{ paddingLeft: '4px' }}>
+                <Grid2 item xs={12} style={{ paddingLeft: '4px', marginTop: 0, paddingTop: 0 }}>
                   <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Indicadores</Typography>
                 </Grid2>
                 {[
