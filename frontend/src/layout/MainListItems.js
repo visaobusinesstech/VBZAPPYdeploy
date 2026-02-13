@@ -404,8 +404,12 @@ const MainListItems = ({ collapsed, drawerClose }) => {
   useEffect(() => {
     // INSERIR ESSE EFFECT INTEIRO
     async function checkHelps() {
-      const helps = await list();
-      setHasHelps(helps.length > 0);
+      try {
+        const helps = await list();
+        setHasHelps(helps.length > 0);
+      } catch (err) {
+        // toastError(err);
+      }
     }
     checkHelps();
   }, []);
@@ -453,8 +457,12 @@ const MainListItems = ({ collapsed, drawerClose }) => {
 
   useEffect(() => {
     async function fetchVersion() {
-      const _version = await getVersion();
-      setVersion(_version.version);
+      try {
+        const _version = await getVersion();
+        setVersion(_version.version);
+      } catch (err) {
+        // toastError(err);
+      }
     }
     fetchVersion();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -467,19 +475,23 @@ const MainListItems = ({ collapsed, drawerClose }) => {
 
   useEffect(() => {
     async function fetchData() {
-      const companyId = user.companyId;
-      const planConfigs = await getPlanCompany(undefined, companyId);
+      try {
+        const companyId = user.companyId;
+        const planConfigs = await getPlanCompany(undefined, companyId);
 
-      if (!planConfigs || !planConfigs.plan) return;
+        if (!planConfigs || !planConfigs.plan) return;
 
-      setShowCampaigns(planConfigs.plan.useCampaigns);
-      setShowKanban(planConfigs.plan.useKanban);
-      setShowOpenAi(planConfigs.plan.useOpenAi);
-      setShowIntegrations(planConfigs.plan.useIntegrations);
-      setShowSchedules(planConfigs.plan.useSchedules);
-      setShowInternalChat(planConfigs.plan.useInternalChat);
-      setShowExternalApi(planConfigs.plan.useExternalApi);
-      setShowWavoipCall(planConfigs.plan.wavoip);
+        setShowCampaigns(planConfigs.plan.useCampaigns);
+        setShowKanban(planConfigs.plan.useKanban);
+        setShowOpenAi(planConfigs.plan.useOpenAi);
+        setShowIntegrations(planConfigs.plan.useIntegrations);
+        setShowSchedules(planConfigs.plan.useSchedules);
+        setShowInternalChat(planConfigs.plan.useInternalChat);
+        setShowExternalApi(planConfigs.plan.useExternalApi);
+        setShowWavoipCall(planConfigs.plan.wavoip);
+      } catch (err) {
+        // toastError(err);
+      }
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps

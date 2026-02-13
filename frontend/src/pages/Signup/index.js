@@ -411,8 +411,8 @@ const SignUp = () => {
     return (
         <React.Fragment>
             <Helmet>
-                <title>{appName || "VBSolution - Cadastro"}</title>
-                <link rel="icon" href={appLogoFavicon || "/default-favicon.ico"}/>
+                <title>VBSolution - Cadastre-se</title>
+                <link rel="icon" href="/favicon.png" />
             </Helmet>
 
             <div

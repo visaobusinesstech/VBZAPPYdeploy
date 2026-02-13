@@ -416,7 +416,8 @@ const App = () => {
       });
     getPublicSetting("appName")
       .then((name) => {
-        setAppName(name || "VBSolution");
+        // Força VBSolution independentemente do que vier do backend
+        setAppName("VBSolution");
       })
       .catch((error) => {
         console.log("Error reading setting", error);

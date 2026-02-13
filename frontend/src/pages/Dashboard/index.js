@@ -468,12 +468,12 @@ const Dashboard = () => {
       {user.profile === "user" && user.showDashboard === "disabled" ? (
         <ForbiddenPage />
       ) : (
-        <MainContainer>
+        <MainContainer className={classes.mainContainer}>
           <Paper
             className={classes.mainPaper}
             variant="outlined"
           >
-            <Container maxWidth={false} className={classes.container} style={{ padding: '16px', maxWidth: '100%', overflowX: 'hidden' }}>
+            <Container maxWidth={false} className={classes.container} style={{ padding: '0 16px', maxWidth: '100%', overflowX: 'hidden' }}>
               <Grid2 container spacing={2} className={classes.container} style={{ margin: 0, width: '100%' }}>
                 {/* FILTROS */}
                 <Grid2 xs={12} container justifyContent="flex-end">

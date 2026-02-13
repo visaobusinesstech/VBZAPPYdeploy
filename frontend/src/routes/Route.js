@@ -11,11 +11,17 @@ const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 	const { setPageTitle } = useContext(PageTitleContext);
 
 	useEffect(() => {
-		document.title = "VBSolution";
+		// Título base sempre presente
+		const baseTitle = "VBSolution";
+		
 		if (title) {
+			// Se houver título da página: "Título - VBSolution"
+			document.title = `${title} - ${baseTitle}`;
 			setPageTitle(title);
 		} else {
-			setPageTitle("VBSolution");
+			// Se não houver, apenas "VBSolution"
+			document.title = baseTitle;
+			setPageTitle(baseTitle);
 		}
 	}, [title, setPageTitle]);
 

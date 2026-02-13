@@ -123,16 +123,27 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    padding: "0 8px",
-    // minHeight: "40px", // Removido minHeight
-    [theme.breakpoints.down("sm")]: {
-      height: "40px",
-    },
-    backgroundColor: "#ffffff",
+    padding: 0,
+    height: "40px", // Altura fixa para alinhar com Topbar
+    minHeight: "40px",
+    backgroundColor: theme.palette.background.paper, // Ajusta ao tema
     borderBottom: `1px solid ${theme.palette.divider}`,
     transition: "all 0.3s ease",
-    marginTop: "8px", // Pequeno ajuste top se necessário
-    marginBottom: "8px",
+    marginTop: 0,
+    marginBottom: 0,
+    position: "relative", // Necessário para posicionamento absoluto do botão
+  },
+  chevronButton: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    padding: 4, // Botão menor
+    "& svg": {
+      fontSize: "1.2rem", // Ícone menor
+    },
+    [theme.breakpoints.down("sm")]: {
+      display: "none", // Esconde em mobile
+    },
   },
 
   search: {
@@ -150,7 +161,7 @@ const useStyles = makeStyles((theme) => ({
       width: 'auto',
     },
     flexGrow: 1,
-    maxWidth: "255px", // Redezio de 44le
+    maxWidth: "140px", // Reduzido de 160px
     alignItems: "center",
   },
   searchIcon: {
@@ -273,8 +284,10 @@ const useStyles = makeStyles((theme) => ({
       theme.mode === "light"
         ? "2px 0 8px rgba(0, 0, 0, 0.1)"
         : "2px 0 8px rgba(0, 0, 0, 0.3)",
-    top: "40px",
+    top: "40px", // Já está colado na topbar de 40px
     height: "calc(100% - 40px)",
+    marginTop: 0, // Garantindo margem 0
+    paddingTop: 0, // Garantindo padding 0
   },
 
   drawerPaperClose: {
@@ -328,25 +341,27 @@ const useStyles = makeStyles((theme) => ({
   },
 
   logo: {
-    width: "100%",
-    height: "auto",
-    maxWidth: 140, // Reduzido de 180
-    [theme.breakpoints.down("sm")]: {
-      width: "auto",
-      height: "100%",
-      maxWidth: 100,
-    },
-    content: `url(${theme.mode === "light" ? logoDark : logo})`,
-    transition: "all 0.3s ease",
-    "&:hover": {
-      transform: "scale(1.02)",
-    },
-  },
+        width: "auto", // Ajustado para manter proporção
+        height: "auto",
+        maxHeight: "30px", // Limite de altura para caber na toolbar de 40px
+        maxWidth: 120, 
+        [theme.breakpoints.down("sm")]: {
+          width: "auto",
+          height: "auto",
+          maxHeight: "30px",
+          maxWidth: 100,
+        },
+        content: `url(${theme.mode === "light" ? logoDark : logo})`,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "scale(1.02)",
+        },
+      },
 
 
   hideLogo: {
-    width: "35px", // Reduzido de 40px
-    maxWidth: "35px",
+    width: "30px", // Reduzido de 35px
+    maxWidth: "30px",
     content: `url(${theme.mode === "light" ? logoDark : logo})`,
     margin: "0 auto", // Centraliza
   },
@@ -845,7 +860,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               alt="VBSolution"
               className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
             />
-            <IconButton onClick={() => setDrawerOpen(!drawerOpen)}>
+            <IconButton onClick={() => setDrawerOpen(!drawerOpen)} className={classes.chevronButton}>
               <ChevronLeftIcon />
             </IconButton>
           </div>
