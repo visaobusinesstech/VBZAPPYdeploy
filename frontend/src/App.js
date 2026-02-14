@@ -144,12 +144,8 @@ const App = () => {
 
           typography: {
             fontFamily: [
-              'Inter',
-              'Roboto',
-              '-apple-system',
-              'BlinkMacSystemFont',
-              '"Segoe UI"',
               '"Helvetica Neue"',
+              'Helvetica',
               'Arial',
               'sans-serif',
             ].join(','),

@@ -311,6 +311,7 @@ export function ChatModal({
 }
 
 function Chat(props) {
+  const { renderAsTab } = props;
   const classes = useStyles();
   const { user } = useContext(AuthContext);
   const history = useHistory();

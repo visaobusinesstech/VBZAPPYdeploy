@@ -105,7 +105,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const QueueIntegration = () => {
+const QueueIntegration = ({ renderAsTab }) => {
   const classes = useStyles();
 
   const [loading, setLoading] = useState(false);
@@ -233,8 +233,10 @@ const QueueIntegration = () => {
     }
   };
 
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
+
   return (
-    <MainContainer>
+    <Container>
       <ConfirmationModal
         title={
           deletingUser &&
@@ -356,7 +358,7 @@ const QueueIntegration = () => {
           </Paper>
         </>
       )}
-    </MainContainer>
+    </Container>
   );
 };
 

@@ -13,6 +13,16 @@ import HelpsManager from "../../components/HelpsManager";
 import Options from "../../components/Settings/Options";
 import Whitelabel from "../../components/Settings/Whitelabel";
 import FinalizacaoAtendimento from "../../components/Settings/FinalizacaoAtendimento";
+import Users from "../Users";
+import AllConnections from "../AllConnections";
+import QueueIntegration from "../QueueIntegration";
+import Invoices from "../Financeiro";
+import Tags from "../Tags";
+import CompaniesCRM from "../CompaniesCRM";
+import Queues from "../Queues";
+import BirthdaySettings from "../BirthdaySettings";
+import QuickMessages from "../QuickMessages";
+import Announcements from "../Annoucements";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -33,6 +43,7 @@ const useStyles = makeStyles((theme) => ({
   mainPaper: {
     ...theme.scrollbarStyles,
     overflowY: "scroll",
+    overflowX: "hidden",
     flex: 1,
   },
   tab: {
@@ -43,6 +54,7 @@ const useStyles = makeStyles((theme) => ({
   paper: {
     ...theme.scrollbarStyles,
     overflowY: "scroll",
+    overflowX: "hidden",
     padding: theme.spacing(2),
     display: "flex",
     alignItems: "center",
@@ -182,9 +194,16 @@ const SettingsCustom = () => {
                 <Tab label={i18n.t("settings.tabs.helps")} value={"helps"} />
               ) : null}
               {isSuper() ? (
-                <Tab label="Whitelabel" value={"whitelabel"} />
-              ) : null}
-            </Tabs>
+                        <Tab label="Whitelabel" value={"whitelabel"} />
+                      ) : null}
+                      <Tab label="Usuários" value={"users"} />
+                      <Tab label="Gerenciar Conexões" value={"connections"} />
+                      <Tab label="Integrações" value={"integrations"} />
+                      <Tab label="Financeiro" value={"financeiro"} />
+                      <Tab label="Tags" value={"tags"} />
+                      <Tab label="Config. Aniversário" value={"birthday"} />
+                      <Tab label="Informativos" value={"announcements"} />
+                    </Tabs>
             <Paper className={classes.paper} elevation={0}>
               <TabPanel
                 className={classes.container}
@@ -257,6 +276,56 @@ const SettingsCustom = () => {
                     setSchedulesEnabled(value === "company")
                   }
                 />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"users"}
+              >
+                <Users renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"connections"}
+              >
+                <AllConnections renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"integrations"}
+              >
+                <QueueIntegration renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"financeiro"}
+              >
+                <Invoices renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"tags"}
+              >
+                <Tags renderAsTab={true} />
+              </TabPanel>
+              
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"birthday"}
+              >
+                <BirthdaySettings renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"announcements"}
+              >
+                <Announcements renderAsTab={true} />
               </TabPanel>
             </Paper>
           </Paper>

@@ -42,13 +42,14 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const ChatMoments = () => {
+const ChatMoments = ({ renderAsTab }) => {
   const classes = useStyles();
+  const Wrapper = renderAsTab ? React.Fragment : MainHeader;
   const { user } = useContext(AuthContext);
   return user.profile === "user" && user.allowRealTime === "disabled" ? (
     <ForbiddenPage />
   ) : (
-    <MainHeader>
+    <Wrapper>
       <Grid
         style={{ width: "99.6%" }}
         container
@@ -68,7 +69,7 @@ const ChatMoments = () => {
           </Paper>
         </Grid>
       </Grid>
-    </MainHeader>
+    </Wrapper>
   );
 };
 

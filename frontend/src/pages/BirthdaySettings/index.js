@@ -16,18 +16,21 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const BirthdaySettingsPage = () => {
+const BirthdaySettingsPage = ({ renderAsTab }) => {
   const classes = useStyles();
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
 
   return (
-    <MainContainer>
-      <MainHeader>
-        <Title>🎂 Configurações de Aniversário</Title>
-      </MainHeader>
+    <Container>
+      {!renderAsTab && (
+        <MainHeader>
+          <Title>🎂 Configurações de Aniversário</Title>
+        </MainHeader>
+      )}
       <Paper className={classes.mainPaper} variant="outlined">
         <BirthdaySettings />
       </Paper>
-    </MainContainer>
+    </Container>
   );
 };
 

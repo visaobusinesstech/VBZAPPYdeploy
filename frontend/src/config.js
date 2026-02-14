@@ -9,6 +9,9 @@ function getConfig(name, defaultValue = null) {
 
 export function getBackendUrl() {
     let url = getConfig('REACT_APP_BACKEND_URL');
+    if (!url) {
+        return "http://localhost:8080";
+    }
     if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
         url = `https://${url}`;
     }

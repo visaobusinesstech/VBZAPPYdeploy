@@ -1,5 +1,6 @@
 import io from "socket.io-client";
 import api from "../services/api";
+import { getBackendUrl } from "../config";
 
 
 class SocketWorker {
@@ -21,7 +22,8 @@ class SocketWorker {
   }
 
   configureSocket() {
-    this.socket = io(`${process.env.REACT_APP_BACKEND_URL}/${this?.companyId}` , {
+    const backendUrl = getBackendUrl();
+    this.socket = io(`${backendUrl}/${this?.companyId}` , {
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,

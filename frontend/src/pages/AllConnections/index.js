@@ -126,7 +126,7 @@ const IconChannel = (channel) => {
   }
 };
 
-const AllConnections = () => {
+const AllConnections = ({ renderAsTab }) => {
   const classes = useStyles();
   const { user, socket } = useContext(AuthContext);
   const { list } = useCompanies();
@@ -404,8 +404,10 @@ const AllConnections = () => {
       </div>
     );
   };
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
+
   return (
-    <MainContainer>
+    <Container className={classes.mainPaper}>
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
@@ -448,7 +450,7 @@ const AllConnections = () => {
                   }}
                   gutterBottom
                 >
-                  {i18n.t("connections.title")}
+                  Gerenciar Conexões
                 </Typography>
                 <Typography
                   style={{ marginTop: "-10px", marginLeft: "10px" }}
@@ -646,7 +648,7 @@ const AllConnections = () => {
           </Paper>
         </>
       )}
-    </MainContainer>
+    </Container>
   );
 };
 

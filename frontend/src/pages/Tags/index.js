@@ -73,7 +73,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Tags = () => {
+const Tags = ({ renderAsTab }) => {
   const classes = useStyles();
   const { user, socket } = useContext(AuthContext);
 
@@ -197,8 +197,10 @@ const Tags = () => {
     }
   };
 
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
+
   return (
-    <MainContainer className={classes.mainContainer}>
+    <Container className={classes.mainContainer}>
       {contactModalOpen && (
         <ContactTagListModal
           open={contactModalOpen}
@@ -337,7 +339,7 @@ const Tags = () => {
           </div>
         )}
       </Paper>
-    </MainContainer>
+    </Container>
   );
 };
 

@@ -9,7 +9,7 @@ import TicketResponsiveContainer from "../pages/TicketResponsiveContainer";
 import Signup from "../pages/Signup";
 import Login from "../pages/Login/";
 import Connections from "../pages/Connections/";
-import Settings from "../pages/Settings/";
+import Settings from "../pages/SettingsCustom/";
 import Financeiro from "../pages/Financeiro/";
 import Users from "../pages/Users";
 import Contacts from "../pages/Contacts/";
@@ -50,6 +50,12 @@ import { FlowBuilderConfig } from "../pages/FlowBuilderConfig";
 import FlowBuilder from "../pages/FlowBuilder";
 import FlowDefault from "../pages/FlowDefault";
 import CampaignsPhrase from "../pages/CampaignsPhrase";
+import Activities from "../pages/Activities/";
+import Projects from "../pages/Projects/";
+import LeadsSales from "../pages/LeadsSales/";
+import Inventory from "../pages/Inventory/";
+import FilesPage from "../pages/FilesPage/";
+import EmailPage from "../pages/EmailPage/";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -137,7 +143,7 @@ const RoutesContent = () => {
                   path="/quick-messages"
                   component={QuickMessages}
                   isPrivate
-                  title="Respostas Rápidas"
+                  title="Disparos Automáticos"
                 />
                 <Route exact path="/todolist" component={ToDoList} isPrivate title="Tarefas" />
                 <Route
@@ -250,6 +256,13 @@ const RoutesContent = () => {
                   isPrivate
                   title="Configuração de Fluxo"
                 />
+                
+                <Route exact path="/activities" component={Activities} isPrivate title="Atividades" />
+                <Route exact path="/projects" component={Projects} isPrivate title="Projetos" />
+                <Route exact path="/leads-sales" component={LeadsSales} isPrivate title="Leads e Vendas" />
+                <Route exact path="/inventory" component={Inventory} isPrivate title="Inventários" />
+                <Route exact path="/arquivos" component={FilesPage} isPrivate title="Arquivos" />
+                <Route exact path="/email" component={EmailPage} isPrivate title="Email" />
 
                 {showCampaigns && (
                   <>

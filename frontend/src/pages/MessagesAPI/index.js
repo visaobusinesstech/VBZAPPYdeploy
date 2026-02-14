@@ -24,6 +24,8 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
     padding: theme.spacing(2),
     paddingBottom: 100,
+    backgroundColor: "transparent",
+    boxShadow: "none",
   },
   mainHeader: {
     marginTop: theme.spacing(1),
@@ -39,7 +41,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MessagesAPI = () => {
+const MessagesAPI = ({ renderAsTab }) => {
   const classes = useStyles();
   const history = useHistory();
 
@@ -346,13 +348,8 @@ const MessagesAPI = () => {
   };
 
   return (
-    <Paper
-      className={classes.mainPaper}
-      style={{ marginLeft: "5px" }}
-      // className={classes.elementMargin}
-      variant="outlined"
-    >
-      <Typography variant="h5">{i18n.t("messagesAPI.API.title")}</Typography>
+    <Paper className={classes.mainPaper} elevation={0}>
+      {!renderAsTab && <Typography variant="h5">{i18n.t("messagesAPI.API.title")}</Typography>}
       <Typography
         variant="h6"
         color="primary"

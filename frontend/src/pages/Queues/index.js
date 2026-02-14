@@ -86,7 +86,7 @@ const reducer = (state, action) => {
   }
 };
 
-const Queues = () => {
+const Queues = ({ renderAsTab }) => {
   const classes = useStyles();
 
   const [queues, dispatch] = useReducer(reducer, []);
@@ -98,6 +98,8 @@ const Queues = () => {
   //   const socketManager = useContext(SocketContext);
   const { user, socket } = useContext(AuthContext);
   const companyId = user.companyId;
+
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
 
 
   useEffect(() => {
@@ -164,7 +166,7 @@ const Queues = () => {
   };
 
   return (
-    <MainContainer>
+    <Container>
       <ConfirmationModal
         title={
           selectedQueue &&
@@ -193,18 +195,20 @@ const Queues = () => {
         <ForbiddenPage />
         :
         <>
-          <MainHeader>
-            <Title>{i18n.t("queues.title")} ({queues.length})</Title>
-            <MainHeaderButtonsWrapper>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleOpenQueueModal}
-              >
-                {i18n.t("queues.buttons.add")}
-              </Button>
-            </MainHeaderButtonsWrapper>
-          </MainHeader>
+          {!renderAsTab && (
+            <MainHeader>
+              <Title>{i18n.t("queues.title")} ({queues.length})</Title>
+              <MainHeaderButtonsWrapper>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenQueueModal}
+                >
+                  {i18n.t("queues.buttons.add")}
+                </Button>
+              </MainHeaderButtonsWrapper>
+            </MainHeader>
+          )}
           <Paper className={classes.mainPaper} variant="outlined">
             <Table size="small">
               <TableHead>
@@ -293,9 +297,9 @@ const Queues = () => {
                 </>
               </TableBody>
             </Table>
-          </Paper>
+      </Paper>
         </>}
-    </MainContainer>
+    </Container>
   );
 };
 

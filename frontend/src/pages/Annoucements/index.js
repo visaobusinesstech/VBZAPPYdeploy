@@ -357,7 +357,7 @@ const Announcements = () => {
           </TableBody>
         </Table>
       </Paper>
-    </MainContainer >
+    </MainContainer>
   )
 };
 

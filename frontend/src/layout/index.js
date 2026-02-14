@@ -333,14 +333,9 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
     overflowY: "auto",
     overflowX: "hidden",
-    ...theme.scrollbarStyles,
+    ...theme.scrollbarStylesSoft,
     borderRadius: "8px",
     border: "2px solid transparent",
-    "&::-webkit-scrollbar": {
-      display: "none",
-    },
-    "-ms-overflow-style": "none",
-    "scrollbar-width": "none",
   },
 
   NotificationsPopOver: {
@@ -564,7 +559,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
         { name: "calendario", path: "/schedules" },
         { name: "chat", path: "/chats" },
         { name: "api", path: "/api" },
-        { name: "vbzappy", path: "/tickets" },
+        { name: "whatsaap", path: "/tickets" },
+        { name: "whatsapp", path: "/tickets" },
         { name: "tickets", path: "/tickets" },
         { name: "filas e chatbot", path: "/queues" },
         { name: "filas", path: "/queues" },

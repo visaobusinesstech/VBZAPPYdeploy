@@ -109,7 +109,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Reports = () => {
+const Reports = ({ renderAsTab }) => {
   const classes = useStyles();
   const history = useHistory();
   const { getReport } = useDashboard();
@@ -125,6 +125,14 @@ const Reports = () => {
   const [selectedWhatsapp, setSelectedWhatsapp] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
+
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
+
+  const FilterWrapper = renderAsTab ? ({ children }) => <>{children}</> : ({ children }) => (
+    <MainHeader className={classes.mainHeaderFilter} style={{ display: "flex" }}>
+      {children}
+    </MainHeader>
+  );
 
   // const [tagIds, setTagIds] = useState([]);
   const [queueIds, setQueueIds] = useState([]);
@@ -618,7 +626,7 @@ const Reports = () => {
   };
 
   return (
-    <MainContainer className={classes.mainContainer}>
+    <Container className={classes.mainContainer}>
       {openTicketMessageDialog && (
         <ShowTicketLogModal
           isOpen={openTicketMessageDialog}
@@ -886,7 +894,7 @@ const Reports = () => {
           </Grid>
         </Grid>
       </div>
-    </MainContainer>
+    </Container>
   );
 };
 

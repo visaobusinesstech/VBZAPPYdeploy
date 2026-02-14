@@ -71,7 +71,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const Invoices = () => {
+const Invoices = ({ renderAsTab }) => {
   const classes = useStyles();
   const { user } = useContext(AuthContext);
 
