@@ -563,10 +563,17 @@ const TicketActionButtonsCustom = ({
       return;
     }
 
-    const token = ticket.whatsapp.wavoip;
-    const phone = ticket.contact.number.replace(/\D/g, "");
-    const name = ticket.contact.name;
-    const url = `https://app.wavoip.com/call?token=${token}&phone=${phone}&name=${name}&start_if_ready=true&close_after_call=true`;
+    const token = String(ticket.whatsapp.wavoip).trim();
+    const phone = String(ticket.contact.number || "").replace(/\D/g, "");
+    const name = String(ticket.contact.name || "").trim();
+    const params = new URLSearchParams({
+      token,
+      phone,
+      name,
+      start_if_ready: "true",
+      close_after_call: "true",
+    });
+    const url = `https://app.wavoip.com/call?${params.toString()}`;
 
     try {
       await saveHistoricalLink({

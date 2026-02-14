@@ -9,7 +9,6 @@ import TabPanel from "../../components/TabPanel";
 import SchedulesForm from "../../components/SchedulesForm";
 import CompaniesManager from "../../components/CompaniesManager";
 import PlansManager from "../../components/PlansManager";
-import HelpsManager from "../../components/HelpsManager";
 import Options from "../../components/Settings/Options";
 import Whitelabel from "../../components/Settings/Whitelabel";
 import FinalizacaoAtendimento from "../../components/Settings/FinalizacaoAtendimento";
@@ -41,8 +40,7 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.background.paper,
   },
   mainPaper: {
-    ...theme.scrollbarStyles,
-    overflowY: "scroll",
+    overflowY: "visible",
     overflowX: "hidden",
     flex: 1,
   },
@@ -52,8 +50,7 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 4,
   },
   paper: {
-    ...theme.scrollbarStyles,
-    overflowY: "scroll",
+    overflowY: "visible",
     overflowX: "hidden",
     padding: theme.spacing(2),
     display: "flex",
@@ -191,10 +188,7 @@ const SettingsCustom = () => {
                 <Tab label={i18n.t("settings.tabs.plans")} value={"plans"} />
               ) : null}
               {isSuper() ? (
-                <Tab label={i18n.t("settings.tabs.helps")} value={"helps"} />
-              ) : null}
-              {isSuper() ? (
-                        <Tab label="Whitelabel" value={"whitelabel"} />
+                        <Tab label="Identidade Visual" value={"whitelabel"} />
                       ) : null}
                       <Tab label="Usuários" value={"users"} />
                       <Tab label="Gerenciar Conexões" value={"connections"} />
@@ -236,13 +230,6 @@ const SettingsCustom = () => {
                       <PlansManager />
                     </TabPanel>
 
-                    <TabPanel
-                      className={classes.container}
-                      value={tab}
-                      name={"helps"}
-                    >
-                      <HelpsManager />
-                    </TabPanel>
                     <TabPanel
                       className={classes.container}
                       value={tab}

@@ -729,13 +729,6 @@ const FlowBuilder = () => {
               ),
             }}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenContactModal}
-          >
-            Novo Fluxo
-          </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
 
@@ -800,18 +793,13 @@ const FlowBuilder = () => {
           </Stack>
         )}
       </Paper>
-
-      {isMobile && (
-        <HideOnScroll>
-          <Fab
-            className={classes.fab}
-            onClick={handleOpenContactModal}
-            aria-label="Criar fluxo"
-          >
-            <AddCircle />
-          </Fab>
-        </HideOnScroll>
-      )}
+      <Fab
+        className={classes.fab}
+        onClick={handleOpenContactModal}
+        aria-label="Criar fluxo"
+      >
+        <AddCircle />
+      </Fab>
     </MainContainer>
   );
 };

@@ -168,11 +168,11 @@ export default function ChatList({
 
   const filteredChats = orderedChats.filter((chat) => {
     const isGroup = chat.isGroup;
+    const usersArr = Array.isArray(chat.users) ? chat.users : [];
     const otherUser =
-      !isGroup && chat.users.find((u) => u.userId !== loggedInUser.id);
-    const name = isGroup ? chat.title : otherUser?.user?.name || "";
+      !isGroup && usersArr.find((u) => u.userId !== loggedInUser.id);
+    const name = (isGroup ? chat.title : otherUser?.user?.name) || "";
     const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
-
     return matchesSearch;
   });
 
@@ -196,15 +196,16 @@ export default function ChatList({
   };
 
   const unreadMessages = (chat) => {
-    const currentUser = chat.users.find((u) => u.userId === loggedInUser.id);
-    return currentUser.unreads;
+    const usersArr = Array.isArray(chat.users) ? chat.users : [];
+    const currentUser = usersArr.find((u) => u.userId === loggedInUser.id);
+    return currentUser?.unreads || 0;
   };
 
   const getPrimaryText = (chat) => {
     const isGroup = chat.isGroup;
-
+    const usersArr = Array.isArray(chat.users) ? chat.users : [];
     const otherUser =
-      !isGroup && chat.users.find((u) => u.userId !== loggedInUser.id);
+      !isGroup && usersArr.find((u) => u.userId !== loggedInUser.id);
 
     const mainText = chat.title;
     const userName = otherUser?.user?.name;
@@ -342,6 +343,9 @@ export default function ChatList({
         users: [{ id: selectedUser.id }],
         isGroup: false,
       });
+      try {
+        await api.post(`/chats/${data.id}/messages`, { message: "Chat criado" });
+      } catch (e) {}
 
       toast.success("Chat criado com sucesso!");
 
@@ -495,9 +499,9 @@ export default function ChatList({
             )}
             {filteredChats.map((chat, key) => {
               const isGroup = chat.isGroup;
+              const usersArr = Array.isArray(chat.users) ? chat.users : [];
               const otherUser =
-                !isGroup &&
-                chat.users.find((u) => u.userId !== loggedInUser.id);
+                !isGroup && usersArr.find((u) => u.userId !== loggedInUser.id);
               const isOnline =
                 !isGroup &&
                 otherUser &&

@@ -1,4 +1,5 @@
-import React, { useContext, useState, useEffect } from "react";
+import React, { useContext, useState, useEffect, useMemo } from "react";
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
@@ -38,7 +39,8 @@ import useContacts from "../../hooks/useContacts";
 import useMessages from "../../hooks/useMessages";
 import { ChatsUser } from "./ChartsUser";
 
-import Filters from "./Filters";
+import useActivities from "../../hooks/useActivities";
+import useProjects from "../../hooks/useProjects";
 import { isEmpty } from "lodash";
 import moment from "moment";
 import { ChartsDate } from "./ChartsDate";
@@ -69,6 +71,63 @@ const useStyles = makeStyles((theme) => ({
     lineHeight: 2.5,
     textTransform: "uppercase",
     fontFamily: "'Plus Jakarta Sans', sans-serif'",
+  },
+  greetingContainer: {
+    marginBottom: theme.spacing(3),
+  },
+  greetingTitle: {
+    fontWeight: 600,
+    marginBottom: theme.spacing(1),
+  },
+  greetingSubtitle: {
+    color: theme.palette.text.secondary,
+  },
+  blocksWrapper: {
+    width: "100%",
+  },
+  blockPaper: {
+    padding: theme.spacing(2),
+    borderRadius: 12,
+    backgroundColor: theme.palette.background.paper,
+    boxShadow: theme.shadows[2],
+    minHeight: 220,
+    display: "flex",
+    flexDirection: "column",
+  },
+  blockHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: theme.spacing(1.5),
+  },
+  blockTitle: {
+    fontWeight: 600,
+  },
+  blockList: {
+    listStyle: "none",
+    padding: 0,
+    margin: 0,
+    marginTop: theme.spacing(1),
+  },
+  blockListItem: {
+    display: "flex",
+    flexDirection: "column",
+    padding: theme.spacing(1),
+    borderRadius: 8,
+    marginBottom: theme.spacing(1),
+    backgroundColor:
+      theme.palette.mode === "light"
+        ? "#f9fafb"
+        : "rgba(255,255,255,0.04)",
+  },
+  blockItemTitle: {
+    fontSize: "0.95rem",
+    fontWeight: 500,
+  },
+  blockItemMeta: {
+    fontSize: "0.8rem",
+    color: theme.palette.text.secondary,
+    marginTop: 2,
   },
   h4: {
     fontFamily: "'Plus Jakarta Sans', sans-serif'",
@@ -227,6 +286,12 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+const dashboardBlocks = [
+  { id: "pendingActivities", title: "Atividades Pendentes" },
+  { id: "recentActivities", title: "Atividades Recentes" },
+  { id: "recentProjects", title: "Últimos Projetos" },
+];
+
 const Dashboard = () => {
   const theme = useTheme();
   const classes = useStyles();
@@ -260,8 +325,19 @@ const Dashboard = () => {
   const [dateEndTicket, setDateEndTicket] = useState(now);
   const [queueTicket, setQueueTicket] = useState(false);
   const [fetchDataFilter, setFetchDataFilter] = useState(false);
+  const [blockOrder, setBlockOrder] = useState(
+    dashboardBlocks.map((b) => b.id)
+  );
 
   const { user } = useContext(AuthContext);
+  const { activities, loading: loadingActivities } = useActivities({
+    searchParam: "",
+    pageNumber: 1,
+  });
+  const { projects, loading: loadingProjects } = useProjects({
+    pageNumber: 1,
+    searchParam: "",
+  });
 
   const exportarGridParaExcel = () => {
     const ws = XLSX.utils.table_to_sheet(
@@ -277,6 +353,24 @@ const Dashboard = () => {
   if (user.queues && user.queues.length > 0) {
     userQueueIds = user.queues.map((q) => q.id);
   }
+
+  useEffect(() => {
+    const storageKey = `dashboard-block-order-${user.id}`;
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const validIds = dashboardBlocks.map((b) => b.id);
+        const filtered = parsed.filter((id) => validIds.includes(id));
+        const missing = validIds.filter((id) => !filtered.includes(id));
+        setBlockOrder([...filtered, ...missing]);
+      } catch (e) {
+        setBlockOrder(dashboardBlocks.map((b) => b.id));
+      }
+    } else {
+      setBlockOrder(dashboardBlocks.map((b) => b.id));
+    }
+  }, [user.id]);
 
   useEffect(() => {
     let isMounted = true;
@@ -406,6 +500,138 @@ const Dashboard = () => {
     return moment().startOf("day").add(minutes, "minutes").format("HH[h] mm[m]");
   }
 
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const items = Array.from(blockOrder);
+    const [removed] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, removed);
+    setBlockOrder(items);
+    const storageKey = `dashboard-block-order-${user.id}`;
+    localStorage.setItem(storageKey, JSON.stringify(items));
+  };
+
+  const greetingText = useMemo(() => {
+    const hour = new Date().getHours();
+    let base;
+    if (hour < 12) {
+      base = "Bom dia";
+    } else if (hour < 18) {
+      base = "Boa tarde";
+    } else {
+      base = "Boa noite";
+    }
+    return `${base.toUpperCase()}, ${user.name}`;
+  }, [user.name]);
+
+  const pendingActivities = useMemo(() => {
+    return activities
+      .filter(
+        (a) => a.status === "pending" || a.status === "A Fazer"
+      )
+      .slice(0, 5);
+  }, [activities]);
+
+  const recentActivities = useMemo(() => {
+    return [...activities]
+      .sort((a, b) => {
+        if (!a.date || !b.date) return 0;
+        return new Date(b.date) - new Date(a.date);
+      })
+      .slice(0, 5);
+  }, [activities]);
+
+  const recentProjects = useMemo(() => {
+    return [...projects].slice(0, 5);
+  }, [projects]);
+
+  const renderBlockContent = (id) => {
+    if (id === "pendingActivities") {
+      if (loadingActivities) {
+        return (
+          <Typography color="textSecondary">Carregando atividades...</Typography>
+        );
+      }
+      if (!pendingActivities.length) {
+        return (
+          <Typography color="textSecondary">
+            Nenhuma atividade pendente encontrada.
+          </Typography>
+        );
+      }
+      return (
+        <ul className={classes.blockList}>
+          {pendingActivities.map((a) => (
+            <li key={a.id} className={classes.blockListItem}>
+              <Typography className={classes.blockItemTitle}>
+                {a.title || "Sem título"}
+              </Typography>
+              <Typography className={classes.blockItemMeta}>
+                {a.date}
+              </Typography>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    if (id === "recentActivities") {
+      if (loadingActivities) {
+        return (
+          <Typography color="textSecondary">Carregando atividades...</Typography>
+        );
+      }
+      if (!recentActivities.length) {
+        return (
+          <Typography color="textSecondary">
+            Nenhuma atividade recente encontrada.
+          </Typography>
+        );
+      }
+      return (
+        <ul className={classes.blockList}>
+          {recentActivities.map((a) => (
+            <li key={a.id} className={classes.blockListItem}>
+              <Typography className={classes.blockItemTitle}>
+                {a.title || "Sem título"}
+              </Typography>
+              <Typography className={classes.blockItemMeta}>
+                {a.date}
+              </Typography>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    if (id === "recentProjects") {
+      if (loadingProjects) {
+        return (
+          <Typography color="textSecondary">Carregando projetos...</Typography>
+        );
+      }
+      if (!recentProjects.length) {
+        return (
+          <Typography color="textSecondary">
+            Nenhum projeto encontrado.
+          </Typography>
+        );
+      }
+      return (
+        <ul className={classes.blockList}>
+          {recentProjects.map((p) => (
+            <li key={p.id} className={classes.blockListItem}>
+              <Typography className={classes.blockItemTitle}>
+                {p.title || "Sem título"}
+              </Typography>
+              <Typography className={classes.blockItemMeta}>
+                {p.status}
+              </Typography>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    return null;
+  };
+
   const GetUsers = () => {
     let count;
     let userOnline = 0;
@@ -477,171 +703,84 @@ const Dashboard = () => {
             className={classes.mainPaper}
             elevation={0}
           >
-            <Container maxWidth={false} className={classes.container} style={{ padding: '0 16px', maxWidth: '100%', overflowX: 'hidden', marginTop: 0 }}>
-              <Grid2 container spacing={2} className={classes.container} style={{ margin: 0, width: '100%', marginTop: 0 }}>
-                {/* FILTROS */}
-                <Grid2 xs={12} container justifyContent="flex-end">
-                  <Button
-                    onClick={toggleShowFilter}
-                    color="primary"
-                    startIcon={!showFilter ? <FilterListIcon /> : <ClearIcon />}
-                  >
-                    {showFilter ? "Ocultar Filtros" : "Mostrar Filtros"}
-                  </Button>
-                </Grid2>
-
-                {showFilter && (
-                  <Grid2 item xs={12} style={{ marginBottom: "20px" }}>
-                    <Filters
-                      classes={classes}
-                      setDateStartTicket={setDateStartTicket}
-                      setDateEndTicket={setDateEndTicket}
-                      dateStartTicket={dateStartTicket}
-                      dateEndTicket={dateEndTicket}
-                      setQueueTicket={setQueueTicket}
-                      queueTicket={queueTicket}
-                      fetchData={setFetchDataFilter}
-                    />
-                  </Grid2>
-                )}
-                
-                {/* Indicadores Gerais */}
-                <Grid2 item xs={12} style={{ paddingLeft: '4px', marginTop: 0, paddingTop: 0 }}>
-                  <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Indicadores</Typography>
-                </Grid2>
-                {[
-                  { label: "Em Atendimento", value: counters.supportHappening || 0, icon: <CallIcon style={{ color: "#01BBAC" }} /> },
-                  { label: "Aguardando", value: counters.supportPending || 0, icon: <HourglassEmptyIcon style={{ color: "#47606e" }} /> },
-                  { label: "Finalizados", value: counters.supportFinished || 0, icon: <CheckCircleIcon style={{ color: "#5852ab" }} /> },
-                  { label: "Grupos", value: counters.supportGroups || 0, icon: <Groups style={{ color: "#01BBAC" }} /> },
-                  { label: "Atendentes Ativos", value: `${GetUsers()}/${attendants.length}`, icon: <RecordVoiceOverIcon style={{ color: "#805753" }} /> },
-                  { label: "Novos Contatos", value: counters.leads || 0, icon: <GroupAddIcon style={{ color: "#8c6b19" }} /> },
-                  { label: "Mensagens Recebidas", value: `${GetMessages(false, false)}/${GetMessages(true, false)}`, icon: <MessageIcon style={{ color: "#333133" }} /> },
-                  { label: "Mensagens Enviadas", value: `${GetMessages(false, true)}/${GetMessages(true, true)}`, icon: <SendIcon style={{ color: "#558a59" }} /> },
-                  { label: "T.M. de Atendimento", value: formatTime(counters.avgSupportTime), icon: <AccessAlarmIcon style={{ color: "#F79009" }} /> },
-                  { label: "T.M. de Espera", value: formatTime(counters.avgWaitTime), icon: <TimerIcon style={{ color: "#8a2c40" }} /> },
-                  { label: "Tickets Ativos", value: counters.activeTickets || 0, icon: <ArrowUpward style={{ color: "#EE4512" }} /> },
-                  { label: "Tickets Passivos", value: counters.passiveTickets || 0, icon: <ArrowDownward style={{ color: "#28C037" }} /> },
-                ].map((indicator, index) => (
-                  <Grid2 item xs={12} sm={6} md={4} lg={3} key={index}>
-                    <Paper className={classes.paper}>
-                      <Box display="flex" alignItems="center">
-                        {indicator.icon}
-                        <Box ml={2}>
-                          <Typography variant="h6">{indicator.value}</Typography>
-                          <Typography variant="body2">{indicator.label}</Typography>
-                        </Box>
-                      </Box>
-                    </Paper>
-                  </Grid2>
-                ))}
-
-                {/* Pesquisa de Satisfação (NPS) */}
-                <Grid2 item xs={12} style={{ marginTop: '40px', paddingLeft: '4px' }}>
-                  <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Pesquisa de satisfação</Typography>
-                </Grid2>
-                {["Score", "Promotores", "Neutros", "Detratores"].map((label, index) => (
-                  <Grid2 item xs={12} md={6} lg={3} key={index}>
-                    <Paper className={classes.paper}>
-                      <Box className={classes.barContainer}>
-                        <Typography className={classes.progressLabel}>{label}</Typography>
-                        <LinearProgress
-                          variant="determinate"
-                          value={
-                            label === "Score" ? counters.npsScore || 0 :
-                              label === "Promotores" ? counters.npsPromotersPerc || 0 :
-                                label === "Neutros" ? counters.npsPassivePerc || 0 :
-                                  counters.npsDetractorsPerc || 0
-                          }
-                          className={classes.progressBar}
-                          style={{
-                            backgroundColor:
-                              label === "Promotores" ? "#2EA85A" :
-                                label === "Neutros" ? "#F7EC2C" :
-                                  label === "Detratores" ? "#F73A2C" : "#000",
-                          }}
-                        />
-                        <Typography className={classes.progressLabel}>{
-                          label === "Score" ? counters.npsScore || 0 :
-                            label === "Promotores" ? counters.npsPromotersPerc || 0 :
-                              label === "Neutros" ? counters.npsPassivePerc || 0 :
-                                counters.npsDetractorsPerc || 0
-                        }%</Typography>
-                      </Box>
-                    </Paper>
-                  </Grid2>
-                ))}
-
-                {/* Informações de Atendimento */}
-                <Grid2 item xs={12} style={{ marginTop: '40px', paddingLeft: '4px' }}>
-                  <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Atendimentos</Typography>
-                </Grid2>
-                {[
-                  { label: "Total de Atendimentos", value: counters.tickets || 0, icon: <CallIcon style={{ color: '#01BBAC' }} /> },
-                  { label: "Atendimentos aguardando avaliação", value: counters.waitRating || 0, icon: <HourglassEmptyIcon style={{ color: '#47606e' }} /> },
-                  { label: "Atendimentos sem avaliação", value: counters.withoutRating || 0, icon: <ErrorOutlineIcon style={{ color: '#8a2c40' }} /> },
-                  { label: "Atendimentos avaliados", value: counters.withRating || 0, icon: <CheckCircleOutlineIcon style={{ color: '#805753' }} /> },
-                ].map((attInfo, index) => (
-                  <Grid2 item xs={12} sm={6} md={3} key={index}>
-                    <Paper className={classes.infoCard} style={{ height: '100%' }}>
-                      <Box display="flex" alignItems="center">
-                        {attInfo.icon}
-                        <Box ml={2}>
-                          <Typography variant="h6">{attInfo.value}</Typography>
-                          <Typography variant="body2">{attInfo.label}</Typography>
-                        </Box>
-                      </Box>
-                    </Paper>
-                  </Grid2>
-                ))}
-
-                {/* Índice de Avaliação */}
-                <Grid2 item xs={12} style={{ marginTop: '40px', paddingLeft: '4px', paddingRight: '4px' }}>
-                  <Typography variant="h6" style={{ marginBottom: '15px', color: theme.palette.primary.main }}>Índice de avaliação</Typography>
-                  <Grid2 container alignItems="center" spacing={2}>
-                    <Grid2 item xs={12} sm={2}>
-                      <Paper className={classes.infoCard} style={{ textAlign: 'center', padding: '8px', backgroundColor: '#FFE3B3' }}>
-                        <Typography variant="h6" style={{ color: '#F79009' }}>
-                          {Number(counters.percRating / 100).toLocaleString(undefined, { style: 'percent' }) || "0%"}
-                        </Typography>
-                      </Paper>
-                    </Grid2>
-                    <Grid2 item xs={12} sm={10}>
-                      <LinearProgress
-                        variant="determinate"
-                        value={counters.percRating || 0}
-                        className={classes.progressBar}
-                        style={{ backgroundColor: "#e0e0e0", height: 10, borderRadius: 5 }}
-                      />
-                    </Grid2>
-                  </Grid2>
-                </Grid2>
-
-                {/* Tabela de Atendentes */}
-                <Grid2 item xs={12} style={{ marginTop: '40px', paddingLeft: '4px' }}>
-                  <Typography variant="h5" style={{ marginBottom: '10px', color: theme.palette.primary.main }}>Atendentes</Typography>
-                  <Paper className={classes.paper}>
-                    <TableAttendantsStatus
-                      attendants={attendants}
-                      loading={loading}
-                    />
-                  </Paper>
-                </Grid2>
-
-                {/* Gráficos */}
-                <Grid2 container spacing={3} item xs={12}>
-                  <Grid2 item xs={12} md={6}>
-                    <Paper className={classes.paper} style={{ marginBottom: "16px" }}>
-                      <ChatsUser />
-                    </Paper>
-                  </Grid2>
-                  <Grid2 item xs={12} md={6}>
-                    <Paper className={classes.paper}>
-                      <ChartsDate />
-                    </Paper>
-                  </Grid2>
-                </Grid2>
-              </Grid2>
+            <Container
+              maxWidth={false}
+              className={classes.container}
+              style={{
+                padding: "16px",
+                maxWidth: "100%",
+                overflowX: "hidden",
+                marginTop: 0,
+              }}
+            >
+              <div className={classes.greetingContainer}>
+                <Typography variant="h4" className={classes.greetingTitle}>
+                  {greetingText}
+                </Typography>
+                <Typography
+                  variant="subtitle1"
+                  className={classes.greetingSubtitle}
+                >
+                  Estes blocos puxam dados criados em Atividades e Projetos.
+                </Typography>
+              </div>
+              <div className={classes.blocksWrapper}>
+                <DragDropContext onDragEnd={handleDragEnd}>
+                  <Droppable droppableId="dashboard-blocks">
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.droppableProps}
+                      >
+                        <Grid2
+                          container
+                          spacing={2}
+                          className={classes.container}
+                          style={{ margin: 0, width: "100%", marginTop: 0 }}
+                        >
+                          {blockOrder.map((id, index) => {
+                            const config = dashboardBlocks.find(
+                              (b) => b.id === id
+                            );
+                            if (!config) return null;
+                            return (
+                              <Draggable
+                                key={id}
+                                draggableId={id}
+                                index={index}
+                              >
+                                {(dragProvided) => (
+                                  <Grid2
+                                    item
+                                    xs={12}
+                                    md={index < 2 ? 6 : 12}
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    {...dragProvided.dragHandleProps}
+                                  >
+                                    <Paper className={classes.blockPaper}>
+                                      <div className={classes.blockHeader}>
+                                        <Typography
+                                          variant="h6"
+                                          className={classes.blockTitle}
+                                        >
+                                          {config.title}
+                                        </Typography>
+                                      </div>
+                                      {renderBlockContent(id)}
+                                    </Paper>
+                                  </Grid2>
+                                )}
+                              </Draggable>
+                            );
+                          })}
+                          {provided.placeholder}
+                        </Grid2>
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              </div>
             </Container>
           </Paper>
         </MainContainer>

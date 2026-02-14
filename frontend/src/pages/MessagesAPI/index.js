@@ -357,7 +357,7 @@ const MessagesAPI = ({ renderAsTab }) => {
       >
         {i18n.t("messagesAPI.API.methods.title")}
       </Typography>
-      <Typography component="div">
+      <Typography className={classes.elementMargin} component="div">
         <ol>
           <li>{i18n.t("messagesAPI.API.methods.messagesText")}</li>
           <li>{i18n.t("messagesAPI.API.methods.messagesMidia")}</li>

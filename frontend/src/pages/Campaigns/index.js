@@ -28,6 +28,7 @@ import PauseCircleOutlineIcon from "@material-ui/icons/PauseCircleOutline";
 import RepeatIcon from "@material-ui/icons/Repeat";
 import StopIcon from "@material-ui/icons/Stop";
 import ScheduleIcon from "@material-ui/icons/Schedule";
+import AddIcon from "@material-ui/icons/Add";
 
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
@@ -98,6 +99,17 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.padding,
     overflowY: "scroll",
     ...theme.scrollbarStyles,
+  },
+  fab: {
+    position: 'fixed',
+    bottom: theme.spacing(3),
+    right: theme.spacing(3),
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    backgroundColor: theme.palette.primary.main,
+    color: '#fff',
+    boxShadow: `0 8px 24px ${theme.palette.primary.main}4D`
   },
   recurringChip: {
     backgroundColor: theme.palette.primary.main,
@@ -418,16 +430,7 @@ const Campaigns = () => {
                         }}
                       />
                     </Grid>
-                    <Grid xs={6} sm={6} item>
-                      <Button
-                        fullWidth
-                        variant="contained"
-                        onClick={handleOpenCampaignModal}
-                        color="primary"
-                      >
-                        {i18n.t("campaigns.buttons.add")}
-                      </Button>
-                    </Grid>
+                    <Grid xs={6} sm={6} item></Grid>
                   </Grid>
                 </Grid>
               </Grid>
@@ -688,6 +691,13 @@ const Campaigns = () => {
                 />
               </Box>
             </Paper>
+            <IconButton
+              className={classes.fab}
+              onClick={handleOpenCampaignModal}
+              aria-label="Adicionar campanha"
+            >
+              <AddIcon />
+            </IconButton>
           </>}
     </MainContainer>
   );

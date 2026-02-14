@@ -17,6 +17,7 @@ import SvgIcon from "@material-ui/core/SvgIcon";
 
 import HistoryIcon from "@material-ui/icons/History";
 import DashboardOutlinedIcon from "@material-ui/icons/DashboardOutlined";
+import HomeOutlinedIcon from "@material-ui/icons/HomeOutlined";
 import WhatsAppIcon from "@material-ui/icons/WhatsApp";
 import SyncAltIcon from "@material-ui/icons/SyncAlt";
 import SettingsOutlinedIcon from "@material-ui/icons/SettingsOutlined";
@@ -119,9 +120,8 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: 6,
   },
 
-  // Espaçamento extra para itens da seção inferior
   bottomSpacing: {
-    margin: "6px 8px",
+    margin: "10px 8px",
   },
 
   listItemActive: {
@@ -238,14 +238,14 @@ const useStyles = makeStyles((theme) => ({
   menuContainer: {
     overflowY: "auto",
     "&::-webkit-scrollbar": {
-      width: 6,
+      width: 3,
     },
     "&::-webkit-scrollbar-track": {
       backgroundColor: "transparent",
     },
     "&::-webkit-scrollbar-thumb": {
       backgroundColor: "rgba(148, 163, 184, 0.6)",
-      borderRadius: 3,
+      borderRadius: 2,
     },
   },
 }));
@@ -606,29 +606,27 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
           <ListItemLink
             to="/"
             primary={i18n.t("mainDrawer.listItems.start")}
-            icon={<DashboardOutlinedIcon />}
+            icon={<HomeOutlinedIcon style={{ fontSize: "1.2rem" }} />}
             tooltip={collapsed}
           />
 
+          <ListItemLink to="/leads-sales" primary="Leads e Vendas" icon={<MonetizationOnOutlinedIcon />} tooltip={collapsed} />
           <ListItemLink to="/activities" primary="Atividades" icon={<AssignmentOutlinedIcon />} tooltip={collapsed} />
           <ListItemLink to="/projects" primary="Projetos" icon={<WorkOutlineIcon />} tooltip={collapsed} />
-          <ListItemLink to="/leads-sales" primary="Leads e Vendas" icon={<MonetizationOnOutlinedIcon />} tooltip={collapsed} />
+          {showSchedules && (
+            <ListItemLink
+              to="/schedules"
+              primary={i18n.t("mainDrawer.listItems.schedules")}
+              icon={<EventAvailableIcon />}
+              tooltip={collapsed}
+            />
+          )}
           <ListItemLink to="/companies" primary="Empresas" icon={<BusinessIcon />} tooltip={collapsed} />
-
           {user.showContacts === "enabled" && (
             <ListItemLink
               to="/contacts"
               primary={i18n.t("mainDrawer.listItems.contacts")}
               icon={<ContactPhoneOutlinedIcon />}
-              tooltip={collapsed}
-            />
-          )}
-
-          {showSchedules && (
-            <ListItemLink
-              to="/schedules"
-              primary={"Calendário"}
-              icon={<Schedule />}
               tooltip={collapsed}
             />
           )}
@@ -647,7 +645,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
             </ListItemIcon>
             <ListItemText 
               primary={
-                <Typography className={classes.listItemText} style={{ color: "#093E87", fontWeight: "bold" }}>
+                <Typography className={classes.listItemText} style={{ color: "#131B2D", fontWeight: 400 }}>
                   Mais
                 </Typography>
               } 
@@ -689,7 +687,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
                     onMouseLeave={() => setManagementHover(false)}
                     className={classes.listItem}
                 >
-                    <ListItemIcon>
+                    <ListItemIcon style={{ minWidth: 28, marginRight: 6 }}>
                         <Avatar className={`${classes.iconHoverActive} ${isManagementActive || managementHover ? "active" : ""}`}>
                             <DashboardOutlinedIcon />
                         </Avatar>
@@ -771,6 +769,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
                 {showCampaigns && <ListItemLink to="/campaigns" primary="Campanhas" icon={<EventAvailableIcon />} tooltip={collapsed} />}
                 <ListItemLink to="/quick-messages" primary="Disparo Automático" icon={<FlashOnIcon />} tooltip={collapsed} />
                 {showKanban && <ListItemLink to="/kanban" primary="Kanban" icon={<ViewKanban />} tooltip={collapsed} />}
+                <ListItemLink to="/" primary="Dashboard" icon={<DashboardOutlinedIcon />} tooltip={collapsed} />
            </Collapse>
 
            {showOpenAi && (

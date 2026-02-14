@@ -198,8 +198,36 @@ const CallHistoricals = () => {
     setSearchParam(event.target.value.toLowerCase());
   };
 
-  const handleMakeCall = (callUrl) => {
-    window.open(callUrl, '_blank');
+  const buildWavoipUrl = (call) => {
+    try {
+      if (call?.token_wavoip && (call?.phone_to || call?.phone)) {
+        const token = String(call.token_wavoip).trim();
+        const phone = String(call.phone_to || call.phone || "").replace(/\D/g, "");
+        const name = String(call.name || "").trim();
+        const params = new URLSearchParams({
+          token,
+          phone,
+          name,
+          start_if_ready: "true",
+          close_after_call: "true",
+        });
+        return `https://app.wavoip.com/call?${params.toString()}`;
+      }
+    } catch (e) {}
+    return call?.url || "";
+  };
+
+  const handleMakeCall = (call) => {
+    const callUrl = buildWavoipUrl(call);
+    try {
+      // Basic validation to avoid "Invalid URL" errors
+      const u = new URL(callUrl);
+      if (u.protocol === "http:" || u.protocol === "https:") {
+        window.open(callUrl, "_blank");
+        return;
+      }
+    } catch (e) {}
+    toast.error("URL de chamada inválida.");
   };
 
   const formatDate = (dateString) => {
@@ -501,11 +529,11 @@ const CallHistoricals = () => {
                   )}
                 </TableCell>
                   <TableCell align="center">
-                    {call.url && (
+                    {buildWavoipUrl(call) && (
                       <IconButton
                         size="small"
                         className={classes.callButton}
-                        onClick={() => handleMakeCall(call.url)}
+                        onClick={() => handleMakeCall(call)}
                         title="Fazer ligação"
                       >
                         <PhoneIcon />

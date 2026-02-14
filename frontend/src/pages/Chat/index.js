@@ -185,13 +185,35 @@ export function ChatModal({
           }
         }
 
+        // Garantir que o criador sempre esteja incluso como participante
+        const usersWithCreator = (() => {
+          const map = new Map();
+          if (Array.isArray(users)) {
+            users.forEach((u) => {
+              const val = u && (u.id ?? u.userId);
+              if (val !== undefined && val !== null) {
+                map.set(String(val), { id: val });
+              }
+            });
+          }
+          if (loggedInUserId !== undefined && loggedInUserId !== null) {
+            const val = loggedInUserId;
+            map.set(String(val), { id: val });
+          }
+          return Array.from(map.values());
+        })();
+
         const { data } = await api.post("/chats", {
-          users,
+          users: usersWithCreator,
           title,
           description,
           groupImage: uploadedImageUrl,
           isGroup: isCreatingGroup,
         });
+        try {
+          await api.post(`/chats/${data.id}/messages`, { message: "Chat criado" });
+        } catch (e) {
+        }
         handleLoadNewChat(data);
       }
       handleClose();
@@ -793,15 +815,40 @@ function Chat(props) {
     }
   };
 
+  const isGroupChat = (chat) => {
+    // Normalizações do campo isGroup
+    const v = chat?.isGroup;
+    if (v === true) return true;
+    if (v === false) return false;
+    if (v !== undefined && v !== null) {
+      const str = String(v).toLowerCase();
+      if (["true", "1", "yes", "y", "sim", "grupo", "group"].includes(str)) {
+        return true;
+      }
+    }
+    // Heurística segura: grupos geralmente têm mais de 2 usuários
+    if (Array.isArray(chat?.users) && chat.users.length > 2) return true;
+    return false;
+  };
+
   const renderGrid = () => {
-    const filteredChats = chats
+    let filteredChats = chats
       .filter((chat) => {
-        const isGroup = chat.isGroup === true || chat.isGroup === "true";
+        const isGroup = isGroupChat(chat);
         const shouldShow = showGroupChats ? isGroup : !isGroup;
 
         return shouldShow;
       })
       .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    // Garantir que o chat atual apareça na lista quando pertinente
+    if (
+      currentChat &&
+      currentChat.id &&
+      isGroupChat(currentChat) === showGroupChats &&
+      !filteredChats.find((c) => c.id === currentChat.id)
+    ) {
+      filteredChats = [currentChat, ...filteredChats];
+    }
 
     return (
       <Grid className={classes.gridContainer} container>
@@ -928,8 +975,7 @@ function Chat(props) {
               <Grid className={classes.gridItemTab} md={12} item>
                 <ChatList
                   chats={chats.filter((chat) => {
-                    const isGroup =
-                      chat.isGroup === true || chat.isGroup === "true";
+                    const isGroup = isGroupChat(chat);
                     return !isGroup;
                   })}
                   pageInfo={chatsPageInfo}
@@ -944,8 +990,7 @@ function Chat(props) {
               <Grid className={classes.gridItemTab} md={12} item>
                 <ChatList
                   chats={chats.filter((chat) => {
-                    const isGroup =
-                      chat.isGroup === true || chat.isGroup === "true";
+                    const isGroup = isGroupChat(chat);
                     return isGroup;
                   })}
                   pageInfo={chatsPageInfo}
@@ -1072,16 +1117,33 @@ function Chat(props) {
   };
 
   useEffect(() => {
-    if (id && chats.length) {
+    const ensureChatLoaded = async () => {
+      if (!id) return;
       const chat = chats.find((r) => r.uuid === id);
-      // Só chama selectChat se o chat atual for diferente
-      if (chat && (!currentChat || currentChat.id !== chat.id)) {
-        selectChat(
-          chat,
-          "useEffect[id, chats] (mudança de rota ou lista de chats)"
-        );
+      if (chat) {
+        if (!currentChat || currentChat.id !== chat.id) {
+          await selectChat(
+            chat,
+            "useEffect[id, chats] (mudança de rota ou lista de chats)"
+          );
+        }
+        return;
       }
-    }
+      // Fallback: buscar pelo UUID direto do backend se não estiver na lista
+      try {
+        const { data } = await api.get(`/chats/${id}`);
+        if (data && data.id) {
+          setChats((prev) => {
+            const exists = prev.some((c) => c.id === data.id);
+            return exists ? prev : [data, ...prev];
+          });
+          await selectChat(data, "fallback fetch by uuid (não estava na lista)");
+        }
+      } catch (e) {
+        // silencia; pode ser 404 se não existir
+      }
+    };
+    ensureChatLoaded();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, chats]);
 

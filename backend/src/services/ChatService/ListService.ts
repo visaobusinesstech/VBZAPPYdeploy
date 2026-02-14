@@ -77,28 +77,8 @@ const ListService = async ({
     order: [["updatedAt", "DESC"]]
   });
 
-  // Filter out chats where any user no longer exists
-  const validRecords = records.filter(chat => {
-    // Check if owner exists
-    if (!chat.owner) return false;
-
-    // For non-group chats, check if the other user exists
-    if (!chat.isGroup) {
-      const otherUser = chat.users.find(u => u.userId !== ownerId);
-      if (!otherUser || !otherUser.user) return false;
-    }
-
-    // For group chats, check if at least 2 users exist (including owner)
-    if (chat.isGroup) {
-      const validUsers = chat.users.filter(u => u.user).length;
-      if (validUsers < 2) return false;
-    }
-
-    return true;
-  });
-
   const recordsWithLastMessage = await Promise.all(
-    validRecords.map(async chat => {
+    records.map(async chat => {
       const lastMessage = await ChatMessage.findOne({
         where: { chatId: chat.id },
         order: [["createdAt", "DESC"]],
@@ -130,7 +110,7 @@ const ListService = async ({
 
   return {
     records: recordsWithLastMessage,
-    count: validRecords.length,
+    count,
     hasMore
   };
 };

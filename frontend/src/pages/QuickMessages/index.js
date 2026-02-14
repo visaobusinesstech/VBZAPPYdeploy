@@ -13,6 +13,7 @@ import IconButton from "@material-ui/core/IconButton";
 import SearchIcon from "@material-ui/icons/Search";
 import TextField from "@material-ui/core/TextField";
 import InputAdornment from "@material-ui/core/InputAdornment";
+import AddIcon from "@material-ui/icons/Add";
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import Chip from '@material-ui/core/Chip';
 import Box from '@material-ui/core/Box';
@@ -88,6 +89,17 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     overflowY: "scroll",
     ...theme.scrollbarStyles,
+  },
+  fab: {
+    position: 'fixed',
+    bottom: theme.spacing(3),
+    right: theme.spacing(3),
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    backgroundColor: theme.palette.primary.main,
+    color: '#fff',
+    boxShadow: `0 8px 24px ${theme.palette.primary.main}4D`
   },
   mediaChip: {
     fontSize: '0.75rem',
@@ -284,14 +296,6 @@ const Quickemessages = () => {
                 />
               </Grid>
               <Grid xs={6} sm={6} item>
-                <Button
-                  fullWidth
-                  variant="contained"
-                  onClick={handleOpenQuickMessageDialog}
-                  color="primary"
-                >
-                  {i18n.t("quickMessages.buttons.add")}
-                </Button>
               </Grid>
             </Grid>
           </Grid>
@@ -359,6 +363,13 @@ const Quickemessages = () => {
           </TableBody>
         </Table>
       </Paper>
+      <IconButton
+        className={classes.fab}
+        onClick={handleOpenQuickMessageDialog}
+        aria-label="Adicionar disparo"
+      >
+        <AddIcon />
+      </IconButton>
     </MainContainer>
   );
 };

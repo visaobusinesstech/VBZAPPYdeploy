@@ -99,14 +99,18 @@ const App = () => {
           },
 
           scrollbarStylesSoft: {
+            // Firefox/Edge general properties
+            scrollbarWidth: "thin",
+            scrollbarColor: `${mode === "light" ? "#BDBDBD" : "#505050"} transparent`,
             "&::-webkit-scrollbar": {
-              width: "8px",
+              width: "6px",
+              height: "6px",
             },
             "&::-webkit-scrollbar-thumb": {
               backgroundColor: mode === "light" ? "#E0E0E0" : "#404040",
-              borderRadius: "4px",
+              borderRadius: "3px",
               "&:hover": {
-                backgroundColor: mode === "light" ? "#BDBDBD" : "#505050",
+                backgroundColor: mode === "light" ? "#BDBDBD" : "#5a5a5a",
               }
             },
             "&::-webkit-scrollbar-track": {

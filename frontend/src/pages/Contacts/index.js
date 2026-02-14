@@ -31,6 +31,7 @@ import EditIcon from "@material-ui/icons/Edit";
 import CheckCircleIcon from "@material-ui/icons/CheckCircle";
 import CancelIcon from "@material-ui/icons/Cancel";
 import BlockIcon from "@material-ui/icons/Block";
+import AddIcon from "@material-ui/icons/Add";
 import Checkbox from "@material-ui/core/Checkbox";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -129,6 +130,17 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     overflowY: "scroll",
     ...theme.scrollbarStyles,
+  },
+  fab: {
+    position: 'fixed',
+    bottom: theme.spacing(3),
+    right: theme.spacing(3),
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    backgroundColor: theme.palette.primary.main,
+    color: '#fff',
+    boxShadow: `0 8px 24px ${theme.palette.primary.main}4D`
   },
   avatarCell: {
     width: '60px',
@@ -784,14 +796,6 @@ const Contacts = () => {
               </React.Fragment>
             )}
           </PopupState>
-          
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenContactModal}
-          >
-            {i18n.t("contacts.buttons.add")}
-          </Button>
         </MainHeaderButtonsWrapper>
       </MainHeader>
 
@@ -1008,6 +1012,13 @@ const Contacts = () => {
           </TableBody>
         </Table>
       </Paper>
+      <IconButton
+        className={classes.fab}
+        onClick={handleOpenContactModal}
+        aria-label="Adicionar contato"
+      >
+        <AddIcon />
+      </IconButton>
     </MainContainer>
   );
 };

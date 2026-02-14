@@ -9,15 +9,10 @@ import { toast } from "react-toastify";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
-import Button from "@material-ui/core/Button";
-import TextField from "@material-ui/core/TextField";
-import InputAdornment from "@material-ui/core/InputAdornment";
 import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 // import MessageModal from "../../components/MessageModal"
 import ScheduleModal from "../../components/ScheduleModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
@@ -29,7 +24,6 @@ import usePlans from "../../hooks/usePlans";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "moment/locale/pt-br";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import SearchIcon from "@material-ui/icons/Search";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
 
@@ -322,71 +316,52 @@ const Schedules = () => {
           user={user}
         />
       )}
-      <MainHeader>
-        <Title>
-          {i18n.t("schedules.title")} ({schedules.length})
-        </Title>
-        <MainHeaderButtonsWrapper>
-          <TextField
-            placeholder={i18n.t("contacts.searchPlaceholder")}
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon style={{ color: "gray" }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleOpenScheduleModal}
-          >
-            {i18n.t("schedules.buttons.add")}
-          </Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
-      <Paper
-        className={classes.mainPaper}
-        variant="outlined"
-        onScroll={handleScroll}
+      <ActivitiesStyleLayout
+        title={i18n.t("schedules.title")}
+        searchPlaceholder={i18n.t("contacts.searchPlaceholder")}
+        searchValue={searchParam}
+        onSearchChange={(val) => setSearchParam((val || "").toLowerCase())}
+        onCreateClick={handleOpenScheduleModal}
       >
-        <Calendar
-          messages={defaultMessages}
-          formats={{
-            agendaDateFormat: "DD/MM ddd",
-            weekdayFormat: "dddd",
-          }}
-          localizer={localizer}
-          events={schedules.map((schedule) => ({
-            title: (
-              <div key={schedule.id} className="event-container">
-                <div style={eventTitleStyle}>{schedule?.contact?.name}</div>
-                <DeleteOutlineIcon
-                  onClick={() => handleDeleteSchedule(schedule.id)}
-                  className="delete-icon"
-                />
-                <EditIcon
-                  onClick={() => {
-                    handleEditSchedule(schedule);
-                    setScheduleModalOpen(true);
-                  }}
-                  className="edit-icon"
-                />
-              </div>
-            ),
-            start: new Date(schedule.sendAt),
-            end: new Date(schedule.sendAt),
-          }))}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: 500 }}
-          className={classes.calendarToolbar}
-        />
-      </Paper>
+        <Paper
+          className={classes.mainPaper}
+          variant="outlined"
+          onScroll={handleScroll}
+        >
+          <Calendar
+            messages={defaultMessages}
+            formats={{
+              agendaDateFormat: "DD/MM ddd",
+              weekdayFormat: "dddd",
+            }}
+            localizer={localizer}
+            events={schedules.map((schedule) => ({
+              title: (
+                <div key={schedule.id} className="event-container">
+                  <div style={eventTitleStyle}>{schedule?.contact?.name}</div>
+                  <DeleteOutlineIcon
+                    onClick={() => handleDeleteSchedule(schedule.id)}
+                    className="delete-icon"
+                  />
+                  <EditIcon
+                    onClick={() => {
+                      handleEditSchedule(schedule);
+                      setScheduleModalOpen(true);
+                    }}
+                    className="edit-icon"
+                  />
+                </div>
+              ),
+              start: new Date(schedule.sendAt),
+              end: new Date(schedule.sendAt),
+            }))}
+            startAccessor="start"
+            endAccessor="end"
+            style={{ height: 500 }}
+            className={classes.calendarToolbar}
+          />
+        </Paper>
+      </ActivitiesStyleLayout>
     </MainContainer>
   );
 };
