@@ -33,27 +33,50 @@ const useStyles = makeStyles((theme) => ({
     zIndex: 10
   },
   headerContent: {
-    padding: theme.spacing(3), // p-6
+    padding: theme.spacing(2, 0),
   },
   navRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(2),
-    paddingBottom: theme.spacing(1),
+    gap: theme.spacing(1),
+    paddingBottom: theme.spacing(2),
+    paddingLeft: theme.spacing(3),
+    paddingRight: theme.spacing(3),
   },
   navTab: {
     textTransform: 'none',
-    fontWeight: 500,
-    fontSize: '0.9rem',
+    fontWeight: 400,
+    fontSize: '0.875rem',
     color: '#6b7280',
     minWidth: 'auto',
-    padding: theme.spacing(1, 2),
-    borderRadius: 0,
-    borderBottom: '2px solid transparent',
+    padding: theme.spacing(1, 2.5),
+    borderRadius: '8px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1.5),
+    transition: 'all 0.15s ease',
+    '&:hover': {
+      backgroundColor: '#f3f4f6',
+      color: '#111827',
+    },
+  },
+  navTabIcon: {
+    fontSize: '0.875rem',
+    opacity: 0.8,
+    display: 'flex',
+    alignItems: 'center',
+    marginRight: theme.spacing(1.25),
   },
   navTabActive: {
     color: '#111827',
-    borderBottom: `2px solid ${theme.palette.primary.main}`,
+    backgroundColor: '#f3f4f6',
+    boxShadow: '0 2px 4px rgba(15, 23, 42, 0.16)',
+    border: 'none',
+    '&:hover': {
+      backgroundColor: '#fff',
+    },
   },
   createButton: {
     display: 'none'
@@ -61,18 +84,18 @@ const useStyles = makeStyles((theme) => ({
   statsContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(3), // gap-6
+    gap: theme.spacing(3),
   },
   statItem: {
     textAlign: 'center',
   },
   statValue: {
-    fontSize: '1.5rem', // text-2xl
+    fontSize: '1.5rem',
     fontWeight: 700,
   },
   statLabel: {
-    fontSize: '0.75rem', // text-xs
-    color: '#6b7280', // text-gray-500
+    fontSize: '0.75rem',
+    color: '#6b7280',
   },
   controlsRow: {
     display: 'flex',
@@ -80,11 +103,12 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: 'space-between',
     gap: theme.spacing(2),
     marginTop: theme.spacing(2),
+    padding: theme.spacing(0, 3),
   },
   searchContainer: {
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
-    backgroundColor: '#f3f4f6', // bg-gray-100
+    backgroundColor: '#f3f4f6',
     '&:hover': {
       backgroundColor: '#e5e7eb',
     },
@@ -194,7 +218,11 @@ const ActivitiesStyleLayout = ({
                     onClick={() => onViewModeChange && onViewModeChange(mode.value)}
                     className={`${classes.navTab} ${active ? classes.navTabActive : ''}`}
                   >
-                    {mode.label}
+                    {mode.icon &&
+                      React.cloneElement(mode.icon, {
+                        className: classes.navTabIcon
+                      })}
+                    <span>{mode.label}</span>
                   </Button>
                 );
               })}
@@ -239,7 +267,7 @@ const ActivitiesStyleLayout = ({
                   ))}
                 </Select>
               ))}
-              
+
               {actions}
             </div>
 

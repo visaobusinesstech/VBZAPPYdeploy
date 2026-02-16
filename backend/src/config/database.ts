@@ -29,7 +29,7 @@ module.exports = {
     idle: parseInt(process.env.DB_POOL_IDLE) || 600000
   },
   dialect: process.env.DB_DIALECT || "postgres",
-  timezone: 'America/Sao_Paulo',
+  timezone: process.env.DB_DIALECT === 'sqlite' ? '+00:00' : 'America/Sao_Paulo',
   host: process.env.DB_HOST || "localhost",
   port: process.env.DB_PORT || "5432",
   database: process.env.DB_NAME,

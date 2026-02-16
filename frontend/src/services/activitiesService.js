@@ -2,41 +2,20 @@ import api from "./api";
 
 const activitiesService = {
   list: async (params) => {
-    // MOCK DATA
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                activities: [
-                    { id: 1, title: "Ligar para cliente", type: "call", date: "2023-10-01", status: "pending" },
-                    { id: 2, title: "Enviar proposta", type: "email", date: "2023-10-02", status: "completed" },
-                    { id: 3, title: "Reunião de alinhamento", type: "meeting", date: "2023-10-03", status: "pending" },
-                ],
-                hasMore: false,
-                count: 3
-            });
-        }, 500);
-    });
+    const { data } = await api.get("/activities", { params });
+    return data;
   },
   create: async (data) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ id: Math.random(), ...data });
-        }, 500);
-    });
+    const response = await api.post("/activities", data);
+    return response.data;
   },
   update: async (id, data) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ id, ...data });
-        }, 500);
-    });
+    const response = await api.put(`/activities/${id}`, data);
+    return response.data;
   },
   delete: async (id) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ message: "Deleted" });
-        }, 500);
-    });
+    const response = await api.delete(`/activities/${id}`);
+    return response.data;
   },
 };
 

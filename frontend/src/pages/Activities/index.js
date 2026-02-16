@@ -1,26 +1,29 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
-  BarChart as BarChartIcon,
   List as ListIcon,
   CalendarToday as CalendarIcon,
   ViewWeek as KanbanIcon,
-  Add as AddIcon,
-  Search as SearchIcon
+  Close as CloseIcon
 } from "@material-ui/icons";
-import { 
-  Paper, 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
+import {
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
   TableRow,
-  Grid,
-  Card,
-  CardContent,
   Typography,
-  Chip
+  Chip,
+  Drawer,
+  TextField,
+  Button,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  IconButton
 } from "@material-ui/core";
 
 import { Calendar, momentLocalizer } from 'react-big-calendar';
@@ -30,7 +33,9 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import KanbanBoard from "../../components/KanbanBoard";
 import useActivities from "../../hooks/useActivities";
-import { i18n } from "../../translate/i18n";
+import { toast } from "react-toastify";
+import toastError from "../../errors/toastError";
+import activitiesService from "../../services/activitiesService";
 
 const localizer = momentLocalizer(moment);
 
@@ -57,40 +62,41 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.text.secondary,
     marginTop: theme.spacing(1),
   },
+  drawerPaper: {
+    width: 420,
+    maxWidth: "100%",
+    padding: theme.spacing(2),
+    marginTop: theme.spacing(4),
+    marginBottom: theme.spacing(4),
+    borderRadius: "16px 0 0 16px",
+  },
+  drawerContainer: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+  },
+  drawerHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing(2),
+  },
+  drawerTitle: {
+    fontWeight: 600,
+  },
+  drawerContent: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(2),
+  },
+  drawerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: theme.spacing(3),
+    gap: theme.spacing(1),
+  },
 }));
-
-// Sub-component for Dashboard View
-const ActivitiesDashboard = ({ activities }) => {
-  const classes = useStyles();
-  
-  const stats = useMemo(() => {
-    const total = activities.length;
-    const pending = activities.filter(a => a.status === 'pending' || a.status === 'A Fazer').length;
-    const inProgress = activities.filter(a => a.status === 'in_progress' || a.status === 'Em Progresso').length;
-    const completed = activities.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
-    
-    return [
-      { label: "Total", value: total },
-      { label: "Pendentes", value: pending },
-      { label: "Em Progresso", value: inProgress },
-      { label: "Concluídas", value: completed },
-    ];
-  }, [activities]);
-
-  return (
-    <Grid container spacing={3}>
-      {stats.map((stat, index) => (
-        <Grid item xs={12} sm={6} md={3} key={index}>
-          <Card className={classes.dashboardCard}>
-            <Typography className={classes.cardValue}>{stat.value}</Typography>
-            <Typography className={classes.cardLabel}>{stat.label}</Typography>
-          </Card>
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-
 // Sub-component for List View
 const ActivitiesList = ({ activities }) => {
   return (
@@ -174,9 +180,21 @@ const ActivitiesCalendar = ({ activities }) => {
 };
 
 const Activities = () => {
-  const [viewMode, setViewMode] = useState("board"); // Default to board (Quadro)
+  const classes = useStyles();
+  const [viewMode, setViewMode] = useState("board");
   const [searchParam, setSearchParam] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [activitiesState, setActivitiesState] = useState([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [formValues, setFormValues] = useState({
+    title: "",
+    description: "",
+    type: "task",
+    date: "",
+    status: "pending",
+  });
   
   // Use existing hook
   const { activities, loading, count, hasMore } = useActivities({
@@ -184,47 +202,96 @@ const Activities = () => {
     pageNumber
   });
 
+  useEffect(() => {
+    setActivitiesState(activities);
+  }, [activities]);
+
   const handleSearch = (value) => {
     setSearchParam(value);
   };
 
   const handleCreateActivity = () => {
-    // Implement creation logic or open modal
-    console.log("Create activity clicked");
+    setFormValues({
+      title: "",
+      description: "",
+      type: "task",
+      date: "",
+      status: "pending",
+    });
+    setDrawerOpen(true);
+  };
+
+  const handleChangeField = (field) => (event) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (!formValues.title || !formValues.date) {
+      toast.error("Preencha título e data da atividade.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const payload = {
+        ...formValues,
+      };
+      const created = await activitiesService.create(payload);
+      setActivitiesState((prev) => [created, ...prev]);
+      setDrawerOpen(false);
+      toast.success("Atividade criada com sucesso.");
+    } catch (err) {
+      toastError(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const viewModes = [
-    { value: "dashboard", label: "Dashboard", icon: <BarChartIcon /> },
+    { value: "board", label: "Quadro", icon: <KanbanIcon /> },
     { value: "list", label: "Lista", icon: <ListIcon /> },
     { value: "calendar", label: "Calendário", icon: <CalendarIcon /> },
-    { value: "board", label: "Quadro", icon: <KanbanIcon /> },
   ];
 
   // Filters placeholder
   const filters = [
     {
       label: "Status",
-      value: "",
+      value: statusFilter,
       options: [
         { value: "pending", label: "Pendente" },
         { value: "in_progress", label: "Em Progresso" },
         { value: "completed", label: "Concluído" },
       ],
-      onChange: (val) => console.log("Status filter:", val)
+      onChange: (val) => setStatusFilter(val)
     }
   ];
 
   // Calculate quick stats for the header
   const headerStats = useMemo(() => {
-    const total = activities.length;
-    const completed = activities.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
+    const total = activitiesState.length;
+    const completed = activitiesState.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
     return [
       { label: "Total", value: total, color: "#2563eb" },
       { label: "Concluídas", value: completed, color: "#22c55e" }
     ];
-  }, [activities]);
+  }, [activitiesState]);
+
+  const filteredActivities = useMemo(() => {
+    if (!statusFilter) {
+      return activitiesState;
+    }
+
+    return activitiesState.filter((activity) => activity.status === statusFilter);
+  }, [activitiesState, statusFilter]);
 
   return (
+    <>
     <ActivitiesStyleLayout
       title={null}
       description="Gerencie suas tarefas e atividades"
@@ -242,13 +309,107 @@ const Activities = () => {
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
       ) : (
         <>
-          {viewMode === "dashboard" && <ActivitiesDashboard activities={activities} />}
-          {viewMode === "list" && <ActivitiesList activities={activities} />}
-          {viewMode === "calendar" && <ActivitiesCalendar activities={activities} />}
-          {viewMode === "board" && <KanbanBoard activities={activities} />}
+          {viewMode === "list" && <ActivitiesList activities={filteredActivities} />}
+          {viewMode === "calendar" && <ActivitiesCalendar activities={filteredActivities} />}
+          {viewMode === "board" && <KanbanBoard activities={filteredActivities} />}
         </>
       )}
     </ActivitiesStyleLayout>
+
+    <Drawer
+      anchor="right"
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      ModalProps={{ keepMounted: true }}
+      PaperProps={{ className: classes.drawerPaper }}
+    >
+      <form onSubmit={handleSubmit} className={classes.drawerContainer}>
+        <div className={classes.drawerHeader}>
+          <Typography variant="h6" className={classes.drawerTitle}>
+            Nova atividade
+          </Typography>
+          <IconButton onClick={() => setDrawerOpen(false)} size="small">
+            <CloseIcon />
+          </IconButton>
+        </div>
+
+        <div className={classes.drawerContent}>
+          <TextField
+            label="Título"
+            value={formValues.title}
+            onChange={handleChangeField("title")}
+            fullWidth
+            required
+            variant="outlined"
+          />
+
+          <TextField
+            label="Descrição"
+            value={formValues.description}
+            onChange={handleChangeField("description")}
+            fullWidth
+            multiline
+            minRows={3}
+            variant="outlined"
+          />
+
+          <FormControl variant="outlined" fullWidth>
+            <InputLabel id="activity-type-label">Tipo</InputLabel>
+            <Select
+              labelId="activity-type-label"
+              label="Tipo"
+              value={formValues.type}
+              onChange={handleChangeField("type")}
+            >
+              <MenuItem value="task">Tarefa</MenuItem>
+              <MenuItem value="call">Ligação</MenuItem>
+              <MenuItem value="email">E-mail</MenuItem>
+              <MenuItem value="meeting">Reunião</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            label="Data"
+            type="date"
+            value={formValues.date}
+            onChange={handleChangeField("date")}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+            variant="outlined"
+            required
+          />
+
+          <FormControl variant="outlined" fullWidth>
+            <InputLabel id="activity-status-label">Status</InputLabel>
+            <Select
+              labelId="activity-status-label"
+              label="Status"
+              value={formValues.status}
+              onChange={handleChangeField("status")}
+            >
+              <MenuItem value="pending">Pendente</MenuItem>
+              <MenuItem value="in_progress">Em Progresso</MenuItem>
+              <MenuItem value="completed">Concluído</MenuItem>
+            </Select>
+          </FormControl>
+        </div>
+
+        <div className={classes.drawerActions}>
+          <Button onClick={() => setDrawerOpen(false)}>
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            color="primary"
+            variant="contained"
+            disabled={saving}
+          >
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
+      </form>
+    </Drawer>
+    </>
   );
 };
 

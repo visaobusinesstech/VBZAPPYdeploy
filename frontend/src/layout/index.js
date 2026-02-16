@@ -119,6 +119,18 @@ const useStyles = makeStyles((theme) => ({
       fontSize: "1.2rem",
     }
   },
+  topbarIconButton: {
+    color: "white",
+    padding: 8,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    margin: "0 2px",
+  },
+  topbarIconSvg: {
+    fontSize: 18,
+    display: "block",
+  },
 
   toolbarIcon: {
     display: "flex",
@@ -550,8 +562,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
       
       const routes = [
         { name: "inicio", path: "/" },
-        { name: "gerencia", path: "/" },
-        { name: "dashboard", path: "/" },
+        { name: "gerencia", path: "/reports" },
+        { name: "dashboard", path: "/reports" },
         { name: "relatorios", path: "/reports" },
         { name: "chats em tempo real", path: "/moments" },
         { name: "historico de chamadas", path: "/call-historicals" },
@@ -994,29 +1006,21 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               />
 
               <div
-                style={{ position: "relative", display: "inline-block" }}
+                style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
                 className="language-dropdown"
               >
-                <button
+                <IconButton
                   onClick={() => setShowOptions(!showOptions)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "white",
-                    cursor: "pointer",
-                    fontSize: "22px",
-                    paddingRight: "20px",
-                    paddingTop: "8px",
-                  }}
+                  className={classes.topbarIconButton}
                 >
-                  <PublicIcon />
-                </button>
+                  <PublicIcon className={classes.topbarIconSvg} />
+                </IconButton>
 
                 {showOptions && (
                   <div
                     style={{
                       position: "absolute",
-                      top: "35px",
+                      top: "32px",
                       left: "0",
                       background: "#fff",
                       boxShadow: "0 2px 6px rgba(0,0,0,0.2)",

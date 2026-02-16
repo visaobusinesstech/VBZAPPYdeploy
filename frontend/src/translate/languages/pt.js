@@ -971,7 +971,7 @@ const messages = {
           files: "Lista de arquivos",
           helps: "Ajuda",
           messagesAPI: "API",
-          schedules: "Agendamentos",
+          schedules: "Calendário",
           campaigns: "Campanhas",
           annoucements: "Informativos",
           chats: "Chat Interno",

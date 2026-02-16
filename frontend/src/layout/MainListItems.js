@@ -653,7 +653,6 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
             {openMoreSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />}
           </ListItem>
           <Collapse in={openMoreSubmenu} timeout="auto" unmountOnExit className={`${classes.submenuContainer} ${classes.moreCollapse}`}>
-            <ListItemLink to="/arquivos" primary="Arquivos" icon={<FolderOutlinedIcon />} tooltip={collapsed} />
             <ListItemLink to="/email" primary="Email" icon={<EmailOutlinedIcon />} tooltip={collapsed} />
             <ListItemLink to="/api" primary="API" icon={<CodeOutlinedIcon />} tooltip={collapsed} />
 
@@ -768,8 +767,8 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
                 <ListItemLink to="/queues" primary={"Filas & Chatbot"} icon={<AccountTreeOutlinedIcon />} tooltip={collapsed} />
                 {showCampaigns && <ListItemLink to="/campaigns" primary="Campanhas" icon={<EventAvailableIcon />} tooltip={collapsed} />}
                 <ListItemLink to="/quick-messages" primary="Disparo Automático" icon={<FlashOnIcon />} tooltip={collapsed} />
-                {showKanban && <ListItemLink to="/kanban" primary="Kanban" icon={<ViewKanban />} tooltip={collapsed} />}
-                <ListItemLink to="/" primary="Dashboard" icon={<DashboardOutlinedIcon />} tooltip={collapsed} />
+                
+                <ListItemLink to="/reports" primary="Dashboard" icon={<DashboardOutlinedIcon />} tooltip={collapsed} />
            </Collapse>
 
            {showOpenAi && (

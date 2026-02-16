@@ -1,51 +1,43 @@
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Customized } from 'recharts';
 
-
-const DonutChart = (props) => {
-  const {title, value, data , color} = props;
-  
-  const data1 = JSON.parse(`[${String(data).replace(/'/g, '"')}]`);
-  
-  const COLORS = [color].length === 1 ? color : [JSON.stringify(color)];
-  
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }) => {
-    const RADIAN = Math.PI / 120;
-    const radius = -100 + innerRadius + (outerRadius - innerRadius);
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-  
-    return (
-      <text x={x} y={y} fill="#000" textAnchor='middle'  dominantBaseline="middle" fontWeight="bold">
-        <tspan fontWeight="bold">{`${title}`}</tspan> 
-        <tspan x={x +1} y={y} dy="1.2em" fontWeight="bold">{`${value}%`}</tspan>
-      </text>
-    );
-  };
+const DonutChart = ({ title, value = 0, color = ['#4f46e5'] }) => {
+  const size = 160;
+  const stroke = 14;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const clamped = Math.max(0, Math.min(100, Number(value) || 0));
+  const offset = circumference * (1 - clamped / 100);
+  const ringColor = Array.isArray(color) ? color[0] : color;
 
   return (
-    <div>
-       <ResponsiveContainer width={300} height={300}>
-        <PieChart>
-          <Pie
-            data={data1}
-            dataKey="value"
-            nameKey="name"
-            cx="50%"
-            cy="50%"
-            outerRadius={100}
-            innerRadius={50}
-            labelLine={false}
-            strokeWidth={0}
-            label={renderCustomLabel}
-          >
-            {data1.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}            
-          </Pie>          
-        </PieChart>
-      </ResponsiveContainer>
+    <div style={{ width: size, height: size, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="transparent"
+          stroke="#e5e7eb"
+          strokeWidth={stroke}
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="transparent"
+          stroke={ringColor}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
+      </svg>
+      <div style={{ position: 'absolute', textAlign: 'center', transform: 'rotate(90deg)' }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{title}</div>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>{clamped}%</div>
+      </div>
     </div>
   );
 };
+
 export default DonutChart;

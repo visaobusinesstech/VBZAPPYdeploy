@@ -5,9 +5,25 @@ import User from "../../models/User";
 import cacheLayer from "../../libs/cache";
 import Whatsapp from "../../models/Whatsapp";
 
+const getEmptyHistorical = () => ({
+    resultFinal: [],
+    total: 0,
+    totalReject: 0,
+    totalServed: 0,
+    totalFinish: 0
+});
+
 const loginWavoip = async () => {
     try {
-        const login: any = await axios.post(`${process.env.WAVOIP_URL}/login`, {
+        const base = (process.env.WAVOIP_URL || "").trim();
+        const user = (process.env.WAVOIP_USERNAME || "").trim();
+        const pass = (process.env.WAVOIP_PASSWORD || "").trim();
+
+        if (!base || !user || !pass) {
+            throw new Error("Wavoip não configurado (WAVOIP_URL/USERNAME/PASSWORD ausentes)");
+        }
+
+        const login: any = await axios.post(`${base}/login`, {
             "email": process.env.WAVOIP_USERNAME,
             "password": process.env.WAVOIP_PASSWORD
         });
@@ -19,13 +35,18 @@ const loginWavoip = async () => {
         return login?.data?.result?.token;
     } catch (error) {
         console.log('getHistorical Login Wavoip', error);
-        throw new Error(error);
+        throw new Error(typeof error?.message === "string" ? error.message : String(error));
     }
 }
 
 const getHistorical = async (body: { "user_id": number, "company_id": number }) => {
 
     try {
+        const base = (process.env.WAVOIP_URL || "").trim();
+        if (!base) {
+            return getEmptyHistorical();
+        }
+
         const chave = `loginWavoipToken:${body.company_id}`;
         let token = await cacheLayer.get(chave);
 
@@ -35,7 +56,7 @@ const getHistorical = async (body: { "user_id": number, "company_id": number }) 
             await cacheLayer.set(chave, token, "EX", 3600);
         }
 
-        const devices: any = await axios.get(`${process.env.WAVOIP_URL}/devices/me`, {
+        const devices: any = await axios.get(`${base}/devices/me`, {
             headers: {
                 'Authorization': 'Bearer ' + token
             }
@@ -54,7 +75,7 @@ const getHistorical = async (body: { "user_id": number, "company_id": number }) 
         });
 
         if(!user?.whatsapp?.wavoip){
-            return [];
+            return getEmptyHistorical();
         }
 
         let devicesAll = [];
@@ -66,7 +87,7 @@ const getHistorical = async (body: { "user_id": number, "company_id": number }) 
                 }
 
                 console.log('devices', device)
-                const regs: any = await axios.get(`${process.env.WAVOIP_URL}/calls/devices/${device.id}`, {
+                const regs: any = await axios.get(`${base}/calls/devices/${device.id}`, {
                     headers: {
                         'Authorization': 'Bearer ' + token
                     }
@@ -162,7 +183,7 @@ const getHistorical = async (body: { "user_id": number, "company_id": number }) 
 
     } catch (error) {
         console.log('getHistorical Wavoip', error);
-        throw new Error(error);
+        return getEmptyHistorical();
     }
 }
 

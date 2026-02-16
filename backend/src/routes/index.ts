@@ -50,6 +50,7 @@ import flowCampaignRoutes from "./flowCampaignRoutes";
 import callRoutes from "./callRoutes";
 import companyKanbanRoutes from "./companyKanbanRoutes";
 import metaRoutes from "./metaRoutes";
+import activityRoutes from "./activityRoutes";
 
 import ChatController from "../controllers/ChatController";
 
@@ -107,6 +108,7 @@ routes.use(flowBuilder);
 routes.use(flowCampaignRoutes);
 routes.use("/call", callRoutes);
 routes.use(companyKanbanRoutes);
+routes.use(activityRoutes);
 
 routes.post("/chats/backfill", ChatController.backfillChats);
 
