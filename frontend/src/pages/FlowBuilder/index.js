@@ -37,7 +37,6 @@ import {
   Menu,
   MenuItem,
   Container,
-  Fab,
   useScrollTrigger,
   Slide,
   AppBar,
@@ -46,6 +45,7 @@ import {
   Avatar,
 } from "@mui/material";
 
+import { Add as AddIcon } from "@mui/icons-material";
 import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import ContactModal from "../../components/ContactModal";
@@ -793,13 +793,14 @@ const FlowBuilder = () => {
           </Stack>
         )}
       </Paper>
-      <Fab
+      <IconButton
         className={classes.fab}
         onClick={handleOpenContactModal}
         aria-label="Criar fluxo"
+        size="medium"
       >
-        <AddCircle />
-      </Fab>
+        <AddIcon style={{ color: "#fff" }} />
+      </IconButton>
     </MainContainer>
   );
 };

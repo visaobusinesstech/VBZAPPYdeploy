@@ -330,7 +330,7 @@ const useStyles = makeStyles((theme) => ({
     overflow: "auto",
     padding: 0,
     margin: 0,
-    paddingLeft: theme.spacing(2), // Adicionado espaçamento do menu lateral
+    paddingLeft: 0,
     ...theme.scrollbarStyles,
   },
 

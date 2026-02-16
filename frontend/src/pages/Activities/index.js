@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   List as ListIcon,
   CalendarToday as CalendarIcon,
   ViewWeek as KanbanIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Fullscreen as FullscreenIcon,
+  FullscreenExit as FullscreenExitIcon,
+  Settings as SettingsIcon
 } from "@material-ui/icons";
 import {
   Paper,
@@ -182,11 +185,13 @@ const ActivitiesCalendar = ({ activities }) => {
 const Activities = () => {
   const classes = useStyles();
   const [viewMode, setViewMode] = useState("board");
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [activitiesState, setActivitiesState] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const kanbanRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [formValues, setFormValues] = useState({
     title: "",
@@ -290,6 +295,71 @@ const Activities = () => {
     return activitiesState.filter((activity) => activity.status === statusFilter);
   }, [activitiesState, statusFilter]);
 
+  useEffect(() => {
+    const onFsChange = () => {
+      const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+      setIsFullscreen(!!fsEl && (fsEl === kanbanRef.current));
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange);
+    document.addEventListener("mozfullscreenchange", onFsChange);
+    document.addEventListener("MSFullscreenChange", onFsChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange);
+      document.removeEventListener("mozfullscreenchange", onFsChange);
+      document.removeEventListener("MSFullscreenChange", onFsChange);
+    };
+  }, []);
+
+  const requestFs = (el) => {
+    if (el.requestFullscreen) return el.requestFullscreen();
+    if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
+    if (el.mozRequestFullScreen) return el.mozRequestFullScreen();
+    if (el.msRequestFullscreen) return el.msRequestFullscreen();
+  };
+
+  const exitFs = () => {
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    if (document.mozCancelFullScreen) return document.mozCancelFullScreen();
+    if (document.msExitFullscreen) return document.msExitFullscreen();
+  };
+
+  const handleToggleKanbanFullscreen = () => {
+    if (viewMode !== "board") return;
+    if (!kanbanRef.current) return;
+    if (isFullscreen) {
+      exitFs();
+    } else {
+      requestFs(kanbanRef.current);
+    }
+  };
+
+  const actionsRight = (
+    <>
+      {/* Removidos botões de setas da navbar */}
+      <IconButton
+        title="Expandir Kanban"
+        onClick={handleToggleKanbanFullscreen}
+        color="default"
+        size="small"
+        style={{ color: '#6b7280' }}
+      >
+        {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+      </IconButton>
+      <IconButton
+        title="Configurações"
+        color="default"
+        size="small"
+        style={{ color: '#6b7280' }}
+        onClick={() => {}}
+      >
+        <SettingsIcon />
+      </IconButton>
+    </>
+  );
+
   return (
     <>
     <ActivitiesStyleLayout
@@ -300,7 +370,8 @@ const Activities = () => {
       searchValue={searchParam}
       onSearchChange={handleSearch}
       filters={filters}
-      stats={headerStats}
+      stats={[]}
+      navActions={actionsRight}
       viewModes={viewModes}
       currentViewMode={viewMode}
       onViewModeChange={setViewMode}
@@ -311,7 +382,34 @@ const Activities = () => {
         <>
           {viewMode === "list" && <ActivitiesList activities={filteredActivities} />}
           {viewMode === "calendar" && <ActivitiesCalendar activities={filteredActivities} />}
-          {viewMode === "board" && <KanbanBoard activities={filteredActivities} />}
+          {viewMode === "board" && (
+            <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
+              <KanbanBoard
+                activities={filteredActivities}
+                onMove={async (activityId, sourceCol, destCol) => {
+                  if (sourceCol === destCol) return;
+                  const id = Number(activityId);
+                  const map = {
+                    backlog: 'backlog',
+                    pending: 'pending',
+                    in_progress: 'in_progress',
+                    completed: 'completed'
+                  };
+                  const newStatus = map[destCol] || destCol;
+                  setActivitiesState(prev => {
+                    const next = prev.map(a => a.id === id ? { ...a, status: newStatus } : a);
+                    return next;
+                  });
+                  try {
+                    await activitiesService.update(id, { status: newStatus });
+                  } catch (err) {
+                    toastError(err);
+                  }
+                }}
+                onAdd={() => handleCreateActivity()}
+              />
+            </div>
+          )}
         </>
       )}
     </ActivitiesStyleLayout>

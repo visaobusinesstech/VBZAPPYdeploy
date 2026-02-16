@@ -33,23 +33,23 @@ const useStyles = makeStyles((theme) => ({
     zIndex: 10
   },
   headerContent: {
-    padding: theme.spacing(2, 0),
+    padding: theme.spacing(1.0, 0),
   },
   navRow: {
     display: 'flex',
     alignItems: 'center',
     gap: theme.spacing(1),
-    paddingBottom: theme.spacing(2),
-    paddingLeft: theme.spacing(3),
-    paddingRight: theme.spacing(3),
+    paddingBottom: theme.spacing(0.75),
+    paddingLeft: theme.spacing(1.5),
+    paddingRight: theme.spacing(1.5),
   },
   navTab: {
     textTransform: 'none',
     fontWeight: 400,
     fontSize: '0.875rem',
-    color: '#6b7280',
+    color: '#374151',
     minWidth: 'auto',
-    padding: theme.spacing(1, 2.5),
+    padding: theme.spacing(1, 2),
     borderRadius: '8px',
     backgroundColor: 'transparent',
     border: 'none',
@@ -58,24 +58,24 @@ const useStyles = makeStyles((theme) => ({
     gap: theme.spacing(1.5),
     transition: 'all 0.15s ease',
     '&:hover': {
-      backgroundColor: '#f3f4f6',
-      color: '#111827',
+      backgroundColor: 'rgba(0,0,0,0.03)',
+      color: '#374151',
     },
   },
   navTabIcon: {
     fontSize: '0.875rem',
-    opacity: 0.8,
+    opacity: 1,
     display: 'flex',
     alignItems: 'center',
     marginRight: theme.spacing(1.25),
   },
   navTabActive: {
     color: '#111827',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: 'rgba(0,0,0,0.03)',
     boxShadow: '0 2px 4px rgba(15, 23, 42, 0.16)',
     border: 'none',
     '&:hover': {
-      backgroundColor: '#fff',
+      backgroundColor: 'rgba(0,0,0,0.02)',
     },
   },
   createButton: {
@@ -102,15 +102,19 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: theme.spacing(2),
-    marginTop: theme.spacing(2),
-    padding: theme.spacing(0, 3),
+    marginTop: theme.spacing(1),
+    padding: theme.spacing(1.25, 1.75),
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #e5e7eb',
+    borderRadius: 12,
   },
   searchContainer: {
     position: 'relative',
     borderRadius: theme.shape.borderRadius,
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FFFFFF',
+    border: '1px solid #e5e7eb',
     '&:hover': {
-      backgroundColor: '#e5e7eb',
+      backgroundColor: '#FFFFFF',
     },
     marginRight: theme.spacing(2),
     marginLeft: 0,
@@ -132,8 +136,8 @@ const useStyles = makeStyles((theme) => ({
     color: '#9ca3af',
   },
   inputRoot: {
-    color: 'inherit',
-    fontSize: '0.875rem',
+    color: '#374151',
+    fontSize: '0.9rem',
   },
   inputInput: {
     padding: theme.spacing(1, 1, 1, 0),
@@ -146,7 +150,7 @@ const useStyles = makeStyles((theme) => ({
   filtersContainer: {
     display: 'flex',
     alignItems: 'center',
-    gap: theme.spacing(2),
+    gap: theme.spacing(1.5),
   },
   viewModeGroup: {
     display: 'flex',
@@ -168,7 +172,7 @@ const useStyles = makeStyles((theme) => ({
   },
   content: {
     flex: 1,
-    padding: theme.spacing(3),
+    padding: theme.spacing(0.5),
     overflowY: 'auto',
   },
   fab: {
@@ -199,6 +203,7 @@ const ActivitiesStyleLayout = ({
   currentViewMode,
   onViewModeChange,
   actions,
+  navActions,
   showAdvancedFilters = false,
   advancedFiltersComponent
 }) => {
@@ -226,10 +231,11 @@ const ActivitiesStyleLayout = ({
                   </Button>
                 );
               })}
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {navActions}
+              </div>
             </div>
           )}
-
-          <Divider />
 
           <div className={classes.controlsRow}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
@@ -255,13 +261,13 @@ const ActivitiesStyleLayout = ({
                   onChange={(e) => filter.onChange(e.target.value)}
                   variant="outlined"
                   margin="dense"
-                  style={{ height: 40, minWidth: 120, backgroundColor: '#fff' }}
+                  style={{ height: 36, minWidth: 140, backgroundColor: '#fff', fontSize: '0.9rem', color: '#374151' }}
                 >
                   <MenuItem value="" disabled>
                     {filter.label}
                   </MenuItem>
                   {filter.options.map((option) => (
-                    <MenuItem key={option.value} value={option.value}>
+                    <MenuItem key={option.value} value={option.value} style={{ fontSize: '0.9rem' }}>
                       {option.label}
                     </MenuItem>
                   ))}

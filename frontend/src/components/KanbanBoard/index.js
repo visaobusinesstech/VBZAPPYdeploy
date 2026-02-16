@@ -8,71 +8,128 @@ import {
   CardContent,
   Chip,
   Avatar,
-  IconButton
+  IconButton,
+  Button
 } from '@material-ui/core';
-import { MoreVert as MoreVertIcon } from '@material-ui/icons';
+import { MoreVert as MoreVertIcon, Add as AddIcon, DeleteOutline as DeleteIcon } from '@material-ui/icons';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const useStyles = makeStyles((theme) => ({
   root: {
     height: '100%',
     display: 'flex',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     alignItems: 'flex-start',
-    overflowX: 'auto',
+    overflowX: 'hidden',
     padding: theme.spacing(2),
     gap: theme.spacing(2),
     backgroundColor: 'transparent',
     '&::-webkit-scrollbar': {
-      height: 6,
+      height: 0,
     },
     '&::-webkit-scrollbar-thumb': {
-      backgroundColor: 'rgba(148, 163, 184, 0.6)',
-      borderRadius: 3,
+      backgroundColor: 'transparent',
+      borderRadius: 0,
     },
   },
   column: {
-    minWidth: 300,
-    width: 300,
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
-    border: '1px solid #E5E7EB',
+    flex: '1 1 240px',
+    maxWidth: '25%',
+    minWidth: 220,
+    backgroundColor: 'transparent',
+    borderRadius: 0,
+    border: 'none',
     display: 'flex',
     flexDirection: 'column',
     maxHeight: '100%',
   },
-  columnHeader: {
-    padding: theme.spacing(1.5, 2),
-    fontWeight: 600,
+  columnHeaderRow: {
+    margin: theme.spacing(1, 1, 0.5, 1),
+    padding: theme.spacing(0.5, 0.5),
     display: 'flex',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottom: '1px solid #E5E7EB',
+    justifyContent: 'space-between',
+    minHeight: 28
+  },
+  columnHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1)
+  },
+  columnDot: {
+    width: 10,
+    height: 10,
+    borderRadius: '50%'
+  },
+  columnTitle: {
+    fontSize: '0.85rem',
+    fontWeight: 400,
+    letterSpacing: '0.06em',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    opacity: 1
+  },
+  countBadge: {
+    fontSize: 11,
+    padding: '2px 8px',
+    borderRadius: 8,
     backgroundColor: '#F9FAFB',
+    color: '#6B7280',
+    fontWeight: 600
   },
   columnContent: {
     padding: theme.spacing(1),
+    margin: theme.spacing(0.5, 1, 1, 1),
+    backgroundColor: 'transparent',
+    border: 'none',
+    borderRadius: 0,
     overflowY: 'auto',
     flex: 1,
     '&::-webkit-scrollbar': {
-      width: '6px',
+      width: 0,
     },
     '&::-webkit-scrollbar-thumb': {
-      backgroundColor: 'rgba(0,0,0,0.1)',
-      borderRadius: '3px',
+      backgroundColor: 'transparent',
+      borderRadius: 0,
     },
   },
   card: {
-    margin: theme.spacing(1, 0.5),
-    borderRadius: 10,
+    position: 'relative',
+    margin: theme.spacing(0.75, 0.5),
+    borderRadius: 8,
     border: '1px solid #E5E7EB',
-    boxShadow: '0 1px 3px rgba(15,23,42,0.06)',
+    boxShadow: '0 1px 2px rgba(15,23,42,0.05)',
     cursor: 'pointer',
+    minHeight: 96,
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+    backgroundColor: '#fff',
     '&:hover': {
-      boxShadow: '0 2px 4px rgba(0,0,0,0.15)',
+      boxShadow: '0 3px 8px rgba(0,0,0,0.12)',
+      '& $cardDeleteBtn': {
+        opacity: 1,
+        transform: 'scale(1)'
+      }
     },
   },
+  cardAccent: {
+    height: 3,
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
   cardTitle: {
-    fontWeight: 500,
+    fontWeight: 400,
+    color: '#111827',
+    display: '-webkit-box',
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
     marginBottom: theme.spacing(1),
+  },
+  cardMeta: {
+    color: '#6B7280'
   },
   cardFooter: {
     display: 'flex',
@@ -80,78 +137,178 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     marginTop: theme.spacing(1),
   },
+  cardFooterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%'
+  },
+  cardDeleteBtn: {
+    position: 'absolute',
+    top: 6,
+    right: 6,
+    width: 22,
+    height: 22,
+    minWidth: 22,
+    padding: 0,
+    backgroundColor: '#ffffffEE',
+    border: '1px solid #E5E7EB',
+    borderRadius: 6,
+    color: '#9CA3AF',
+    opacity: 0,
+    transform: 'scale(0.92)',
+    transition: 'all 120ms ease',
+    '&:hover': {
+      backgroundColor: '#fff'
+    }
+  },
+  addButton: {
+    margin: theme.spacing(1, 1.5, 1.5),
+    textTransform: 'none',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+    border: '1px dashed #CBD5E1',
+    color: '#6B7280',
+    fontSize: '0.85rem',
+    fontWeight: 500,
+    borderRadius: 8,
+    padding: theme.spacing(0.75, 0),
+    minHeight: 36,
+    '&:hover': {
+      backgroundColor: '#F9FAFB'
+    }
+  }
 }));
 
-const KanbanBoard = ({ activities, onActivityClick }) => {
+const withAlpha = (hex, alpha) => {
+  const c = (hex || '').replace('#', '');
+  if (c.length !== 6) return hex;
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete }) => {
   const classes = useStyles();
 
   const columns = [
-    { id: 'pending', title: 'A Fazer', color: '#eab308' },
-    { id: 'in_progress', title: 'Em Progresso', color: '#3b82f6' },
-    { id: 'completed', title: 'Concluído', color: '#22c55e' }
+    { id: 'backlog', title: 'Backlog', color: '#4B5563' },         // cinza forte
+    { id: 'pending', title: 'Pendente', color: '#4B5563' },        // cinza forte
+    { id: 'in_progress', title: 'Em Progresso', color: '#F97316' }, // laranja forte
+    { id: 'completed', title: 'Concluído', color: '#10B981' }     // verde
   ];
 
   // Função auxiliar para mapear status do backend para colunas
   const getColumnId = (status) => {
-    // Ajustar conforme os status reais do backend
-    if (status === 'A Fazer' || status === 'pending') return 'pending';
-    if (status === 'Em Progresso' || status === 'in_progress') return 'in_progress';
-    if (status === 'Concluído' || status === 'completed') return 'completed';
-    return 'pending'; // Default
+    const s = String(status || '').toLowerCase();
+    if (['backlog'].includes(s)) return 'backlog';
+    if (['pendente','pending','a fazer','a_fazer'].includes(s)) return 'pending';
+    if (['em progresso','in_progress','em_progresso','concluindo','concluding'].includes(s)) return 'in_progress';
+    if (['concluído','concluido','completed','finalizado','finalizada'].includes(s)) return 'completed';
+    return 'pending';
   };
 
   const getActivitiesByColumn = (columnId) => {
     return activities.filter(activity => getColumnId(activity.status) === columnId);
   };
 
+  const handleDragEnd = (result) => {
+    const { source, destination, draggableId } = result;
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+    if (onMove) {
+      const activityId = draggableId;
+      onMove(activityId, source.droppableId, destination.droppableId, destination.index);
+    }
+  };
+
   return (
-    <div className={classes.root}>
-      {columns.map((column) => (
-        <div key={column.id} className={classes.column}>
-          <div className={classes.columnHeader}>
-            <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
-              {column.title}
-            </Typography>
-            <Chip 
-              size="small" 
-              label={getActivitiesByColumn(column.id).length} 
-              style={{ backgroundColor: 'rgba(0,0,0,0.08)', fontWeight: 'bold' }}
-            />
-          </div>
-          <div className={classes.columnContent}>
-            {getActivitiesByColumn(column.id).map((activity) => (
-              <Card 
-                key={activity.id} 
-                className={classes.card}
-                onClick={() => onActivityClick && onActivityClick(activity)}
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className={classes.root} data-kanban-scroll="true">
+        {columns.map((column) => (
+          <div key={column.id} className={classes.column}>
+            <div className={classes.columnHeaderRow}>
+              <div className={classes.columnHeaderLeft}>
+                <span className={classes.columnDot} style={{ backgroundColor: column.color }} />
+                <Typography className={classes.columnTitle}>{column.title}</Typography>
+              </div>
+              <span
+                className={classes.countBadge}
+                style={{ backgroundColor: withAlpha(column.color, 0.16), color: column.color }}
               >
-                <CardContent style={{ padding: 12 }}>
-                  <Typography variant="body2" className={classes.cardTitle}>
-                    {activity.title || "Sem título"}
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary" display="block">
-                    {activity.description ? (activity.description.length > 50 ? activity.description.substring(0, 50) + '...' : activity.description) : "Sem descrição"}
-                  </Typography>
-                  
-                  <div className={classes.cardFooter}>
-                    <Typography variant="caption" color="textSecondary">
-                      {activity.date || "Sem data"}
-                    </Typography>
-                    {activity.owner && (
-                      <Avatar 
-                        style={{ width: 24, height: 24, fontSize: 12 }}
-                      >
-                        {activity.owner.charAt(0).toUpperCase()}
-                      </Avatar>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                {getActivitiesByColumn(column.id).length}
+              </span>
+            </div>
+            <Droppable droppableId={column.id}>
+              {(provided) => (
+                <div
+                  className={classes.columnContent}
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                >
+                  {getActivitiesByColumn(column.id).map((activity, index) => (
+                    <Draggable draggableId={String(activity.id)} index={index} key={activity.id}>
+                      {(providedDraggable) => (
+                        <Card
+                          ref={providedDraggable.innerRef}
+                          {...providedDraggable.draggableProps}
+                          {...providedDraggable.dragHandleProps}
+                          className={classes.card}
+                          onClick={() => onActivityClick && onActivityClick(activity)}
+                        >
+                          {onDelete && (
+                            <IconButton
+                              className={classes.cardDeleteBtn}
+                              size="small"
+                              aria-label="Excluir atividade"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(activity);
+                              }}
+                            >
+                              <DeleteIcon style={{ fontSize: 14 }} />
+                            </IconButton>
+                          )}
+                          <div className={classes.cardAccent} style={{ backgroundColor: column.color }} />
+                          <CardContent style={{ padding: 10 }}>
+                            <Typography variant="body2" className={classes.cardTitle}>
+                              {activity.title || "Sem título"}
+                            </Typography>
+                            <Typography variant="caption" className={classes.cardMeta} display="block">
+                              {activity.description ? (activity.description.length > 38 ? activity.description.substring(0, 38) + '...' : activity.description) : "Sem descrição"}
+                            </Typography>
+                            
+                            <div className={classes.cardFooter}>
+                              <Typography variant="caption" className={classes.cardMeta}>
+                                {activity.date || "Sem data"}
+                              </Typography>
+                              <span className={classes.cardFooterDot} style={{ backgroundColor: column.color }} />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                  {onAdd && (
+                    <Button
+                      fullWidth
+                      size="small"
+                      variant="text"
+                      className={classes.addButton}
+                      startIcon={<AddIcon />}
+                      onClick={() => onAdd(column.id)}
+                    >
+                      Adicionar Tarefa
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Droppable>
           </div>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+    </DragDropContext>
   );
 };
 
