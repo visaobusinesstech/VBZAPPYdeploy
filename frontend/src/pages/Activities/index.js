@@ -35,6 +35,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import KanbanBoard from "../../components/KanbanBoard";
+import ActivityDetailsModal from "../../components/ActivityDetailsModal";
 import useActivities from "../../hooks/useActivities";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
@@ -191,6 +192,8 @@ const Activities = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [activitiesState, setActivitiesState] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedActivity, setSelectedActivity] = useState(null);
   const kanbanRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [formValues, setFormValues] = useState({
@@ -344,18 +347,18 @@ const Activities = () => {
         onClick={handleToggleKanbanFullscreen}
         color="default"
         size="small"
-        style={{ color: '#6b7280' }}
+        style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
       >
-        {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+        {isFullscreen ? <FullscreenExitIcon style={{ fontSize: 18 }} /> : <FullscreenIcon style={{ fontSize: 18 }} />}
       </IconButton>
       <IconButton
         title="Configurações"
         color="default"
         size="small"
-        style={{ color: '#6b7280' }}
+        style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
         onClick={() => {}}
       >
-        <SettingsIcon />
+        <SettingsIcon style={{ fontSize: 18 }} />
       </IconButton>
     </>
   );
@@ -386,6 +389,10 @@ const Activities = () => {
             <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
               <KanbanBoard
                 activities={filteredActivities}
+                onActivityClick={(activity) => {
+                  setSelectedActivity(activity);
+                  setDetailsOpen(true);
+                }}
                 onMove={async (activityId, sourceCol, destCol) => {
                   if (sourceCol === destCol) return;
                   const id = Number(activityId);
@@ -406,6 +413,16 @@ const Activities = () => {
                     toastError(err);
                   }
                 }}
+                onDelete={async (activity) => {
+                  const id = Number(activity.id);
+                  try {
+                    await activitiesService.delete(id);
+                    setActivitiesState(prev => prev.filter(a => a.id !== id));
+                    toast.success("Atividade excluída.");
+                  } catch (err) {
+                    toastError(err);
+                  }
+                }}
                 onAdd={() => handleCreateActivity()}
               />
             </div>
@@ -413,6 +430,23 @@ const Activities = () => {
         </>
       )}
     </ActivitiesStyleLayout>
+
+    <ActivityDetailsModal
+      open={detailsOpen}
+      onClose={() => setDetailsOpen(false)}
+      activity={selectedActivity}
+      onDelete={async (activity) => {
+        const id = Number(activity.id);
+        try {
+          await activitiesService.delete(id);
+          setActivitiesState(prev => prev.filter(a => a.id !== id));
+          setDetailsOpen(false);
+          toast.success("Atividade excluída.");
+        } catch (err) {
+          toastError(err);
+        }
+      }}
+    />
 
     <Drawer
       anchor="right"

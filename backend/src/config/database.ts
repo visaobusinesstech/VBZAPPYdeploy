@@ -35,7 +35,7 @@ module.exports = {
   database: process.env.DB_NAME,
   username: process.env.DB_USER,
   password: process.env.DB_PASS,
-  logging: false,
+  logging: console.log,
   dialectOptions: {
     ssl: process.env.NODE_ENV === "production" ? {
       require: true,
