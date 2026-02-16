@@ -25,8 +25,15 @@ const useStyles = makeStyles((theme) => ({
   header: {
     display: 'flex',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing(1)
+    justifyContent: 'center',
+    position: 'relative',
+    borderBottom: '1px solid #eee',
+    paddingBottom: theme.spacing(2),
+    marginBottom: theme.spacing(2)
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 0,
   },
   sectionTitle: {
     fontWeight: 600,
@@ -91,10 +98,10 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete }) => {
       ModalProps={{ keepMounted: true }}
     >
       <Box className={classes.header}>
-        <Typography variant="h6">Detalhes da Atividade</Typography>
-        <IconButton onClick={onClose} size="small">
+        <IconButton onClick={onClose} size="small" className={classes.closeButton}>
           <CloseIcon />
         </IconButton>
+        <Typography variant="h6">Detalhes da Atividade</Typography>
       </Box>
 
       <Box mb={2}>
