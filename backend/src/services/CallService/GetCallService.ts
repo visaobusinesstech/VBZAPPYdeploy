@@ -26,6 +26,11 @@ const loginWavoip = async () => {
 const getHistorical = async (body: { "user_id": number, "company_id": number }) => {
 
     try {
+        if (!process.env.WAVOIP_URL) {
+            console.log("WAVOIP_URL not set");
+            return { resultFinal: [], total: 0, totalReject: 0, totalServed: 0, totalFinish: 0 };
+        }
+
         const chave = `loginWavoipToken:${body.company_id}`;
         let token = await cacheLayer.get(chave);
 

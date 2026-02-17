@@ -278,6 +278,55 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete }) =
                               {activity.description ? (activity.description.length > 38 ? activity.description.substring(0, 38) + '...' : activity.description) : "Sem descrição"}
                             </Typography>
                             
+                            {/* Color Blocks for Company and Project */}
+                            <div style={{ display: 'flex', gap: 6, marginTop: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+                              {/* Company Block */}
+                              <div 
+                                style={{ 
+                                  backgroundColor: '#F5F3FF', // Purple-ish
+                                  borderRadius: 4,
+                                  padding: activity.company ? '4px 8px' : '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  minWidth: activity.company ? 'auto' : 16,
+                                  minHeight: 16
+                                }}
+                                title={activity.company || "Sem empresa"}
+                              >
+                                {activity.company ? (
+                                  <Typography variant="caption" style={{ color: '#4C1D95', fontWeight: 600, fontSize: '0.7rem' }}>
+                                    {activity.company}
+                                  </Typography>
+                                ) : (
+                                  <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#DDD6FE' }} />
+                                )}
+                              </div>
+
+                              {/* Project Block */}
+                              <div 
+                                style={{ 
+                                  backgroundColor: '#FFF7ED', // Orange-ish
+                                  borderRadius: 4,
+                                  padding: (activity.project || (activity.projects && activity.projects.length > 0)) ? '4px 8px' : '4px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  minWidth: (activity.project || (activity.projects && activity.projects.length > 0)) ? 'auto' : 16,
+                                  minHeight: 16
+                                }}
+                                title={activity.project || (activity.projects && activity.projects[0]) || "Sem projeto"}
+                              >
+                                {(activity.project || (activity.projects && activity.projects.length > 0)) ? (
+                                  <Typography variant="caption" style={{ color: '#9A3412', fontWeight: 600, fontSize: '0.7rem' }}>
+                                    {activity.project || activity.projects[0]}
+                                  </Typography>
+                                ) : (
+                                  <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#FFEDD5' }} />
+                                )}
+                              </div>
+                            </div>
+
                             <div className={classes.cardFooter}>
                               <Typography variant="caption" className={classes.cardMeta}>
                                 {activity.date || "Sem data"}

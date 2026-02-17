@@ -1,3 +1,4 @@
+// Re-saved
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import {
@@ -36,6 +37,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import KanbanBoard from "../../components/KanbanBoard";
 import ActivityDetailsModal from "../../components/ActivityDetailsModal";
+import CreateActivityModal from "../../components/CreateActivityModal";
 import useActivities from "../../hooks/useActivities";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
@@ -194,15 +196,8 @@ const Activities = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
+  const [activityToEdit, setActivityToEdit] = useState(null);
   const kanbanRef = useRef(null);
-  const [saving, setSaving] = useState(false);
-  const [formValues, setFormValues] = useState({
-    title: "",
-    description: "",
-    type: "task",
-    date: "",
-    status: "pending",
-  });
   
   // Use existing hook
   const { activities, loading, count, hasMore } = useActivities({
@@ -219,45 +214,7 @@ const Activities = () => {
   };
 
   const handleCreateActivity = () => {
-    setFormValues({
-      title: "",
-      description: "",
-      type: "task",
-      date: "",
-      status: "pending",
-    });
     setDrawerOpen(true);
-  };
-
-  const handleChangeField = (field) => (event) => {
-    setFormValues((prev) => ({
-      ...prev,
-      [field]: event.target.value,
-    }));
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-
-    if (!formValues.title || !formValues.date) {
-      toast.error("Preencha título e data da atividade.");
-      return;
-    }
-
-    try {
-      setSaving(true);
-      const payload = {
-        ...formValues,
-      };
-      const created = await activitiesService.create(payload);
-      setActivitiesState((prev) => [created, ...prev]);
-      setDrawerOpen(false);
-      toast.success("Atividade criada com sucesso.");
-    } catch (err) {
-      toastError(err);
-    } finally {
-      setSaving(false);
-    }
   };
 
   const viewModes = [
@@ -435,6 +392,11 @@ const Activities = () => {
       open={detailsOpen}
       onClose={() => setDetailsOpen(false)}
       activity={selectedActivity}
+      onEdit={(activity) => {
+        setActivityToEdit(activity);
+        setDetailsOpen(false);
+        setDrawerOpen(true);
+      }}
       onDelete={async (activity) => {
         const id = Number(activity.id);
         try {
@@ -448,99 +410,30 @@ const Activities = () => {
       }}
     />
 
-    <Drawer
-      anchor="right"
+    <CreateActivityModal
       open={drawerOpen}
       onClose={() => setDrawerOpen(false)}
-      ModalProps={{ keepMounted: true }}
-      PaperProps={{ className: classes.drawerPaper }}
-    >
-      <form onSubmit={handleSubmit} className={classes.drawerContainer}>
-        <div className={classes.drawerHeader}>
-          <Typography variant="h6" className={classes.drawerTitle}>
-            Nova atividade
-          </Typography>
-          <IconButton onClick={() => setDrawerOpen(false)} size="small">
-            <CloseIcon />
-          </IconButton>
-        </div>
-
-        <div className={classes.drawerContent}>
-          <TextField
-            label="Título"
-            value={formValues.title}
-            onChange={handleChangeField("title")}
-            fullWidth
-            required
-            variant="outlined"
-          />
-
-          <TextField
-            label="Descrição"
-            value={formValues.description}
-            onChange={handleChangeField("description")}
-            fullWidth
-            multiline
-            minRows={3}
-            variant="outlined"
-          />
-
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel id="activity-type-label">Tipo</InputLabel>
-            <Select
-              labelId="activity-type-label"
-              label="Tipo"
-              value={formValues.type}
-              onChange={handleChangeField("type")}
-            >
-              <MenuItem value="task">Tarefa</MenuItem>
-              <MenuItem value="call">Ligação</MenuItem>
-              <MenuItem value="email">E-mail</MenuItem>
-              <MenuItem value="meeting">Reunião</MenuItem>
-            </Select>
-          </FormControl>
-
-          <TextField
-            label="Data"
-            type="date"
-            value={formValues.date}
-            onChange={handleChangeField("date")}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            variant="outlined"
-            required
-          />
-
-          <FormControl variant="outlined" fullWidth>
-            <InputLabel id="activity-status-label">Status</InputLabel>
-            <Select
-              labelId="activity-status-label"
-              label="Status"
-              value={formValues.status}
-              onChange={handleChangeField("status")}
-            >
-              <MenuItem value="pending">Pendente</MenuItem>
-              <MenuItem value="in_progress">Em Progresso</MenuItem>
-              <MenuItem value="completed">Concluído</MenuItem>
-            </Select>
-          </FormControl>
-        </div>
-
-        <div className={classes.drawerActions}>
-          <Button onClick={() => setDrawerOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            color="primary"
-            variant="contained"
-            disabled={saving}
-          >
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
-        </div>
-      </form>
-    </Drawer>
+      activity={activityToEdit}
+      onSave={(savedActivity) => {
+         setActivitiesState((prev) => {
+             // Garante que o ID da atividade salva seja um número para comparação consistente
+             const savedId = Number(savedActivity.id);
+             
+             // Procura se já existe uma atividade com esse ID
+             const exists = prev.some(a => Number(a.id) === savedId);
+             
+             if (exists) {
+                 // Se existe, atualiza o item no array
+                 return prev.map(a => Number(a.id) === savedId ? savedActivity : a);
+             } else {
+                 // Se não existe, adiciona no início
+                 return [savedActivity, ...prev];
+             }
+         });
+         // Reseta o estado de edição para evitar conflitos futuros
+         setActivityToEdit(null);
+      }}
+    />
     </>
   );
 };

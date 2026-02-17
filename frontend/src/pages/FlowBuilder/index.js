@@ -335,23 +335,30 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   fab: {
-    position: 'fixed',
-    bottom: theme.spacing(3),
-    right: theme.spacing(3),
-    backgroundColor: theme.palette.primary.main,
-    color: theme.palette.primary.contrastText,
-    width: 64,
-    height: 64,
-    boxShadow: theme.shadows[6],
+    position: 'fixed !important',
+    bottom: `${theme.spacing(4)}px !important`,
+    right: `${theme.spacing(4)}px !important`,
+    width: '56px !important',
+    height: '56px !important',
+    borderRadius: '50% !important',
+    backgroundColor: '#131B2D !important', // Cor exata da topbar
+    color: '#ffffff !important',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.3) !important',
+    zIndex: 99999,
+    display: 'flex !important',
+    alignItems: 'center !important',
+    justifyContent: 'center !important',
+    transition: 'all 0.3s ease',
     '&:hover': {
-      backgroundColor: theme.palette.primary.dark,
-      boxShadow: theme.shadows[12],
+      backgroundColor: '#1c2e4a !important', // Levemente mais claro no hover
+      transform: 'scale(1.05)',
+      boxShadow: '0 6px 16px rgba(0,0,0,0.4) !important',
     },
     [theme.breakpoints.down('sm')]: {
-      bottom: theme.spacing(2),
-      right: theme.spacing(2),
-      width: 56,
-      height: 56,
+      bottom: `${theme.spacing(10)}px !important`,
+      right: `${theme.spacing(2)}px !important`,
+      width: '48px !important',
+      height: '48px !important',
     },
   },
   loadingContainer: {
@@ -797,9 +804,19 @@ const FlowBuilder = () => {
         className={classes.fab}
         onClick={handleOpenContactModal}
         aria-label="Criar fluxo"
-        size="medium"
+        style={{
+          backgroundColor: '#131B2D',
+          color: '#ffffff',
+          position: 'fixed',
+          bottom: 32,
+          right: 32,
+          width: 56,
+          height: 56,
+          borderRadius: '50%',
+          zIndex: 99999
+        }}
       >
-        <AddIcon style={{ color: "#fff" }} />
+        <AddIcon style={{ color: "#fff", fontSize: 32 }} />
       </IconButton>
     </MainContainer>
   );

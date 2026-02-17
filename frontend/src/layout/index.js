@@ -36,6 +36,7 @@ import {
 } from "@material-ui/core";
 import { Link as RouterLink, useHistory } from "react-router-dom";
 import { PageTitleContext } from "../context/PageTitleContext";
+import { DrawerContext } from "../context/DrawerContext";
 import MenuIcon from "@material-ui/icons/Menu";
 import SearchIcon from "@material-ui/icons/Search";
 import EventIcon from "@material-ui/icons/Event";
@@ -114,22 +115,18 @@ const useStyles = makeStyles((theme) => ({
     minHeight: "40px", // Reduzido
     "& .MuiIconButton-root": {
       padding: 8,
+      margin: "0 4px",
+      borderRadius: 8,
+      color: "rgba(255, 255, 255, 0.9)",
+      transition: "all 0.3s ease",
+      "&:hover": {
+        backgroundColor: "rgba(255, 255, 255, 0.1)",
+        transform: "translateY(-1px)",
+      }
     },
     "& .MuiSvgIcon-root": {
-      fontSize: "1.2rem",
+      fontSize: "1.2rem", // Padronizado
     }
-  },
-  topbarIconButton: {
-    color: "white",
-    padding: 8,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    margin: "0 2px",
-  },
-  topbarIconSvg: {
-    fontSize: 18,
-    display: "block",
   },
 
   toolbarIcon: {
@@ -362,6 +359,7 @@ const useStyles = makeStyles((theme) => ({
     objectFit: "contain", // Garante que a imagem caiba sem distorcer
     content: `url(${theme.mode === "light" ? logoDark : logo})`,
     transition: "all 0.3s ease",
+    cursor: "pointer", // Adicionado cursor pointer
     "&:hover": {
       transform: "scale(1.02)",
     },
@@ -924,10 +922,13 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               src={theme.mode === "light" ? logoDark : logo}
               alt="VBSolution"
               className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
+              onClick={() => setDrawerOpen(!drawerOpen)}
             />
-            <IconButton onClick={() => setDrawerOpen(!drawerOpen)} className={classes.chevronButton}>
-              <MenuIcon />
-            </IconButton>
+            {drawerOpen && (
+              <IconButton onClick={() => setDrawerOpen(!drawerOpen)} className={classes.chevronButton}>
+                <MenuIcon />
+              </IconButton>
+            )}
           </div>
           <List className={classes.containerWithScroll}>
             <MainListItems collapsed={!drawerOpen} section="main" />
@@ -952,7 +953,10 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               aria-label="open drawer"
               style={{ color: "white" }}
               onClick={() => setDrawerOpen(!drawerOpen)}
-              className={clsx(drawerOpen && classes.menuButtonHidden)}
+              className={clsx(
+                // Esconde se a drawer estiver aberta OU se estiver no modo permanente (reduzido)
+                (drawerOpen || drawerVariant === "permanent") && classes.menuButtonHidden
+              )}
             >
               <MenuIcon />
             </IconButton>
@@ -973,7 +977,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
             <IconButton
               component={Link}
               to="/schedules"
-              style={{ color: "white", marginLeft: 10, marginRight: 10 }}
+              style={{ color: "white" }}
             >
               <EventIcon />
             </IconButton>
@@ -1011,9 +1015,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
               >
                 <IconButton
                   onClick={() => setShowOptions(!showOptions)}
-                  className={classes.topbarIconButton}
                 >
-                  <PublicIcon className={classes.topbarIconSvg} />
+                  <PublicIcon />
                 </IconButton>
 
                 {showOptions && (
@@ -1053,9 +1056,9 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
 
               <IconButton edge="start" onClick={colorMode.toggleColorMode}>
                 {theme.mode === "dark" ? (
-                  <Brightness7Icon style={{ color: "white" }} />
+                  <Brightness7Icon />
                 ) : (
-                  <Brightness4Icon style={{ color: "white" }} />
+                  <Brightness4Icon />
                 )}
               </IconButton>
 
@@ -1073,7 +1076,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
 
 
 
-              <div className="user-menu-wrapper">
+              <div className="user-menu-wrapper" style={{ marginLeft: 8 }}>
                 <StyledBadge
                   overlap="circular"
                   anchorOrigin={{
@@ -1236,7 +1239,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
         user={user}
       />
 
-    </div>
+      </div>
+    </DrawerContext.Provider>
   );
 };
 

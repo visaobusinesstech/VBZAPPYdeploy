@@ -189,6 +189,12 @@ const CallHistoricals = () => {
       setHasMore(data.hasMore);
       setLoading(false);
     } catch (err) {
+      const errorMsg = err.response?.data?.error;
+      if (errorMsg && (errorMsg.includes("Invalid URL") || errorMsg.includes("TypeError"))) {
+          console.warn("Ignored backend error:", errorMsg);
+          setLoading(false);
+          return;
+      }
       toastError(err);
       setLoading(false);
     }
@@ -219,6 +225,10 @@ const CallHistoricals = () => {
 
   const handleMakeCall = (call) => {
     const callUrl = buildWavoipUrl(call);
+    if (!callUrl) {
+       toast.error("URL de chamada inválida ou vazia.");
+       return;
+    }
     try {
       // Basic validation to avoid "Invalid URL" errors
       const u = new URL(callUrl);
@@ -226,8 +236,9 @@ const CallHistoricals = () => {
         window.open(callUrl, "_blank");
         return;
       }
-    } catch (e) {}
-    toast.error("URL de chamada inválida.");
+    } catch (e) {
+      toast.error("URL de chamada inválida.");
+    }
   };
 
   const formatDate = (dateString) => {

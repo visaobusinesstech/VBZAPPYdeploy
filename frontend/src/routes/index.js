@@ -56,6 +56,8 @@ import LeadsSales from "../pages/LeadsSales/";
 import Inventory from "../pages/Inventory/";
 import FilesPage from "../pages/FilesPage/";
 import EmailPage from "../pages/EmailPage/";
+import WhatsappDashboard from "../pages/WhatsappDashboard/";
+import LeadsConvertidos from "../pages/LeadsConvertidos/";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -258,6 +260,8 @@ const RoutesContent = () => {
                 />
                 
                 <Route exact path="/activities" component={Activities} isPrivate title="Atividades" />
+                <Route exact path="/whatsapp-dashboard" component={WhatsappDashboard} isPrivate title="Dashboard Whatsapp" />
+                <Route exact path="/leads-convertidos" component={LeadsConvertidos} isPrivate title="Leads Convertidos" />
                 <Route exact path="/projects" component={Projects} isPrivate title="Projetos" />
                 <Route exact path="/leads-sales" component={LeadsSales} isPrivate title="Leads e Vendas" />
                 <Route exact path="/inventory" component={Inventory} isPrivate title="Inventários" />

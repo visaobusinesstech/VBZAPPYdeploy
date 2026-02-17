@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
+import { DrawerContext } from "../../context/DrawerContext";
 import {
   Paper,
   Typography,
@@ -14,7 +15,13 @@ import {
 } from '@material-ui/core';
 import {
   Add as AddIcon,
-  Search as SearchIcon
+  Search as SearchIcon,
+  ChevronLeft as ChevronLeftIcon,
+  ChevronRight as ChevronRightIcon,
+  FilterList as FilterListIcon,
+  ExpandMore as ExpandMoreIcon,
+  CalendarToday as CalendarIcon,
+  Menu as MenuIcon
 } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
@@ -42,6 +49,30 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: theme.spacing(0.75),
     paddingLeft: theme.spacing(1.5),
     paddingRight: theme.spacing(1.5),
+  },
+  tabsContainer: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+    overflowX: 'auto',
+    scrollbarWidth: 'none', // Firefox
+    '&::-webkit-scrollbar': {
+      display: 'none' // Chrome/Safari
+    },
+    scrollBehavior: 'smooth',
+    flex: 1,
+    whiteSpace: 'nowrap',
+    padding: theme.spacing(0.5, 0),
+  },
+  scrollButton: {
+    minWidth: 'auto',
+    padding: 6,
+    borderRadius: '50%',
+    color: theme.palette.text.secondary,
+    '&:hover': {
+      backgroundColor: 'rgba(0, 0, 0, 0.04)',
+      color: theme.palette.text.primary,
+    },
   },
   navTab: {
     textTransform: 'none',
@@ -97,60 +128,68 @@ const useStyles = makeStyles((theme) => ({
     fontSize: '0.75rem',
     color: '#6b7280',
   },
-  controlsRow: {
+  filterBar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: theme.spacing(2),
-    marginTop: theme.spacing(1),
-    padding: theme.spacing(1.25, 1.75),
+    padding: '12px 24px',
     backgroundColor: '#FFFFFF',
-    border: '1px solid #e5e7eb',
-    borderRadius: 12,
+    borderBottom: '1px solid #E5E7EB',
+    height: 60,
+    boxSizing: 'border-box'
   },
-  searchContainer: {
-    position: 'relative',
-    borderRadius: theme.shape.borderRadius,
-    backgroundColor: '#FFFFFF',
-    border: '1px solid #e5e7eb',
+  leftFilter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    maxWidth: 400
+  },
+  funnelIcon: {
+    color: '#9CA3AF', // gray-400
+    fontSize: 20
+  },
+  filterInput: {
+    fontSize: '0.875rem', // 14px
+    color: '#111827', // gray-900
+    fontWeight: 400,
+    width: '100%',
+    '& input::placeholder': {
+      color: '#9CA3AF', // gray-400
+      opacity: 1
+    }
+  },
+  rightFilter: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 24 // Spacing between filter groups
+  },
+  filterItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 6,
+    cursor: 'pointer',
+    padding: '6px 8px',
+    borderRadius: 6,
+    transition: 'background-color 0.2s',
     '&:hover': {
-      backgroundColor: '#FFFFFF',
-    },
-    marginRight: theme.spacing(2),
-    marginLeft: 0,
-    width: '100%',
-    [theme.breakpoints.up('sm')]: {
-      width: 'auto',
-    },
-    display: 'flex',
-    alignItems: 'center',
-    padding: '4px 8px',
+      backgroundColor: '#F9FAFB' // gray-50
+    }
   },
-  searchIcon: {
-    padding: theme.spacing(0, 1),
-    height: '100%',
-    pointerEvents: 'none',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#9ca3af',
+  filterLabel: {
+    fontSize: '0.875rem', // 14px
+    color: '#374151', // gray-700
+    fontWeight: 500, // Medium
+    lineHeight: '20px'
   },
-  inputRoot: {
-    color: '#374151',
-    fontSize: '0.9rem',
+  chevronIcon: {
+    color: '#9CA3AF', // gray-400
+    fontSize: 16
   },
-  inputInput: {
-    padding: theme.spacing(1, 1, 1, 0),
-    transition: theme.transitions.create('width'),
-    width: '100%',
-    [theme.breakpoints.up('md')]: {
-      width: '20ch',
-    },
-  },
-  filtersContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: theme.spacing(1.5),
+  calendarIcon: {
+    color: '#9CA3AF', // gray-400
+    fontSize: 18,
+    marginRight: 2
   },
   viewModeGroup: {
     display: 'flex',
@@ -205,9 +244,20 @@ const ActivitiesStyleLayout = ({
   actions,
   navActions,
   showAdvancedFilters = false,
-  advancedFiltersComponent
+  advancedFiltersComponent,
+  disableFilterBar = false,
+  hideSearch = false,
+  enableTabsScroll = false
 }) => {
   const classes = useStyles();
+  const tabsRef = React.useRef(null);
+
+  const handleScroll = (direction) => {
+    if (tabsRef.current) {
+      const scrollAmount = 300;
+      tabsRef.current.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
+    }
+  };
 
   return (
     <div className={classes.root}>
@@ -215,84 +265,131 @@ const ActivitiesStyleLayout = ({
         <div className={classes.headerContent}>
           {viewModes.length > 0 && (
             <div className={classes.navRow}>
-              {viewModes.map((mode) => {
-                const active = currentViewMode === mode.value;
-                return (
-                  <Button
-                    key={mode.value}
-                    onClick={() => onViewModeChange && onViewModeChange(mode.value)}
-                    className={`${classes.navTab} ${active ? classes.navTabActive : ''}`}
-                  >
-                    {mode.icon &&
-                      React.cloneElement(mode.icon, {
-                        className: classes.navTabIcon
-                      })}
-                    <span>{mode.label}</span>
-                  </Button>
-                );
-              })}
+              {/* Menu Icon for collapsed state */}
+              {!drawerOpen && setDrawerOpen && (
+                <IconButton 
+                  size="small" 
+                  onClick={() => setDrawerOpen(true)}
+                  style={{ marginRight: 8, color: '#64748b' }}
+                >
+                  <MenuIcon fontSize="small" />
+                </IconButton>
+              )}
+
+              {enableTabsScroll && (
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleScroll('left')} 
+                  className={classes.scrollButton}
+                >
+                  <ChevronLeftIcon fontSize="small" />
+                </IconButton>
+              )}
+              
+              <div className={classes.tabsContainer} ref={tabsRef}>
+                {viewModes.map((mode) => {
+                  const active = currentViewMode === mode.value;
+                  return (
+                    <Button
+                      key={mode.value}
+                      onClick={() => onViewModeChange && onViewModeChange(mode.value)}
+                      className={`${classes.navTab} ${active ? classes.navTabActive : ''}`}
+                    >
+                      {mode.icon &&
+                        React.cloneElement(mode.icon, {
+                          className: classes.navTabIcon
+                        })}
+                      <span>{mode.label}</span>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {enableTabsScroll && (
+                <IconButton 
+                  size="small" 
+                  onClick={() => handleScroll('right')} 
+                  className={classes.scrollButton}
+                >
+                  <ChevronRightIcon fontSize="small" />
+                </IconButton>
+              )}
+
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+                {disableFilterBar && !hideSearch && (
+                   <div className={classes.searchContainer} style={{ width: 'auto', marginRight: 0 }}>
+                    <div className={classes.searchIcon}>
+                      <SearchIcon fontSize="small" />
+                    </div>
+                    <InputBase
+                      placeholder={searchPlaceholder}
+                      classes={{
+                        root: classes.inputRoot,
+                        input: classes.inputInput,
+                      }}
+                      value={searchValue}
+                      onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
+                    />
+                  </div>
+                )}
                 {navActions}
               </div>
             </div>
           )}
 
-          <div className={classes.controlsRow}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1 }}>
-              <div className={classes.searchContainer}>
-                <div className={classes.searchIcon}>
-                  <SearchIcon fontSize="small" />
-                </div>
+          {!disableFilterBar && (
+            <div className={classes.filterBar}>
+              {/* Esquerda: Busca */}
+              <div className={classes.leftFilter}>
+                <FilterListIcon className={classes.funnelIcon} />
                 <InputBase
-                  placeholder={searchPlaceholder}
-                  classes={{
-                    root: classes.inputRoot,
-                    input: classes.inputInput,
-                  }}
+                  placeholder="Filtrar por nome do lead, empresa..."
+                  className={classes.filterInput}
                   value={searchValue}
                   onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
                 />
               </div>
 
-              {filters.map((filter, index) => (
-                <Select
-                  key={index}
-                  value={filter.value}
-                  onChange={(e) => filter.onChange(e.target.value)}
-                  variant="outlined"
-                  margin="dense"
-                  style={{ height: 36, minWidth: 140, backgroundColor: '#fff', fontSize: '0.9rem', color: '#374151' }}
-                >
-                  <MenuItem value="" disabled>
-                    {filter.label}
-                  </MenuItem>
-                  {filter.options.map((option) => (
-                    <MenuItem key={option.value} value={option.value} style={{ fontSize: '0.9rem' }}>
-                      {option.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              ))}
+              {/* Direita: Filtros */}
+              <div className={classes.rightFilter}>
+                {/* Pipeline Ativa */}
+                <div className={classes.filterItem}>
+                  <Typography className={classes.filterLabel}>Pipeline Ativa</Typography>
+                  <ExpandMoreIcon className={classes.chevronIcon} />
+                </div>
 
-              {actions}
-            </div>
+                {/* Responsável */}
+                <div className={classes.filterItem}>
+                  <Typography className={classes.filterLabel}>Responsável</Typography>
+                  <ExpandMoreIcon className={classes.chevronIcon} />
+                </div>
 
-            {stats.length > 0 && (
-              <div className={classes.statsContainer}>
-                {stats.map((stat, index) => (
-                  <div key={index} className={classes.statItem}>
-                    <div
-                      className={classes.statValue}
-                      style={{ color: stat.color || '#2563eb' }}
-                    >
-                      {stat.value}
-                    </div>
-                    <div className={classes.statLabel}>{stat.label}</div>
-                  </div>
-                ))}
+                {/* Contato/Empresa */}
+                <div className={classes.filterItem}>
+                  <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
+                  <ExpandMoreIcon className={classes.chevronIcon} />
+                </div>
+
+                {/* Grupos */}
+                <div className={classes.filterItem}>
+                  <Typography className={classes.filterLabel}>Grupos</Typography>
+                  <ExpandMoreIcon className={classes.chevronIcon} />
+                </div>
+
+                {/* Período */}
+                <div className={classes.filterItem}>
+                  <CalendarIcon className={classes.calendarIcon} />
+                  <Typography className={classes.filterLabel}>Período</Typography>
+                </div>
+
+                {/* Todos (provavelmente status) */}
+                <div className={classes.filterItem}>
+                  <Typography className={classes.filterLabel}>Todos</Typography>
+                  <ExpandMoreIcon className={classes.chevronIcon} />
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
 

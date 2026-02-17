@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
-import { makeStyles, Paper, Tabs, Tab } from "@material-ui/core";
+import { makeStyles, Paper } from "@material-ui/core";
 
 import TabPanel from "../../components/TabPanel";
 
@@ -17,10 +14,7 @@ import AllConnections from "../AllConnections";
 import QueueIntegration from "../QueueIntegration";
 import Invoices from "../Financeiro";
 import Tags from "../Tags";
-import CompaniesCRM from "../CompaniesCRM";
-import Queues from "../Queues";
 import BirthdaySettings from "../BirthdaySettings";
-import QuickMessages from "../QuickMessages";
 import Announcements from "../Annoucements";
 
 import { i18n } from "../../translate/i18n.js";
@@ -33,6 +27,7 @@ import OnlyForSuperUser from "../../components/OnlyForSuperUser";
 import useCompanySettings from "../../hooks/useSettings/companySettings";
 import useSettings from "../../hooks/useSettings";
 import ForbiddenPage from "../../components/ForbiddenPage/index.js";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -43,11 +38,6 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "visible",
     overflowX: "hidden",
     flex: 1,
-  },
-  tab: {
-    // background: "#f2f5f3",
-    backgroundColor: theme.mode === "light" ? "#f2f2f2" : "#7f7f7f",
-    borderRadius: 4,
   },
   paper: {
     overflowY: "visible",
@@ -130,10 +120,6 @@ const SettingsCustom = () => {
     };
   }, [socket, user]);
 
-  const handleTabChange = (event, newValue) => {
-    setTab(newValue);
-  };
-
   const handleSubmitSchedules = async (data) => {
     setLoading(true);
     try {
@@ -150,54 +136,38 @@ const SettingsCustom = () => {
     return currentUser && currentUser.super;
   };
 
+  // Construct viewModes (Tabs)
+  const settingsTabs = [
+    { value: "options", label: i18n.t("settings.tabs.options") },
+    ...(schedulesEnabled ? [{ value: "schedules", label: "Horários" }] : []),
+    ...(user.profile === "admin" && user.finalizacaoComValorVendaAtiva ? [{ value: "finalizacao", label: "Finalização do Atendimento" }] : []),
+    ...(isSuper() ? [{ value: "companies", label: i18n.t("settings.tabs.companies") }] : []),
+    ...(isSuper() ? [{ value: "plans", label: i18n.t("settings.tabs.plans") }] : []),
+    ...(isSuper() ? [{ value: "whitelabel", label: "Identidade Visual" }] : []),
+    { value: "users", label: "Usuários" },
+    { value: "connections", label: "Gerenciar Conexões" },
+    { value: "integrations", label: "Integrações" },
+    { value: "financeiro", label: "Financeiro" },
+    { value: "tags", label: "Tags" },
+    { value: "birthday", label: "Config. Aniversário" },
+    { value: "announcements", label: "Informativos" },
+  ];
+
   return (
-    <MainContainer className={classes.root}>
+    <>
       {user.profile === "user" ? (
         <ForbiddenPage />
       ) : (
-        <>
-          <MainHeader>
-            <Title>{i18n.t("settings.title")}</Title>
-          </MainHeader>
-          <Paper className={classes.mainPaper} elevation={1}>
-            <Tabs
-              value={tab}
-              indicatorColor="primary"
-              textColor="primary"
-              scrollButtons="on"
-              variant="scrollable"
-              onChange={handleTabChange}
-              className={classes.tab}
-            >
-              <Tab label={i18n.t("settings.tabs.options")} value={"options"} />
-              {schedulesEnabled && <Tab label="Horários" value={"schedules"} />}
-              {user.profile === "admin" &&
-                user.finalizacaoComValorVendaAtiva && (
-                  <Tab
-                    label="Finalização do Atendimento"
-                    value={"finalizacao"}
-                  />
-                )}
-              {isSuper() ? (
-                <Tab
-                  label={i18n.t("settings.tabs.companies")}
-                  value={"companies"}
-                />
-              ) : null}
-              {isSuper() ? (
-                <Tab label={i18n.t("settings.tabs.plans")} value={"plans"} />
-              ) : null}
-              {isSuper() ? (
-                        <Tab label="Identidade Visual" value={"whitelabel"} />
-                      ) : null}
-                      <Tab label="Usuários" value={"users"} />
-                      <Tab label="Gerenciar Conexões" value={"connections"} />
-                      <Tab label="Integrações" value={"integrations"} />
-                      <Tab label="Financeiro" value={"financeiro"} />
-                      <Tab label="Tags" value={"tags"} />
-                      <Tab label="Config. Aniversário" value={"birthday"} />
-                      <Tab label="Informativos" value={"announcements"} />
-                    </Tabs>
+        <ActivitiesStyleLayout
+          title={i18n.t("settings.title")}
+          viewModes={settingsTabs}
+          currentViewMode={tab}
+          onViewModeChange={setTab}
+          searchPlaceholder="Buscar configurações..."
+          disableFilterBar={true}
+          hideSearch={true}
+          enableTabsScroll={true}
+        >
             <Paper className={classes.paper} elevation={0}>
               <TabPanel
                 className={classes.container}
@@ -315,10 +285,9 @@ const SettingsCustom = () => {
                 <Announcements renderAsTab={true} />
               </TabPanel>
             </Paper>
-          </Paper>
-        </>
+        </ActivitiesStyleLayout>
       )}
-    </MainContainer>
+    </>
   );
 };
 
