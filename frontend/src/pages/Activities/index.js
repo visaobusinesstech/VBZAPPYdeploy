@@ -159,6 +159,32 @@ const ActivitiesCalendar = ({ activities }) => {
     }));
   }, [activities]);
 
+  const eventPropGetter = (event) => {
+    const now = new Date();
+    const start = new Date(event.start);
+    // Remove hora para comparar apenas datas
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const eventDate = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    
+    const isPast = eventDate < today;
+    const isToday = eventDate.getTime() === today.getTime();
+    const status = event.resource.status;
+
+    let backgroundColor = '#2563eb'; // Azul padrão (pendente/futuro)
+
+    if (status === 'completed' || status === 'Concluído') {
+      backgroundColor = '#10B981'; // Verde (Concluído)
+    } else if (isPast) {
+      backgroundColor = '#EF4444'; // Vermelho (Vencido)
+    } else if (isToday) {
+      backgroundColor = '#F59E0B'; // Laranja (Vence hoje)
+    } else if (status === 'in_progress' || status === 'Em Progresso') {
+      backgroundColor = '#3B82F6'; // Azul (Em progresso)
+    }
+
+    return { style: { backgroundColor, borderRadius: '4px', opacity: 0.8, color: 'white', border: '0px', display: 'block' } };
+  };
+
   return (
     <div style={{ height: 'calc(100vh - 200px)', backgroundColor: '#fff', padding: 16 }}>
       <Calendar
@@ -167,6 +193,7 @@ const ActivitiesCalendar = ({ activities }) => {
         startAccessor="start"
         endAccessor="end"
         style={{ height: '100%' }}
+        eventPropGetter={eventPropGetter}
         messages={{
           next: "Próximo",
           previous: "Anterior",

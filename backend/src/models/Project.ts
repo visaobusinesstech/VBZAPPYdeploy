@@ -8,36 +8,31 @@ import {
   AutoIncrement,
   DataType,
   ForeignKey,
-  BelongsTo
+  BelongsTo,
+  HasMany
 } from "sequelize-typescript";
 import Company from "./Company";
 import User from "./User";
-import Project from "./Project";
+import Activity from "./Activity";
 
 @Table
-class Activity extends Model<Activity> {
+class Project extends Model<Project> {
   @PrimaryKey
   @AutoIncrement
   @Column
   id: number;
 
   @Column
-  title: string;
+  name: string;
 
   @Column(DataType.TEXT)
   description: string;
 
   @Column
-  type: string;
-
-  @Column
   status: string;
 
   @Column
-  date: Date;
-
-  @Column
-  owner: string;
+  progress: number;
 
   @ForeignKey(() => Company)
   @Column
@@ -53,12 +48,8 @@ class Activity extends Model<Activity> {
   @BelongsTo(() => User)
   user: User;
 
-  @ForeignKey(() => Project)
-  @Column
-  projectId: number;
-
-  @BelongsTo(() => Project)
-  project: Project;
+  @HasMany(() => Activity)
+  activities: Activity[];
 
   @CreatedAt
   createdAt: Date;
@@ -67,5 +58,4 @@ class Activity extends Model<Activity> {
   updatedAt: Date;
 }
 
-export default Activity;
-
+export default Project;

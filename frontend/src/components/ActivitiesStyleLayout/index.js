@@ -49,6 +49,7 @@ const useStyles = makeStyles((theme) => ({
     paddingBottom: theme.spacing(0.75),
     paddingLeft: theme.spacing(1.5),
     paddingRight: theme.spacing(1.5),
+    borderBottom: '1px solid #E5E7EB', // Added divider
   },
   tabsContainer: {
     display: 'flex',
@@ -132,11 +133,12 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '12px 24px',
+    padding: '8px 24px',
     backgroundColor: '#FFFFFF',
-    borderBottom: '1px solid #E5E7EB',
-    height: 60,
-    boxSizing: 'border-box'
+    // borderBottom: '1px solid #E5E7EB', // Removed
+    height: 48,
+    boxSizing: 'border-box',
+    width: '100%'
   },
   leftFilter: {
     display: 'flex',
@@ -162,14 +164,14 @@ const useStyles = makeStyles((theme) => ({
   rightFilter: {
     display: 'flex',
     alignItems: 'center',
-    gap: 24 // Spacing between filter groups
+    gap: 16 // Spacing between filter groups
   },
   filterItem: {
     display: 'flex',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     cursor: 'pointer',
-    padding: '6px 8px',
+    padding: '2px 6px',
     borderRadius: 6,
     transition: 'background-color 0.2s',
     '&:hover': {
@@ -177,18 +179,18 @@ const useStyles = makeStyles((theme) => ({
     }
   },
   filterLabel: {
-    fontSize: '0.875rem', // 14px
+    fontSize: '0.75rem', // 12px
     color: '#374151', // gray-700
     fontWeight: 500, // Medium
     lineHeight: '20px'
   },
   chevronIcon: {
     color: '#9CA3AF', // gray-400
-    fontSize: 16
+    fontSize: 14
   },
   calendarIcon: {
     color: '#9CA3AF', // gray-400
-    fontSize: 18,
+    fontSize: 14,
     marginRight: 2
   },
   viewModeGroup: {
@@ -251,6 +253,8 @@ const ActivitiesStyleLayout = ({
 }) => {
   const classes = useStyles();
   const tabsRef = React.useRef(null);
+  const context = useContext(DrawerContext);
+  const { drawerOpen, setDrawerOpen } = context || {};
 
   const handleScroll = (direction) => {
     if (tabsRef.current) {
@@ -270,9 +274,9 @@ const ActivitiesStyleLayout = ({
                 <IconButton 
                   size="small" 
                   onClick={() => setDrawerOpen(true)}
-                  style={{ marginRight: 8, color: '#64748b' }}
+                  style={{ marginRight: 8, color: '#000000', opacity: 1, padding: 4 }}
                 >
-                  <MenuIcon fontSize="small" />
+                  <MenuIcon style={{ fontSize: 20 }} />
                 </IconButton>
               )}
 
@@ -367,12 +371,6 @@ const ActivitiesStyleLayout = ({
                 {/* Contato/Empresa */}
                 <div className={classes.filterItem}>
                   <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
-                  <ExpandMoreIcon className={classes.chevronIcon} />
-                </div>
-
-                {/* Grupos */}
-                <div className={classes.filterItem}>
-                  <Typography className={classes.filterLabel}>Grupos</Typography>
                   <ExpandMoreIcon className={classes.chevronIcon} />
                 </div>
 

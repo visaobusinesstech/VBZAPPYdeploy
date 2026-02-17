@@ -904,7 +904,8 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
   }
 
   return (
-    <div className={clsx(classes.root, "logged-in-layout")}>
+    <DrawerContext.Provider value={{ drawerOpen, setDrawerOpen }}>
+      <div className={clsx(classes.root, "logged-in-layout")}>
       {!hideMenu && (
         <Drawer
           variant={drawerVariant}
@@ -1239,7 +1240,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
         user={user}
       />
 
-      </div>
+    </div>
     </DrawerContext.Provider>
   );
 };
