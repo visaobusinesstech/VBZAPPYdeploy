@@ -165,14 +165,27 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
 
       <Typography className={classes.sectionTitle}>Informações da Atividade</Typography>
       <div className={classes.infoRow} style={{ gridTemplateColumns: companyPresent ? '1fr 1fr' : '1fr 2fr' }}>
-        <Paper className={classes.infoCardPurple} elevation={0} style={!companyPresent ? { minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' } : undefined}>
-          <Typography variant="overline" style={{ opacity: 0.9 }}>EMPRESA/CLIENTE</Typography>
-          {companyPresent ? (
-            <Typography variant="subtitle2" style={{ marginTop: 6 }}>
-              {activity.company}
-            </Typography>
-          ) : (
-            <div style={{ marginTop: 6, width: 14, height: 14, borderRadius: 4, backgroundColor: '#DDD6FE' }} />
+        <Paper
+          className={classes.infoCardPurple}
+          elevation={0}
+          style={
+            !companyPresent
+              ? {
+                  minHeight: 48,
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-start'
+                }
+              : undefined
+          }
+        >
+          <Typography variant="overline" style={{ opacity: 0.9, marginBottom: companyPresent ? 6 : 0 }}>
+            EMPRESA/CLIENTE
+          </Typography>
+          {companyPresent && (
+            <Typography variant="subtitle2">{activity.company}</Typography>
           )}
         </Paper>
         <Paper className={classes.infoCardOrange} elevation={0}>

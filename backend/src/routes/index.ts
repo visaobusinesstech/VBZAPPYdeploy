@@ -53,6 +53,7 @@ import metaRoutes from "./metaRoutes";
 import activityRoutes from "./activityRoutes";
 import projectRoutes from "./projectRoutes";
 import convertedLeadRoutes from "./convertedLeadRoutes";
+import leadsSalesRoutes from "./leadsSalesRoutes";
 
 import ChatController from "../controllers/ChatController";
 
@@ -113,6 +114,7 @@ routes.use(companyKanbanRoutes);
 routes.use(activityRoutes);
 routes.use(projectRoutes);
 routes.use(convertedLeadRoutes);
+routes.use(leadsSalesRoutes);
 
 routes.post("/chats/backfill", ChatController.backfillChats);
 

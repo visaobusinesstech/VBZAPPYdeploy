@@ -1,51 +1,73 @@
-import React, { useState, useEffect } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { makeStyles } from "@material-ui/core/styles";
-import { useTranslation } from "react-i18next";
 import {
-  Dashboard as DashboardIcon,
   List as ListIcon,
   CalendarToday as CalendarIcon,
+  ViewWeek as KanbanIcon
 } from "@material-ui/icons";
-import KanbanIcon from "@mui/icons-material/ViewKanban";
-
-import MainContainer from "../../components/MainContainer";
-import InternalNavbar from "../../components/InternalNavbar";
-import MainHeader from "../../components/MainHeader";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import Title from "../../components/Title";
-import { Button, CircularProgress } from "@material-ui/core";
-import api from "../../services/api";
-import { toast } from "react-toastify";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import {
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  Grid,
+  TextField,
+  Popover,
+  Button,
+  Typography
+} from "@material-ui/core";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import useLeadsSales from "../../hooks/useLeadsSales";
+import toastError from "../../errors/toastError";
+import api from "../../services/api";
+import CreateLeadSaleModal from "../../components/CreateLeadSaleModal";
+import { AuthContext } from "../../context/Auth/AuthContext";
+import Autocomplete from "@material-ui/lab/Autocomplete";
 
-// Placeholders for views
-import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
+const useStyles = makeStyles((theme) => ({
+  root: {
+    flexGrow: 1,
+    height: "100%",
+    overflow: "hidden",
+  },
+  popoverContent: {
+    padding: theme.spacing(2),
+    maxWidth: 360
+  },
+  popoverGrid: {
+    width: 320
+  }
+}));
 
-const LeadsBoard = ({ data, loading }) => {
-  if (loading) return <CircularProgress />;
-  
+const BoardPlaceholder = ({ leads }) => {
+  const columns = [
+    { key: "novo", label: "Novo Lead" },
+    { key: "qualificacao", label: "Qualificação" },
+    { key: "proposta", label: "Proposta" },
+    { key: "negociacao", label: "Negociação" },
+    { key: "fechado", label: "Fechado" }
+  ];
   return (
     <Grid container spacing={2} style={{ height: '100%', overflowX: 'auto', flexWrap: 'nowrap' }}>
-      {['Novo Lead', 'Qualificação', 'Proposta', 'Negociação', 'Fechado'].map((status) => (
-        <Grid item xs={12} sm={6} md={4} key={status} style={{ minWidth: 300 }}>
-          <Paper style={{ height: '100%', padding: 16, backgroundColor: '#f5f5f5' }}>
-            <Typography variant="h6" gutterBottom style={{ color: '#333' }}>
-              {status}
+      {columns.map((col) => (
+        <Grid item xs={12} sm={6} md={4} key={col.key} style={{ minWidth: 300 }}>
+          <Paper style={{ height: '100%', padding: 16, backgroundColor: '#fff' }}>
+            <Typography variant="subtitle1" style={{ color: '#111827', fontWeight: 600 }}>
+              {col.label}
             </Typography>
-            {data && data.length > 0 ? (
-                data.filter(item => item.status === status).map(item => (
-                    <Card key={item.id} style={{ marginBottom: 8 }}>
-                        <CardContent>
-                        <Typography variant="subtitle1">{item.title || "Sem nome"}</Typography>
-                        <Typography variant="body2" color="textSecondary">{item.value || "R$ 0,00"}</Typography>
-                        </CardContent>
-                    </Card>
-                ))
-            ) : (
-                <div style={{ padding: 10, textAlign: "center", color: "#999" }}>
-                    Vazio
-                </div>
-            )}
+            <div style={{ marginTop: 8 }}>
+              {(leads || []).filter(l => String(l.status || '').toLowerCase() === col.key).map(l => (
+                <Paper key={l.id} style={{ padding: 8, marginBottom: 8, borderRadius: 8, border: "1px solid #e5e7eb" }} variant="outlined">
+                  <Typography variant="body2" style={{ fontWeight: 500 }}>{l.name || "Sem nome"}</Typography>
+                  <Typography variant="caption" color="textSecondary">{l.value ? `R$ ${Number(l.value).toLocaleString()}` : "—"}</Typography>
+                </Paper>
+              ))}
+            </div>
           </Paper>
         </Grid>
       ))}
@@ -53,144 +75,325 @@ const LeadsBoard = ({ data, loading }) => {
   );
 };
 
-const LeadsList = ({ data, loading }) => {
-    if (loading) return <CircularProgress />;
-    
-    return (
-        <TableContainer component={Paper}>
-            <Table>
-            <TableHead>
-                <TableRow>
-                <TableCell>Lead</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Valor</TableCell>
-                <TableCell>Contato</TableCell>
-                </TableRow>
-            </TableHead>
-            <TableBody>
-                {data && data.length > 0 ? (
-                    data.map((item) => (
-                        <TableRow key={item.id}>
-                            <TableCell>{item.title}</TableCell>
-                            <TableCell>{item.status}</TableCell>
-                            <TableCell>{item.value}</TableCell>
-                            <TableCell>{item.contact}</TableCell>
-                        </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={4} align="center">Nenhum lead encontrado</TableCell>
-                    </TableRow>
-                )}
-            </TableBody>
-            </Table>
-        </TableContainer>
-    );
+const LeadsList = ({ leads }) => {
+  return (
+    <TableContainer component={Paper} style={{ height: '100%', overflow: 'auto' }}>
+      <Table stickyHeader aria-label="leads table">
+        <TableHead>
+          <TableRow>
+            <TableCell>Lead</TableCell>
+            <TableCell>Status</TableCell>
+            <TableCell>Valor</TableCell>
+            <TableCell>Contato</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {Array.isArray(leads) && leads.length > 0 ? (
+            leads.map((item) => (
+              <TableRow key={item.id}>
+                <TableCell component="th" scope="row">
+                  {item.name}
+                </TableCell>
+                <TableCell>
+                  <Chip 
+                    label={String(item.status || "").toUpperCase()} 
+                    size="small" 
+                    color={String(item.status).toLowerCase() === 'fechado' ? 'primary' : 'default'} 
+                  />
+                </TableCell>
+                <TableCell>{item.value ? `R$ ${Number(item.value).toLocaleString()}` : "—"}</TableCell>
+                <TableCell>{item.contact?.name || item.contactId || "—"}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={4} align="center">
+                Nenhum lead encontrado
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 };
-
-const LeadsCalendar = ({ data }) => (
-  <Paper style={{ padding: 16, height: '100%' }}>
-    <Typography variant="h6">Calendário de Vendas</Typography>
-    <div style={{ marginTop: 20, textAlign: 'center', color: '#666' }}>
-      Componente de calendário será integrado aqui.
-      {data && data.length > 0 && <div>{data.length} leads carregados.</div>}
-    </div>
-  </Paper>
-);
-
-const LeadsDashboard = ({ count }) => (
-  <Grid container spacing={3}>
-    <Grid item xs={12} sm={4}>
-      <Paper style={{ padding: 16, textAlign: 'center' }}>
-        <Typography variant="h4" color="primary">{count || 0}</Typography>
-        <Typography variant="subtitle1">Total de Leads</Typography>
-      </Paper>
-    </Grid>
-    <Grid item xs={12} sm={4}>
-      <Paper style={{ padding: 16, textAlign: 'center' }}>
-        <Typography variant="h4" style={{ color: '#f50057' }}>R$ 0,00</Typography>
-        <Typography variant="subtitle1">Valor em Pipeline</Typography>
-      </Paper>
-    </Grid>
-    <Grid item xs={12} sm={4}>
-      <Paper style={{ padding: 16, textAlign: 'center' }}>
-        <Typography variant="h4" style={{ color: '#4caf50' }}>0</Typography>
-        <Typography variant="subtitle1">Conversões</Typography>
-      </Paper>
-    </Grid>
-  </Grid>
-);
-
-const useStyles = makeStyles((theme) => ({
-  root: {
-    display: "flex",
-    flexDirection: "column",
-    height: "100%",
-    padding: theme.spacing(2),
-  },
-  content: {
-    flex: 1,
-    marginTop: theme.spacing(2),
-    overflowY: "auto",
-  },
-}));
 
 const LeadsSales = () => {
   const classes = useStyles();
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState("board");
-  
-  const { leadsSales, loading, count } = useLeadsSales({
-      pageNumber: 1,
-      searchParam: ""
+  const [viewMode, setViewMode] = useState("board");
+  const [searchParam, setSearchParam] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [status, setStatus] = useState("");
+  const [responsible, setResponsible] = useState(null);
+  const [contact, setContact] = useState(null);
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [leadsState, setLeadsState] = useState([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [contactsList, setContactsList] = useState([]);
+  const [usersList, setUsersList] = useState([]);
+  const { user, socket } = useContext(AuthContext);
+
+  const [anchorResp, setAnchorResp] = useState(null);
+  const [anchorContact, setAnchorContact] = useState(null);
+  const [anchorPeriodo, setAnchorPeriodo] = useState(null);
+  const [anchorTodos, setAnchorTodos] = useState(null);
+
+  useEffect(() => {
+    async function fetchFilters() {
+      try {
+        const { data: contactsData } = await api.get("/contacts/list");
+        setContactsList(contactsData || []);
+        const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
+        setUsersList(usersResp?.users || []);
+      } catch (err) {
+        // ignore errors in filters
+      }
+    }
+    fetchFilters();
+  }, []);
+
+  const { leadsSales, loading, count, hasMore } = useLeadsSales({
+    pageNumber,
+    searchParam,
+    status,
+    responsibleId: responsible?.id,
+    contactId: contact?.id,
+    dateStart,
+    dateEnd
   });
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
+  useEffect(() => {
+    setLeadsState(leadsSales || []);
+  }, [leadsSales]);
 
-  const tabs = [
-    { label: "Dashboard", value: "dashboard", icon: <DashboardIcon /> },
-    { label: "Kanban", value: "board", icon: <KanbanIcon /> },
-    { label: "Lista", value: "list", icon: <ListIcon /> },
-    { label: "Calendário", value: "calendar", icon: <CalendarIcon /> },
+  useEffect(() => {
+    if (!socket || !user || !user.companyId) return;
+    const onLeadEvent = (data) => {
+      if (data?.action === "create" || data?.action === "update") {
+        setLeadsState((prev) => {
+          const idx = prev.findIndex((x) => String(x.id) === String(data.lead.id));
+          if (idx >= 0) {
+            const clone = [...prev];
+            clone[idx] = data.lead;
+            return clone;
+          }
+          return [data.lead, ...prev.filter(x => String(x.id) !== String(data.lead.id))];
+        });
+      }
+      if (data?.action === "delete") {
+        setLeadsState((prev) => prev.filter(x => String(x.id) !== String(data.id)));
+      }
+    };
+    socket.on(`company-${user.companyId}-leads-sales`, onLeadEvent);
+    return () => {
+      socket.off(`company-${user.companyId}-leads-sales`, onLeadEvent);
+    };
+  }, [socket, user]);
+
+  const viewModes = [
+    { value: "board", label: "Quadro", icon: <KanbanIcon /> },
+    { value: "list", label: "Lista", icon: <ListIcon /> },
+    { value: "calendar", label: "Calendário", icon: <CalendarIcon /> },
   ];
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return <LeadsDashboard count={count} />;
-      case "board":
-        return <LeadsBoard data={leadsSales} loading={loading} />;
-      case "list":
-        return <LeadsList data={leadsSales} loading={loading} />;
-      case "calendar":
-        return <LeadsCalendar data={leadsSales} />;
-      default:
-        return <LeadsBoard data={leadsSales} loading={loading} />;
-    }
-  };
+  const handleSearch = (value) => setSearchParam(value);
+
+  const rightFilters = ({ classes: layout }) => (
+    <>
+      <div className={layout.filterItem}>
+        <Typography className={layout.filterLabel}>Pipeline</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <div className={layout.filterItem} onClick={(e) => setAnchorResp(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Responsável</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorResp)}
+        anchorEl={anchorResp}
+        onClose={() => setAnchorResp(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div className={classes.popoverContent}>
+          <Autocomplete
+            fullWidth
+            value={responsible}
+            options={usersList}
+            onChange={(e, val) => setResponsible(val)}
+            getOptionLabel={(option) => option.name}
+            renderInput={(params) => <TextField {...params} label="Responsável" variant="outlined" />}
+          />
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setResponsible(null)}>Limpar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorContact(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Contato/Empresa</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorContact)}
+        anchorEl={anchorContact}
+        onClose={() => setAnchorContact(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div className={classes.popoverContent}>
+          <Autocomplete
+            fullWidth
+            value={contact}
+            options={contactsList}
+            onChange={(e, val) => setContact(val)}
+            getOptionLabel={(option) => option.name || option.number || String(option.id)}
+            renderInput={(params) => <TextField {...params} label="Contato/Empresa" variant="outlined" />}
+          />
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setContact(null)}>Limpar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorPeriodo(e.currentTarget)}>
+        <CalendarIcon className={layout.calendarIcon} />
+        <Typography className={layout.filterLabel}>Período</Typography>
+      </div>
+      <Popover
+        open={Boolean(anchorPeriodo)}
+        anchorEl={anchorPeriodo}
+        onClose={() => setAnchorPeriodo(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div className={classes.popoverContent}>
+          <Grid container spacing={2} className={classes.popoverGrid}>
+            <Grid item xs={6}>
+              <TextField
+                label="Início"
+                type="date"
+                variant="outlined"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Fim"
+                type="date"
+                variant="outlined"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
+              />
+            </Grid>
+          </Grid>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <Button onClick={() => { setDateStart(""); setDateEnd(""); }}>Limpar</Button>
+            <Button color="primary" variant="contained" onClick={() => setAnchorPeriodo(null)}>Aplicar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorTodos(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Todos</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorTodos)}
+        anchorEl={anchorTodos}
+        onClose={() => setAnchorTodos(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div className={classes.popoverContent}>
+          <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Período rápido</Typography>
+          <Grid container spacing={1}>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(end.getDate() - 7);
+                setDateStart(start.toISOString().slice(0,10));
+                setDateEnd(end.toISOString().slice(0,10));
+                setAnchorTodos(null);
+              }}>Últimos 7 dias</Button>
+            </Grid>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                const end = new Date();
+                const start = new Date();
+                start.setMonth(end.getMonth() - 1);
+                setDateStart(start.toISOString().slice(0,10));
+                setDateEnd(end.toISOString().slice(0,10));
+                setAnchorTodos(null);
+              }}>Último mês</Button>
+            </Grid>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                setDateStart("");
+                setDateEnd("");
+                setResponsible(null);
+                setContact(null);
+                setStatus("");
+                setAnchorTodos(null);
+              }}>Todos os registros</Button>
+            </Grid>
+          </Grid>
+        </div>
+      </Popover>
+    </>
+  );
 
   return (
-    <MainContainer>
-      <MainHeader>
-        <Title>Leads e Vendas</Title>
-        <MainHeaderButtonsWrapper>
-          <Button variant="contained" color="primary">Novo Lead</Button>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
-      
-      <div className={classes.root}>
-        <InternalNavbar
-          tabs={tabs}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-        />
-        <div className={classes.content}>
-          {renderContent()}
-        </div>
-      </div>
-    </MainContainer>
+    <>
+      <ActivitiesStyleLayout
+        title={null}
+        description="Leads e Vendas"
+        onCreateClick={() => { setEditing(null); setDrawerOpen(true); }}
+        searchPlaceholder="Buscar leads..."
+        searchValue={searchParam}
+        onSearchChange={handleSearch}
+        stats={[]}
+        viewModes={viewModes}
+        currentViewMode={viewMode}
+        onViewModeChange={setViewMode}
+        rightFilters={rightFilters}
+      >
+        {loading ? (
+          <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
+        ) : (
+          <>
+            {viewMode === "list" && <LeadsList leads={leadsState} />}
+            {viewMode === "calendar" && (
+              <Paper style={{ padding: 16, height: '100%' }}>
+                <Typography variant="h6">Calendário</Typography>
+                <div style={{ marginTop: 20, textAlign: 'center', color: '#666' }}>
+                  Em breve: integração com calendário
+                </div>
+              </Paper>
+            )}
+            {viewMode === "board" && <BoardPlaceholder leads={leadsState} />}
+          </>
+        )}
+      </ActivitiesStyleLayout>
+
+      <CreateLeadSaleModal
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        lead={editing}
+        onSave={(saved) => {
+          setLeadsState((prev) => {
+            const id = Number(saved.id);
+            const exists = prev.some(p => Number(p.id) === id);
+            return exists ? prev.map(p => Number(p.id) === id ? saved : p) : [saved, ...prev];
+          });
+          setEditing(null);
+        }}
+      />
+    </>
   );
 };
 

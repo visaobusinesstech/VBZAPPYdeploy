@@ -66,6 +66,7 @@ import MessageApi from "../models/MessageApi";
 import Activity from "../models/Activity";
 import Project from "../models/Project";
 import ConvertedLead from "../models/ConvertedLead";
+import LeadSale from "../models/LeadSale";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -139,7 +140,8 @@ const models = [
   MessageApi,
   Activity,
   Project,
-  ConvertedLead
+  ConvertedLead,
+  LeadSale
 ];
 
 sequelize.addModels(models);

@@ -1,0 +1,109 @@
+import { Request, Response } from "express";
+import { getIO } from "../libs/socket";
+import ListService from "../services/LeadSalesServices/ListService";
+import CreateService from "../services/LeadSalesServices/CreateService";
+import UpdateService from "../services/LeadSalesServices/UpdateService";
+import ShowService from "../services/LeadSalesServices/ShowService";
+import DeleteService from "../services/LeadSalesServices/DeleteService";
+
+type IndexQuery = {
+  searchParam?: string;
+  pageNumber?: string;
+  status?: string;
+  responsibleId?: string;
+  contactId?: string;
+  dateStart?: string;
+  dateEnd?: string;
+};
+
+export const index = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { searchParam, pageNumber, status, responsibleId, contactId, dateStart, dateEnd } =
+    req.query as IndexQuery;
+
+  const { leads, count, hasMore } = await ListService({
+    searchParam,
+    pageNumber,
+    status,
+    responsibleId,
+    contactId,
+    dateStart,
+    dateEnd,
+    companyId
+  });
+
+  return res.json({ leads, count, hasMore });
+};
+
+export const store = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { name, description, status, value, contactId, responsibleId, date } = req.body;
+
+  const record = await CreateService({
+    name,
+    description,
+    status,
+    value,
+    contactId,
+    responsibleId,
+    date,
+    companyId
+  });
+
+  const io = getIO();
+  io.of(String(companyId)).emit(`company-${companyId}-leads-sales`, {
+    action: "create",
+    lead: record
+  });
+
+  return res.status(201).json(record);
+};
+
+export const update = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { id } = req.params;
+  const { name, description, status, value, contactId, responsibleId, date } = req.body;
+
+  const record = await UpdateService({
+    id,
+    name,
+    description,
+    status,
+    value,
+    contactId,
+    responsibleId,
+    date
+  });
+
+  const io = getIO();
+  io.of(String(companyId)).emit(`company-${companyId}-leads-sales`, {
+    action: "update",
+    lead: record
+  });
+
+  return res.json(record);
+};
+
+export const show = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+
+  const record = await ShowService(id);
+
+  return res.json(record);
+};
+
+export const remove = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { id } = req.params;
+
+  await DeleteService(id);
+
+  const io = getIO();
+  io.of(String(companyId)).emit(`company-${companyId}-leads-sales`, {
+    action: "delete",
+    id
+  });
+
+  return res.status(200).json({ message: "Lead sale deleted" });
+};
+

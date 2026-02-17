@@ -18,8 +18,15 @@ import {
   TableHead,
   TableRow,
   Chip,
-  IconButton
+  IconButton,
+  Popover,
+  Grid,
+  TextField,
+  Button,
+  Typography
 } from "@material-ui/core";
+import Autocomplete from "@material-ui/lab/Autocomplete";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -149,6 +156,16 @@ const Projects = () => {
   const [searchParam, setSearchParam] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
+  const [dateStart, setDateStart] = useState("");
+  const [dateEnd, setDateEnd] = useState("");
+  const [anchorResp, setAnchorResp] = useState(null);
+  const [anchorEmpresa, setAnchorEmpresa] = useState(null);
+  const [anchorPeriodo, setAnchorPeriodo] = useState(null);
+  const [anchorTodos, setAnchorTodos] = useState(null);
+  const [usersList, setUsersList] = useState([]);
+  const [contactsList, setContactsList] = useState([]);
+  const [selectedResponsible, setSelectedResponsible] = useState(null);
+  const [selectedCompany, setSelectedCompany] = useState(null);
   const [projectsState, setProjectsState] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -211,6 +228,19 @@ const Projects = () => {
 
   // Fullscreen logic (mesma de Activities)
   useEffect(() => {
+    // carregar opções de filtros (Responsável/Empresa)
+    async function fetchFilters() {
+      try {
+        const { data: usersResp } = await projectsService.getUsers ? await projectsService.getUsers() : { data: [] };
+        if (Array.isArray(usersResp)) setUsersList(usersResp);
+      } catch (_) {}
+      try {
+        // não existe um service específico de contatos aqui; manter vazio por ora
+        setContactsList([]);
+      } catch (_) {}
+    }
+    fetchFilters();
+
     const onFsChange = () => {
       const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
       setIsFullscreen(!!fsEl && (fsEl === kanbanRef.current));
@@ -264,6 +294,148 @@ const Projects = () => {
     </>
   );
 
+  const rightFilters = ({ classes: layout }) => (
+    <>
+      <div className={layout.filterItem} onClick={(e) => setAnchorResp(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Responsável</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorResp)}
+        anchorEl={anchorResp}
+        onClose={() => setAnchorResp(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div style={{ padding: 16, width: 320 }}>
+          <Autocomplete
+            fullWidth
+            value={selectedResponsible}
+            options={usersList}
+            onChange={(e, val) => setSelectedResponsible(val)}
+            getOptionLabel={(option) => option.name || option.email || String(option.id)}
+            renderInput={(params) => <TextField {...params} label="Responsável" variant="outlined" />}
+          />
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setSelectedResponsible(null)}>Limpar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorEmpresa(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Empresa</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorEmpresa)}
+        anchorEl={anchorEmpresa}
+        onClose={() => setAnchorEmpresa(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div style={{ padding: 16, width: 320 }}>
+          <Autocomplete
+            fullWidth
+            value={selectedCompany}
+            options={contactsList}
+            onChange={(e, val) => setSelectedCompany(val)}
+            getOptionLabel={(option) => option.name || option.number || String(option.id)}
+            renderInput={(params) => <TextField {...params} label="Empresa" variant="outlined" />}
+          />
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
+            <Button onClick={() => setSelectedCompany(null)}>Limpar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorPeriodo(e.currentTarget)}>
+        <CalendarIcon className={layout.calendarIcon} />
+        <Typography className={layout.filterLabel}>Período</Typography>
+      </div>
+      <Popover
+        open={Boolean(anchorPeriodo)}
+        anchorEl={anchorPeriodo}
+        onClose={() => setAnchorPeriodo(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div style={{ padding: 16, width: 320 }}>
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <TextField
+                label="Início"
+                type="date"
+                variant="outlined"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dateStart}
+                onChange={(e) => setDateStart(e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField
+                label="Fim"
+                type="date"
+                variant="outlined"
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                value={dateEnd}
+                onChange={(e) => setDateEnd(e.target.value)}
+              />
+            </Grid>
+          </Grid>
+          <div style={{ marginTop: 8, display: 'flex', justifyContent: 'space-between' }}>
+            <Button onClick={() => { setDateStart(""); setDateEnd(""); }}>Limpar</Button>
+            <Button color="primary" variant="contained" onClick={() => setAnchorPeriodo(null)}>Aplicar</Button>
+          </div>
+        </div>
+      </Popover>
+
+      <div className={layout.filterItem} onClick={(e) => setAnchorTodos(e.currentTarget)}>
+        <Typography className={layout.filterLabel}>Todos</Typography>
+        <ExpandMoreIcon className={layout.chevronIcon} />
+      </div>
+      <Popover
+        open={Boolean(anchorTodos)}
+        anchorEl={anchorTodos}
+        onClose={() => setAnchorTodos(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div style={{ padding: 16, width: 320 }}>
+          <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Período rápido</Typography>
+          <Grid container spacing={1}>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                const end = new Date();
+                const start = new Date();
+                start.setDate(end.getDate() - 7);
+                setDateStart(start.toISOString().slice(0,10));
+                setDateEnd(end.toISOString().slice(0,10));
+                setAnchorTodos(null);
+              }}>Últimos 7 dias</Button>
+            </Grid>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                const end = new Date();
+                const start = new Date();
+                start.setMonth(end.getMonth() - 1);
+                setDateStart(start.toISOString().slice(0,10));
+                setDateEnd(end.toISOString().slice(0,10));
+                setAnchorTodos(null);
+              }}>Último mês</Button>
+            </Grid>
+            <Grid item>
+              <Button size="small" onClick={() => {
+                setDateStart("");
+                setDateEnd("");
+                setSelectedResponsible(null);
+                setSelectedCompany(null);
+                setAnchorTodos(null);
+              }}>Todos os registros</Button>
+            </Grid>
+          </Grid>
+        </div>
+      </Popover>
+    </>
+  );
+
   return (
     <>
     <ActivitiesStyleLayout
@@ -279,6 +451,7 @@ const Projects = () => {
       viewModes={viewModes}
       currentViewMode={viewMode}
       onViewModeChange={setViewMode}
+      rightFilters={rightFilters}
     >
       {loading ? (
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>

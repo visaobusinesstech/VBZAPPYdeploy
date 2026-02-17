@@ -162,7 +162,7 @@ const LeadsConvertidos = () => {
     const onLeadEvent = (data) => {
       if (data?.action === "create" || data?.action === "update") {
         setLeads((prev) => {
-          const idx = prev.findIndex((x) => x.id === data.lead.id);
+          const idx = prev.findIndex((x) => String(x.id) === String(data.lead.id));
           if (idx >= 0) {
             const clone = [...prev];
             clone[idx] = data.lead;
@@ -172,7 +172,7 @@ const LeadsConvertidos = () => {
         });
       }
       if (data?.action === "delete") {
-        setLeads((prev) => prev.filter((x) => `${x.id}` !== `${data.id}`));
+        setLeads((prev) => prev.filter((x) => String(x.id) !== String(data.id)));
       }
     };
     socket.on(`company-${user.companyId}-converted-lead`, onLeadEvent);
@@ -397,10 +397,15 @@ const LeadsConvertidos = () => {
           try {
             if (editing?.id) {
               const record = await convertedLeadsService.update(editing.id, payload);
-              setLeads((prev) => prev.map((x) => (x.id === record.id ? record : x)));
+              setLeads((prev) =>
+                prev.map((x) => (String(x.id) === String(record.id) ? record : x))
+              );
             } else {
               const record = await convertedLeadsService.create(payload);
-              setLeads((prev) => [record, ...prev]);
+              setLeads((prev) => {
+                const filtered = prev.filter((x) => String(x.id) !== String(record.id));
+                return [record, ...filtered];
+              });
             }
             setModalOpen(false);
           } catch (err) {
