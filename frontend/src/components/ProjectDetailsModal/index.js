@@ -22,7 +22,7 @@ const useStyles = makeStyles((theme) => ({
     width: 420,
     maxWidth: '100%',
     padding: theme.spacing(2),
-    borderRadius: '16px 0 0 16px',
+    borderRadius: 16,
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2),
     height: 'calc(100% - 32px)',
@@ -122,13 +122,7 @@ const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit }) => {
           <CloseIcon />
         </IconButton>
         <Typography variant="h6">Detalhes do Projeto</Typography>
-        <IconButton 
-          size="small" 
-          style={{ color: '#0D47A1' }}
-          onClick={() => onEdit && onEdit(project)}
-        >
-           <EditIcon />
-        </IconButton>
+        <div style={{ width: 30 }} />
       </Box>
 
       <div className={classes.contentScroll}>

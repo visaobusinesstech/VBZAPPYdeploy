@@ -26,7 +26,12 @@ const useStyles = makeStyles((theme) => ({
     width: 420,
     maxWidth: '100%',
     padding: theme.spacing(2),
-    borderRadius: '16px 0 0 16px'
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: 'calc(100% - 32px)',
+    marginRight: theme.spacing(2),
+    overflow: 'hidden'
   },
   header: {
     display: 'flex',
@@ -46,6 +51,16 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: 'column',
     gap: theme.spacing(2),
     paddingTop: theme.spacing(1),
+    overflowY: 'auto',
+    flex: 1,
+    paddingRight: theme.spacing(1),
+    '&::-webkit-scrollbar': {
+        width: '6px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+        backgroundColor: 'rgba(0,0,0,0.1)',
+        borderRadius: '3px',
+    },
   },
   footer: {
     display: 'flex',
@@ -145,6 +160,7 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
           <CloseIcon />
         </IconButton>
         <Typography variant="h6">{project ? "Editar Projeto" : "Novo Projeto"}</Typography>
+        <div style={{ width: 30 }} />
       </Box>
 
       <form onSubmit={handleSubmit} className={classes.formContainer}>

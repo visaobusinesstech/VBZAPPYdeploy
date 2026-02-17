@@ -138,7 +138,8 @@ const useStyles = makeStyles((theme) => ({
     // borderBottom: '1px solid #E5E7EB', // Removed
     height: 48,
     boxSizing: 'border-box',
-    width: '100%'
+    width: '100%',
+    marginTop: 8 // Added margin top to lower it a bit
   },
   leftFilter: {
     display: 'flex',
@@ -249,7 +250,9 @@ const ActivitiesStyleLayout = ({
   advancedFiltersComponent,
   disableFilterBar = false,
   hideSearch = false,
-  enableTabsScroll = false
+  enableTabsScroll = false,
+  hideNavDivider = false,
+  hideHeaderDivider = false
 }) => {
   const classes = useStyles();
   const tabsRef = React.useRef(null);
@@ -265,18 +268,18 @@ const ActivitiesStyleLayout = ({
 
   return (
     <div className={classes.root}>
-      <div className={classes.header}>
+      <div className={classes.header} style={hideHeaderDivider ? { borderBottom: 'none' } : undefined}>
         <div className={classes.headerContent}>
           {viewModes.length > 0 && (
-            <div className={classes.navRow}>
+            <div className={classes.navRow} style={hideNavDivider ? { borderBottom: 'none' } : undefined}>
               {/* Menu Icon for collapsed state */}
               {!drawerOpen && setDrawerOpen && (
                 <IconButton 
                   size="small" 
                   onClick={() => setDrawerOpen(true)}
-                  style={{ marginRight: 8, color: '#000000', opacity: 1, padding: 4 }}
+                  style={{ marginRight: 8, color: '#000000', opacity: 1, padding: 2, width: 24, height: 24 }}
                 >
-                  <MenuIcon style={{ fontSize: 20 }} />
+                  <MenuIcon style={{ fontSize: 16 }} />
                 </IconButton>
               )}
 
@@ -341,7 +344,7 @@ const ActivitiesStyleLayout = ({
             </div>
           )}
 
-          {!disableFilterBar && (
+          {!disableFilterBar && currentViewMode !== "calendar" && (
             <div className={classes.filterBar}>
               {/* Esquerda: Busca */}
               <div className={classes.leftFilter}>

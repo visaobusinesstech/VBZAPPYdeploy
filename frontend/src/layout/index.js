@@ -234,7 +234,7 @@ const useStyles = makeStyles((theme) => ({
     right: 0,
     left: theme.spacing(7),
     backgroundColor: theme.mode === "light" ? "#f5f5f5" : "#333",
-    borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+    // borderBottom: "1px solid rgba(0, 0, 0, 0.12)", // Removed
     zIndex: theme.zIndex.drawer + 1,
     transition: theme.transitions.create(["width", "margin", "left"], {
       easing: theme.transitions.easing.sharp,

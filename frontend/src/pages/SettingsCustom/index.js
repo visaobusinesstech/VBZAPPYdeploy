@@ -167,6 +167,8 @@ const SettingsCustom = () => {
           disableFilterBar={true}
           hideSearch={true}
           enableTabsScroll={true}
+          hideNavDivider={true}
+          hideHeaderDivider={true}
         >
             <Paper className={classes.paper} elevation={0}>
               <TabPanel

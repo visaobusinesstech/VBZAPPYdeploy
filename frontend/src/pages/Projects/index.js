@@ -6,7 +6,8 @@ import {
   ViewWeek as KanbanIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  ZoomOutMap as ZoomOutMapIcon
 } from "@material-ui/icons";
 import {
   Paper,
@@ -249,7 +250,7 @@ const Projects = () => {
         size="small"
         style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
       >
-        {isFullscreen ? <FullscreenExitIcon style={{ fontSize: 18 }} /> : <FullscreenIcon style={{ fontSize: 18 }} />}
+        {isFullscreen ? <FullscreenExitIcon style={{ fontSize: 18 }} /> : <ZoomOutMapIcon style={{ fontSize: 18 }} />}
       </IconButton>
       <IconButton
         title="Configurações"

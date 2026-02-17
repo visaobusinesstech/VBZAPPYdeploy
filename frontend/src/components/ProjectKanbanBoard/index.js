@@ -35,8 +35,8 @@ const useStyles = makeStyles((theme) => ({
   },
   column: {
     flex: '1 1 240px',
-    maxWidth: '30%', // Ajustado para 3 colunas
-    minWidth: 260,
+    maxWidth: '25%',
+    minWidth: 220,
     backgroundColor: 'transparent',
     borderRadius: 0,
     border: 'none',
@@ -192,18 +192,20 @@ const ProjectKanbanBoard = ({ projects, onProjectClick, onAdd, onMove, onDelete 
   const classes = useStyles();
 
   const columns = [
-    { id: 'active', title: 'Ativos', color: '#2563eb' },          // azul
-    { id: 'completed', title: 'Concluídos', color: '#10B981' },   // verde
-    { id: 'archived', title: 'Arquivados', color: '#9CA3AF' }     // cinza
+    { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+    { id: 'pending', title: 'Pendente', color: '#f59e0b' },
+    { id: 'in_progress', title: 'Em Progresso', color: '#2563eb' },
+    { id: 'completed', title: 'Concluído', color: '#10B981' }
   ];
 
   // Função auxiliar para mapear status do backend para colunas
   const getColumnId = (status) => {
     const s = String(status || '').toLowerCase();
-    if (['active', 'ativo'].includes(s)) return 'active';
+    if (['backlog'].includes(s)) return 'backlog';
+    if (['pending', 'pendente'].includes(s)) return 'pending';
+    if (['in_progress', 'em progresso', 'active', 'ativo'].includes(s)) return 'in_progress';
     if (['completed', 'concluído', 'concluido'].includes(s)) return 'completed';
-    if (['archived', 'arquivado'].includes(s)) return 'archived';
-    return 'active';
+    return 'backlog'; // Default fallback
   };
 
   const getProjectsByColumn = (columnId) => {
