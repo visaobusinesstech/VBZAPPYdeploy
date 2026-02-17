@@ -212,6 +212,20 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete }) =
     return activities.filter(activity => getColumnId(activity.status) === columnId);
   };
 
+  const formatDate = (value) => {
+    if (!value) return 'Sem data';
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return String(value);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    } catch {
+      return String(value);
+    }
+  };
+
   const handleDragEnd = (result) => {
     const { source, destination, draggableId } = result;
     if (!destination) return;
@@ -329,7 +343,7 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete }) =
 
                             <div className={classes.cardFooter}>
                               <Typography variant="caption" className={classes.cardMeta}>
-                                {activity.date || "Sem data"}
+                              {formatDate(activity.date)}
                               </Typography>
                               <span className={classes.cardFooterDot} style={{ backgroundColor: column.color }} />
                             </div>

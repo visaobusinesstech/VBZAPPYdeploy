@@ -108,6 +108,31 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
 
   const progress = activity.progress || 33;
 
+  const formatDate = (value) => {
+    if (!value) return '—';
+    try {
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return String(value);
+      const dd = String(d.getDate()).padStart(2, '0');
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const yyyy = d.getFullYear();
+      return `${dd}/${mm}/${yyyy}`;
+    } catch {
+      return String(value);
+    }
+  };
+
+  const mapType = (t) => {
+    const v = String(t || '').toLowerCase();
+    if (v === 'task') return 'Tarefa';
+    if (v === 'call') return 'Ligação';
+    if (v === 'email') return 'E-mail';
+    if (v === 'meeting') return 'Reunião';
+    return t || '—';
+  };
+
+  const companyPresent = !!(activity.company && String(activity.company).trim().length > 0);
+
   return (
     <Drawer
       anchor="right"
@@ -139,12 +164,16 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
       <Divider />
 
       <Typography className={classes.sectionTitle}>Informações da Atividade</Typography>
-      <div className={classes.infoRow}>
-        <Paper className={classes.infoCardPurple} elevation={0}>
+      <div className={classes.infoRow} style={{ gridTemplateColumns: companyPresent ? '1fr 1fr' : '1fr 2fr' }}>
+        <Paper className={classes.infoCardPurple} elevation={0} style={!companyPresent ? { minHeight: 64, display: 'flex', alignItems: 'center', justifyContent: 'center' } : undefined}>
           <Typography variant="overline" style={{ opacity: 0.9 }}>EMPRESA/CLIENTE</Typography>
-          <Typography variant="subtitle2" style={{ marginTop: 6 }}>
-            {activity.company ? activity.company : 'Não informado'}
-          </Typography>
+          {companyPresent ? (
+            <Typography variant="subtitle2" style={{ marginTop: 6 }}>
+              {activity.company}
+            </Typography>
+          ) : (
+            <div style={{ marginTop: 6, width: 14, height: 14, borderRadius: 4, backgroundColor: '#DDD6FE' }} />
+          )}
         </Paper>
         <Paper className={classes.infoCardOrange} elevation={0}>
           <Typography variant="overline" style={{ opacity: 0.9 }}>PROJETO VINCULADO</Typography>
@@ -163,15 +192,11 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
 
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Tipo de Atividade</Typography>
-        <Typography variant="body2" className={classes.value}>
-          {activity.type || '—'}
-        </Typography>
+        <Typography variant="body2" className={classes.value}>{mapType(activity.type)}</Typography>
       </Box>
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Prazo</Typography>
-        <Typography variant="body2" className={classes.value}>
-          {activity.date || '—'}
-        </Typography>
+        <Typography variant="body2" className={classes.value}>{formatDate(activity.date)}</Typography>
       </Box>
       <Box className={classes.progressRow} mb={2}>
         <Typography variant="caption" className={classes.label} style={{ minWidth: 76 }}>Progresso</Typography>
@@ -185,7 +210,7 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
       <Typography className={classes.sectionTitle}>Informações do Sistema</Typography>
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Criado em</Typography>
-        <Typography variant="body2" className={classes.value}>{activity.createdAt || activity.date || '—'}</Typography>
+        <Typography variant="body2" className={classes.value}>{formatDate(activity.createdAt || activity.date)}</Typography>
       </Box>
       </div>
 
@@ -211,4 +236,3 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
 };
 
 export default ActivityDetailsModal;
-

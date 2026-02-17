@@ -104,6 +104,39 @@ const useStyles = makeStyles((theme) => ({
     gap: theme.spacing(1),
   },
 }));
+// Helpers
+const formatDate = (value) => {
+  if (!value) return '';
+  try {
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+  } catch {
+    return String(value);
+  }
+};
+
+const mapTypeLabel = (type) => {
+  const t = String(type || '').toLowerCase();
+  if (t === 'task') return 'Tarefa';
+  if (t === 'call') return 'Ligação';
+  if (t === 'email') return 'E-mail';
+  if (t === 'meeting') return 'Reunião';
+  return type || '';
+};
+
+const mapStatusLabel = (status) => {
+  const s = String(status || '').toLowerCase();
+  if (s === 'in_progress') return 'Em progresso';
+  if (s === 'pending') return 'Pendente';
+  if (s === 'completed') return 'Concluído';
+  if (s === 'backlog') return 'Backlog';
+  return status || '';
+};
+
 // Sub-component for List View
 const ActivitiesList = ({ activities }) => {
   return (
@@ -124,13 +157,13 @@ const ActivitiesList = ({ activities }) => {
                 <TableCell component="th" scope="row">
                   {activity.title}
                 </TableCell>
-                <TableCell>{activity.type}</TableCell>
-                <TableCell>{activity.date}</TableCell>
+                <TableCell>{mapTypeLabel(activity.type)}</TableCell>
+                <TableCell>{formatDate(activity.date)}</TableCell>
                 <TableCell>
                   <Chip 
-                    label={activity.status} 
+                    label={mapStatusLabel(activity.status)} 
                     size="small" 
-                    color={activity.status === 'completed' ? 'primary' : 'default'} 
+                    color={String(activity.status).toLowerCase() === 'completed' ? 'primary' : 'default'} 
                   />
                 </TableCell>
               </TableRow>

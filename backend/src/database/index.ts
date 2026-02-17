@@ -65,6 +65,7 @@ import CompanyKanbanConfig from "../models/CompanyKanbanConfig";
 import MessageApi from "../models/MessageApi";
 import Activity from "../models/Activity";
 import Project from "../models/Project";
+import ConvertedLead from "../models/ConvertedLead";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -137,7 +138,8 @@ const models = [
   CompanyKanbanConfig,
   MessageApi,
   Activity,
-  Project
+  Project,
+  ConvertedLead
 ];
 
 sequelize.addModels(models);

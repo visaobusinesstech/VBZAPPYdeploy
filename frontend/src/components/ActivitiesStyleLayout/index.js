@@ -252,7 +252,8 @@ const ActivitiesStyleLayout = ({
   hideSearch = false,
   enableTabsScroll = false,
   hideNavDivider = false,
-  hideHeaderDivider = false
+  hideHeaderDivider = false,
+  rightFilters
 }) => {
   const classes = useStyles();
   const tabsRef = React.useRef(null);
@@ -350,7 +351,7 @@ const ActivitiesStyleLayout = ({
               <div className={classes.leftFilter}>
                 <FilterListIcon className={classes.funnelIcon} />
                 <InputBase
-                  placeholder="Filtrar por nome do lead, empresa..."
+                  placeholder={searchPlaceholder}
                   className={classes.filterInput}
                   value={searchValue}
                   onChange={(e) => onSearchChange && onSearchChange(e.target.value)}
@@ -358,37 +359,30 @@ const ActivitiesStyleLayout = ({
               </div>
 
               {/* Direita: Filtros */}
-              <div className={classes.rightFilter}>
-                {/* Pipeline Ativa */}
-                <div className={classes.filterItem}>
-                  <Typography className={classes.filterLabel}>Pipeline Ativa</Typography>
-                  <ExpandMoreIcon className={classes.chevronIcon} />
-                </div>
-
-                {/* Responsável */}
-                <div className={classes.filterItem}>
-                  <Typography className={classes.filterLabel}>Responsável</Typography>
-                  <ExpandMoreIcon className={classes.chevronIcon} />
-                </div>
-
-                {/* Contato/Empresa */}
-                <div className={classes.filterItem}>
-                  <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
-                  <ExpandMoreIcon className={classes.chevronIcon} />
-                </div>
-
-                {/* Período */}
-                <div className={classes.filterItem}>
-                  <CalendarIcon className={classes.calendarIcon} />
-                  <Typography className={classes.filterLabel}>Período</Typography>
-                </div>
-
-                {/* Todos (provavelmente status) */}
-                <div className={classes.filterItem}>
-                  <Typography className={classes.filterLabel}>Todos</Typography>
-                  <ExpandMoreIcon className={classes.chevronIcon} />
-                </div>
-              </div>
+              <div className={classes.rightFilter}>{rightFilters ? (typeof rightFilters === "function" ? rightFilters({ classes }) : rightFilters) : (
+                <>
+                  <div className={classes.filterItem}>
+                    <Typography className={classes.filterLabel}>Pipeline Ativa</Typography>
+                    <ExpandMoreIcon className={classes.chevronIcon} />
+                  </div>
+                  <div className={classes.filterItem}>
+                    <Typography className={classes.filterLabel}>Responsável</Typography>
+                    <ExpandMoreIcon className={classes.chevronIcon} />
+                  </div>
+                  <div className={classes.filterItem}>
+                    <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
+                    <ExpandMoreIcon className={classes.chevronIcon} />
+                  </div>
+                  <div className={classes.filterItem}>
+                    <CalendarIcon className={classes.calendarIcon} />
+                    <Typography className={classes.filterLabel}>Período</Typography>
+                  </div>
+                  <div className={classes.filterItem}>
+                    <Typography className={classes.filterLabel}>Todos</Typography>
+                    <ExpandMoreIcon className={classes.chevronIcon} />
+                  </div>
+                </>
+              )}</div>
             </div>
           )}
         </div>

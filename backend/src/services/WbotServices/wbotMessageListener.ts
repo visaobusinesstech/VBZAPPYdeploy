@@ -98,6 +98,8 @@ import request from "request";
 import { Session } from "../../libs/wbot";
 import { getGroupMetadataCache, groupMetadataCache, updateGroupMetadataCache } from "../../utils/RedisGroupCache";
 import sgpListenerOficial from "../IntegrationsServices/Sgp/sgpListenerOficial";
+import CreateScheduleService from "../ScheduleServices/CreateService";
+import { format } from "date-fns";
 
 let ffmpegPath: string;
 if (os.platform() === "win32") {
@@ -3487,6 +3489,57 @@ const handleOpenAi = async (
   }
   const bodyMessage = getBodyMessage(msg);
   if (!bodyMessage) return;
+  const parseDateTimeFromText = (text: string): { date: Date | null; matched: boolean } => {
+    const t = (text || "").toLowerCase();
+    const hasIntent = /(agendar|agenda|marcar|marque|remarcar|remarque).*(reuni|reunião|reuniao)|\b(reuni|reunião|reuniao)\b/.test(t);
+    const dateMatch = t.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+    if (!hasIntent || !dateMatch) return { date: null, matched: false };
+    const day = parseInt(dateMatch[1], 10);
+    const month = parseInt(dateMatch[2], 10);
+    let year = dateMatch[3] ? parseInt(dateMatch[3], 10) : new Date().getFullYear();
+    if (year < 100) year += 2000;
+    let hours = 9;
+    let minutes = 0;
+    const timeMatch = t.match(/às\s*(\d{1,2})(?::|h)?(\d{2})?|(\d{1,2})\s*h/);
+    if (timeMatch) {
+      if (timeMatch[1]) {
+        hours = parseInt(timeMatch[1], 10);
+        minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+      } else if (timeMatch[3]) {
+        hours = parseInt(timeMatch[3], 10);
+        minutes = 0;
+      }
+    }
+    const dt = new Date(year, month - 1, day, hours, minutes, 0);
+    return { date: isNaN(dt.getTime()) ? null : dt, matched: true };
+  };
+  const parsed = parseDateTimeFromText(bodyMessage);
+  if (parsed.matched && parsed.date) {
+    const when = parsed.date;
+    const schedule = await CreateScheduleService({
+      body: "Reunião com " + (contact.name || "contato"),
+      sendAt: when.toISOString(),
+      contactId: contact.id,
+      companyId: ticket.companyId,
+      userId: ticket.userId || undefined,
+      ticketUserId: ticket.userId || undefined,
+      queueId: ticket.queueId || undefined,
+      openTicket: "disabled",
+      statusTicket: "closed",
+      whatsappId: ticket.whatsappId || undefined
+    });
+    const text = `Reunião agendada com sucesso para ${format(when, "dd/MM/yyyy")} às ${format(when, "HH:mm")}.`;
+    const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+      text
+    });
+    await verifyMessage(sentMessage!, ticket, contact);
+    const io = getIO();
+    io.of(String(ticket.companyId)).emit(`company${ticket.companyId}-schedule`, {
+      action: "create",
+      schedule
+    });
+    return;
+  }
   // console.log("GETTING WHATSAPP HANDLE OPENAI", ticket.whatsappId, ticket.id)
   const { prompt } = await ShowWhatsAppService(wbot.id, ticket.companyId);
 

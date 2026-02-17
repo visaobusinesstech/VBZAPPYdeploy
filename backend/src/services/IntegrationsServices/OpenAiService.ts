@@ -21,6 +21,10 @@ import { IConnections, INodes } from "../WebhookService/DispatchWebHookService";
 import logger from "../../utils/logger";
 import { getWbot } from "../../libs/wbot";
 import { getJidOf } from "../WbotServices/getJidOf";
+import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne";
+import CreateScheduleService from "../ScheduleServices/CreateService";
+import { getIO } from "../../libs/socket";
+import { format } from "date-fns";
 
 type Session = WASocket & {
   id?: number;
@@ -370,6 +374,59 @@ const processResponse = async (
   }
 };
 
+const parseDateTimeFromText = (text: string): { date: Date | null; matched: boolean } => {
+  const t = text.toLowerCase();
+  const hasIntent = /(agendar|agenda|marcar|marque|remarcar|remarque).*(reuni|reunião|reuniao)|\b(reuni|reunião|reuniao)\b/.test(t);
+  const dateMatch = t.match(/(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?/);
+  if (!hasIntent || !dateMatch) return { date: null, matched: false };
+  const day = parseInt(dateMatch[1], 10);
+  const month = parseInt(dateMatch[2], 10);
+  let year = dateMatch[3] ? parseInt(dateMatch[3], 10) : new Date().getFullYear();
+  if (year < 100) year += 2000;
+  let hours = 9;
+  let minutes = 0;
+  const timeMatch = t.match(/às\s*(\d{1,2})(?::|h)?(\d{2})?|(\d{1,2})\s*h/);
+  if (timeMatch) {
+    if (timeMatch[1]) {
+      hours = parseInt(timeMatch[1], 10);
+      minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
+    } else if (timeMatch[3]) {
+      hours = parseInt(timeMatch[3], 10);
+      minutes = 0;
+    }
+  }
+  const dt = new Date(year, month - 1, day, hours, minutes, 0);
+  return { date: isNaN(dt.getTime()) ? null : dt, matched: true };
+};
+
+const tryScheduleMeeting = async (
+  bodyMessage: string,
+  ticket: Ticket,
+  contact: Contact
+): Promise<{ handled: boolean; when?: Date }> => {
+  const parsed = parseDateTimeFromText(bodyMessage);
+  if (!parsed.matched || !parsed.date) return { handled: false };
+  const when = parsed.date;
+  const schedule = await CreateScheduleService({
+    body: "Reunião com " + (contact.name || "contato"),
+    sendAt: when.toISOString(),
+    contactId: contact.id,
+    companyId: ticket.companyId,
+    userId: ticket.userId || undefined,
+    ticketUserId: ticket.userId || undefined,
+    queueId: ticket.queueId || undefined,
+    openTicket: "disabled",
+    statusTicket: "closed",
+    whatsappId: ticket.whatsappId || undefined
+  });
+  const io = getIO();
+  io.of(String(ticket.companyId)).emit(`company${ticket.companyId}-schedule`, {
+    action: "create",
+    schedule
+  });
+  return { handled: true, when };
+};
+
 // Manipula requisição OpenAI
 const handleOpenAIRequest = async (openai: SessionOpenAi, messagesAI: any[], aiSettings: IOpenAi): Promise<string> => {
   try {
@@ -580,19 +637,40 @@ if (minutesElapsed >= aiSettings.completionTimeout) {
 
     // Formatar prompt do sistema
     const clientName = sanitizeName(contact.name || "Amigo(a)");
+    let roleValue = null as any;
+    let brainValue = null as any;
+    try {
+      const role = await ListSettingsServiceOne({ companyId: ticket.companyId, key: "agent_role" });
+      roleValue = role?.value ? JSON.parse(role.value as any) : null;
+    } catch {}
+    try {
+      const brain = await ListSettingsServiceOne({ companyId: ticket.companyId, key: "agent_brain" });
+      brainValue = brain?.value ? JSON.parse(brain.value as any) : null;
+    } catch {}
+    const roleFunc = roleValue?.funcao ? `Função: ${roleValue.funcao}` : "";
+    const rolePers = roleValue?.personalidade ? `Personalidade: ${roleValue.personalidade}` : "";
+    const roleInstr = roleValue?.instrucoes ? `Instruções: ${roleValue.instrucoes}` : "";
+    const websites = Array.isArray(brainValue?.websites) && brainValue.websites.length > 0 ? `Referências:\n${brainValue.websites.map((u: string) => `- ${u}`).join("\n")}` : "";
     const promptSystem = `Instruções do Sistema:
-    - Use o nome ${clientName} nas respostas para que o cliente se sinta mais próximo e acolhido.
-    - Certifique-se de que a resposta tenha até ${aiSettings.maxTokens} tokens e termine de forma completa, sem cortes.
-    - Sempre que possível, inclua o nome do cliente para tornar o atendimento mais pessoal e gentil.
-    - Se for preciso transferir para outro setor, comece a resposta com 'Ação: Transferir para o setor de atendimento'.
+- Use o nome ${clientName} nas respostas.
+- Máximo de ${aiSettings.maxTokens} tokens.
+- Inicie com 'Ação: Transferir para o setor de atendimento' quando necessário.
+${roleFunc ? `\n${roleFunc}` : ""}${rolePers ? `\n${rolePers}` : ""}${roleInstr ? `\n${roleInstr}` : ""}${websites ? `\n${websites}` : ""}
 
-    Prompt Específico:
-    ${aiSettings.prompt}
-
-    Siga essas instruções com cuidado para garantir um atendimento claro e amigável em todas as respostas.`;
+${aiSettings.prompt}`;
 
     // Processar mensagem de texto
     if (bodyMessage) {
+      const scheduleAttempt = await tryScheduleMeeting(bodyMessage, ticket, contact);
+      if (scheduleAttempt.handled) {
+        const when = scheduleAttempt.when!;
+        const text = `Reunião agendada com sucesso para ${format(when, "dd/MM/yyyy")} às ${format(when, "HH:mm")}.`;
+        const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+          text: text
+        });
+        await verifyMessage(sentMessage!, ticket, contact);
+        return;
+      }
       const messagesAI = prepareMessagesAI(messages, isGeminiModel, promptSystem);
 
       try {

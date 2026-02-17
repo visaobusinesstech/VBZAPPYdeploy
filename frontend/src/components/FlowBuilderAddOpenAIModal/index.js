@@ -54,7 +54,7 @@ const openAiModels = [
   "gpt-4o-mini"
 ];
 
-// Lista de vozes disponíveis para OpenAI
+// Lista de vozes disponíveis para OpenAI (restrita conforme requisitos)
 const availableVoices = [
   "texto",
   "pt-BR-FabioNeural",
@@ -62,16 +62,7 @@ const availableVoices = [
   "pt-BR-AntonioNeural",
   "pt-BR-BrendaNeural",
   "pt-BR-DonatoNeural",
-  "pt-BR-ElzaNeural",
-  "pt-BR-GiovannaNeural",
-  "pt-BR-HumbertoNeural",
-  "pt-BR-JulioNeural",
-  "pt-BR-LeilaNeural",
-  "pt-BR-LeticiaNeural",
-  "pt-BR-ManuelaNeural",
-  "pt-BR-NicolauNeural",
-  "pt-BR-ValerioNeural",
-  "pt-BR-YaraNeural"
+  "pt-BR-ElzaNeural"
 ];
 
 const useStyles = makeStyles((theme) => ({
