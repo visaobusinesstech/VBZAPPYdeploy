@@ -109,7 +109,7 @@ const useStyles = makeStyles((theme) => ({
   toolbar: {
     paddingRight: 24,
     color: theme.palette.dark.main,
-    background: "#131B2D",
+    background: theme.palette.primary.main,
     boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
     transition: "all 0.3s ease",
     minHeight: "40px", // Reduzido

@@ -14,7 +14,7 @@ import { grey, blue } from "@material-ui/core/colors";
 import OnlyForSuperUser from "../OnlyForSuperUser";
 import useAuth from "../../hooks/useAuth.js";
 
-import { IconButton, InputAdornment, Chip } from "@material-ui/core";
+import { IconButton, InputAdornment, Chip, Button } from "@material-ui/core";
 
 import { Colorize, AttachFile, Delete, Palette, Image, Language, Apps } from "@material-ui/icons";
 import ColorPicker from "../ColorPicker";
@@ -334,6 +334,15 @@ export default function Whitelabel(props) {
     setEnabledLanguages(newLangs);
   }
 
+  const handleResetColors = async () => {
+    const DEFAULT = "#131B2D";
+    await handleSaveSetting("primaryColorLight", DEFAULT);
+    await handleSaveSetting("primaryColorDark", DEFAULT);
+    colorMode.setPrimaryColorLight(DEFAULT);
+    colorMode.setPrimaryColorDark(DEFAULT);
+    toast.success("Cores resetadas ao padrão.");
+  };
+
   const uploadLogo = async (e, mode) => {
     if (!e.target.files) {
       return;
@@ -521,6 +530,11 @@ export default function Whitelabel(props) {
                   />
                 </Grid>
               </Grid>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button variant="outlined" color="primary" onClick={handleResetColors}>
+                  Resetar ao Padrão
+                </Button>
+              </div>
             </Paper>
 
             {/* Seção de Logos e Imagens */}
