@@ -253,7 +253,10 @@ const ActivitiesStyleLayout = ({
   enableTabsScroll = false,
   hideNavDivider = false,
   hideHeaderDivider = false,
-  rightFilters
+  rightFilters,
+  rootBackground,
+  compactHeader = false,
+  transparentHeader = false
 }) => {
   const classes = useStyles();
   const tabsRef = React.useRef(null);
@@ -268,9 +271,15 @@ const ActivitiesStyleLayout = ({
   };
 
   return (
-    <div className={classes.root}>
-      <div className={classes.header} style={hideHeaderDivider ? { borderBottom: 'none' } : undefined}>
-        <div className={classes.headerContent}>
+    <div className={classes.root} style={rootBackground ? { backgroundColor: rootBackground } : undefined}>
+      <div
+        className={classes.header}
+        style={{
+          ...(hideHeaderDivider ? { borderBottom: 'none' } : undefined),
+          ...(transparentHeader ? { backgroundColor: 'transparent', boxShadow: 'none', borderBottom: 'none' } : undefined)
+        }}
+      >
+        <div className={classes.headerContent} style={compactHeader ? { padding: 0 } : undefined}>
           {viewModes.length > 0 && (
             <div className={classes.navRow} style={hideNavDivider ? { borderBottom: 'none' } : undefined}>
               {/* Menu Icon for collapsed state */}

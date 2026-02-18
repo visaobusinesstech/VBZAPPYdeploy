@@ -43,6 +43,7 @@ import Autocomplete from "@material-ui/lab/Autocomplete";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import leadsSalesService from "../../services/leadsSalesService";
 import { toast } from "react-toastify";
+import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -121,28 +122,31 @@ const useStyles = makeStyles((theme) => ({
     marginRight: 12,
   },
   cardsWrapper: {
-    marginTop: 8,
-    padding: 12,
+    marginTop: 12,
+    padding: "4px 0 12px",
     width: "100%",
     flex: 0,
     alignSelf: "flex-start",
     backgroundColor: "#F3F4F6",
     border: "1px solid #E5E7EB",
-    borderRadius: 12,
+    borderRadius: 8,
     ...theme.scrollbarStyles,
   },
   card: {
-    background: "#fff",
+    background: "#FFFFFF",
     border: "1px solid #E5E7EB",
     borderRadius: 12,
-    padding: "12px 18px",
+    padding: "10px 18px 14px 56px",
     marginBottom: 12,
+    width: "100%",
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
     cursor: "pointer",
     transition: "box-shadow .2s ease, transform .1s ease",
     position: "relative",
     overflow: "hidden",
-    minHeight: 120,
+    display: "flex",
+    flexDirection: "column",
+    aspectRatio: "1 / 0.72",
     "&:hover": {
       boxShadow: "0 6px 14px rgba(0,0,0,0.08)",
       transform: "translateY(-1px)",
@@ -157,20 +161,40 @@ const useStyles = makeStyles((theme) => ({
   },
   cardDeleteBtn: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
-    width: 22,
-    height: 22,
-    minWidth: 22,
+    bottom: 6,
+    right: 6,
+    width: 20,
+    height: 20,
+    minWidth: 20,
     padding: 0,
-    backgroundColor: "#ffffffEE",
-    border: "1px solid #E5E7EB",
-    borderRadius: 6,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "transparent",
+    border: "none",
     color: "#EF4444",
     transition: "all 120ms ease",
     "&:hover": {
-      backgroundColor: "#fff",
       color: "#B91C1C",
+    }
+  },
+  cardApproveBtn: {
+    position: "absolute",
+    bottom: 6,
+    left: 6,
+    width: 20,
+    height: 20,
+    minWidth: 20,
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "transparent",
+    border: "none",
+    color: "#10B981",
+    transition: "all 120ms ease",
+    "&:hover": {
+      color: "#059669",
     }
   },
   cardTimeBadge: {
@@ -180,7 +204,7 @@ const useStyles = makeStyles((theme) => ({
     fontSize: 10,
     color: "#6B7280",
     backgroundColor: "rgba(0,0,0,0.02)",
-    border: "1px solid #E5E7EB",
+    border: "none",
     borderRadius: 6,
     padding: "1px 4px"
   },
@@ -188,6 +212,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     gap: 8,
+    marginTop: 0
   },
   avatar: {
     width: 32,
@@ -207,40 +232,94 @@ const useStyles = makeStyles((theme) => ({
     color: "#374151",
     border: "1px solid #E5E7EB",
   },
+  cardAvatarTopLeft: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    width: 32,
+    height: 32,
+    fontSize: 14,
+    background: "#F3F4F6",
+    color: "#374151",
+    border: "1px solid #E5E7EB",
+  },
+  avatarStatusDot: {
+    position: "absolute",
+    width: 8,
+    height: 8,
+    borderRadius: 9999,
+    backgroundColor: "#10B981",
+    top: 32,
+    left: 32,
+    zIndex: 2
+  },
   cardTitle: {
     fontWeight: 600,
-    fontSize: 13,
+    fontSize: 12,
     color: "#111827",
     lineHeight: 1.25,
     whiteSpace: "normal",
     wordBreak: "break-word",
-    overflow: "visible",
+    overflow: "hidden",
+    display: "-webkit-box",
+    WebkitLineClamp: 2,
+    WebkitBoxOrient: "vertical",
   },
   cardSub: {
     fontSize: 10.5,
     fontWeight: 400,
     color: "#9CA3AF",
     marginTop: 2,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  },
+  tagChip: {
+    fontSize: 9,
+    color: "#6B7280",
+    backgroundColor: "rgba(0,0,0,0.03)",
+    border: "1px solid #E5E7EB",
+    borderRadius: 6,
+    padding: "0 4px",
+    lineHeight: "14px"
   },
   cardValue: {
     marginTop: 6,
-    fontWeight: 600,
+    fontWeight: 700,
     color: "#059669",
-    fontSize: 12,
+    fontSize: 9,
+    textAlign: "left"
   },
   cardRow: {
     display: "flex",
     alignItems: "center",
-    gap: 6,
+    gap: 3,
     marginTop: 4,
     color: "#6B7280",
-    fontSize: 11,
+    fontSize: 9,
+  },
+  cardEdgeLeft: {
+    marginLeft: -48
   },
   cardFooter: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 8,
+  },
+  cardTagRow: {
+    display: "flex",
+    alignItems: "center",
+    gap: 3,
+    marginTop: 2
+  },
+  cardResponsible: {
+    display: "flex",
+    alignItems: "center",
+    gap: 2,
+    marginTop: 1,
+    color: "#4B5563",
+    fontSize: 8
   },
   addLeadBtn: {
     marginTop: 8,
@@ -323,7 +402,18 @@ const AutoShrinkText = ({ text, max = 13, min = 8, className }) => {
   );
 };
 
-const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts }) => {
+const currencyBRL = (v) => {
+  const n = Number(v || 0);
+  try {
+    return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  } catch {
+    // fallback simples
+    const fixed = n.toFixed(2).replace(".", ",");
+    return `R$ ${fixed}`; 
+  }
+};
+
+const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, onOpenTagCreator }) => {
   const classes = useStyles();
 
   const leadsByStatus = useMemo(() => {
@@ -371,7 +461,7 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts }) 
                   <div style={{ minWidth: 0 }}>
                     <div className={classes.columnLabel}>{col.label}</div>
                     <div className={classes.columnMeta}>
-                      <span>R$ {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span>{currencyBRL(total)}</span>
                     </div>
                   </div>
                 </div>
@@ -408,7 +498,17 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts }) 
                               onMouseDown={(e) => e.stopPropagation()}
                               onMouseUp={(e) => e.stopPropagation()}
                             >
-                              <CloseIcon style={{ fontSize: 14 }} />
+                              <CloseIcon style={{ fontSize: 12 }} />
+                            </IconButton>
+                            <IconButton
+                              className={classes.cardApproveBtn}
+                              size="small"
+                              title="Concluir"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onMouseUp={(e) => e.stopPropagation()}
+                              onClick={(e) => { e.stopPropagation(); }}
+                            >
+                              <CheckCircleOutlineIcon style={{ fontSize: 12 }} />
                             </IconButton>
                             <div className={classes.cardTopBar} style={{ background: col.color }} />
                             {(() => {
@@ -416,46 +516,53 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts }) 
                               const contact = l.contact || (Array.isArray(contacts) ? contacts.find((c) => String(c.id) === String(l.contactId)) : null);
                               return (
                                 <>
-                                  <Avatar className={classes.cardAvatarTopRight} src={contact?.profilePicUrl}>
+                                  <Avatar className={classes.cardAvatarTopLeft} src={contact?.profilePicUrl}>
                                     {initials(l.name || contact?.name || "Lead")}
                                   </Avatar>
+                                  <span className={classes.avatarStatusDot} />
                                   <div className={classes.cardHeader}>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                       <div className={classes.cardTitle}>
                                         {l.name || "Sem nome"}
                                       </div>
-                                      <div className={classes.cardSub}>
-                                        {contact?.name || l.contactId || "—"}
-                                      </div>
+                                      {(l.companyName || contact?.name || l.contactId) && (
+                                        <div className={classes.cardSub}>
+                                          {l.companyName || contact?.name || l.contactId}
+                                        </div>
+                                      )}
                                     </div>
-                                    <div style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: "#10B981", alignSelf: "flex-start" }} />
                                   </div>
-                                  {contact?.number && (
-                                    <div className={classes.cardRow}>
-                                      <PhoneIcon style={{ fontSize: 14, color: "#9CA3AF" }} />
-                                      <span>{contact?.number}</span>
+                                  {(l.phone || contact?.number) && (
+                                    <div className={`${classes.cardRow} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
+                                      <PhoneIcon style={{ fontSize: 11, color: "#9CA3AF" }} />
+                                      <span>{l.phone || contact?.number}</span>
                                     </div>
                                   )}
                                 </>
                               );
                             })()}
-                            {/* valor menor */}
-                            <div className={classes.cardValue}>
-                              {l.value ? `R$ ${Number(l.value).toLocaleString()}` : "R$ 0,00"}
+                            {/* valor menor (abaixo do telefone, canto esquerdo) */}
+                            <div className={`${classes.cardValue} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
+                              {currencyBRL(l.value)}
                             </div>
-                            {/* responsável mini */}
+                            <div
+                              className={`${classes.cardTagRow} ${classes.cardEdgeLeft}`}
+                              style={{ textAlign: "left", cursor: "pointer" }}
+                              onClick={(e) => onOpenTagCreator && onOpenTagCreator(e, l)}
+                            >
+                              <LocalOfferOutlinedIcon style={{ fontSize: 12, color: "#3B82F6", opacity: 0.85 }} />
+                              {Array.isArray(l.tags) && l.tags.length > 0 && (
+                                <span className={classes.tagChip}>{l.tags[0]}</span>
+                              )}
+                              <AddIcon style={{ fontSize: 12, color: "#3B82F6", opacity: 0.9 }} />
+                            </div>
                             {l.responsible?.name && (
-                              <div className={classes.cardRow}>
-                                <PersonOutlineIcon style={{ fontSize: 12, color: "#9CA3AF" }} />
-                                <span style={{ fontSize: 10.5 }}>{l.responsible?.name}</span>
+                              <div className={`${classes.cardResponsible} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
+                                <PersonOutlineIcon style={{ fontSize: 9, color: "#4B5563" }} />
+                                <span style={{ fontSize: 8, color: "#4B5563" }}>{l.responsible?.name}</span>
                               </div>
                             )}
-                            <div className={classes.cardFooter}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                                <CheckCircleOutlineIcon style={{ fontSize: 16, color: "#10B981" }} />
-                              </div>
-                              <div />
-                            </div>
+                            <div className={classes.cardFooter} />
                           </div>
                         )}
                       </Draggable>
@@ -507,7 +614,7 @@ const LeadsList = ({ leads }) => {
                     color={String(item.status).toLowerCase() === 'fechado' ? 'primary' : 'default'} 
                   />
                 </TableCell>
-                <TableCell>{item.value ? `R$ ${Number(item.value).toLocaleString()}` : "—"}</TableCell>
+                <TableCell>{currencyBRL(item.value)}</TableCell>
                 <TableCell>{item.contact?.name || item.contactId || "—"}</TableCell>
               </TableRow>
             ))
@@ -547,6 +654,10 @@ const LeadsSales = () => {
   const [anchorContact, setAnchorContact] = useState(null);
   const [anchorPeriodo, setAnchorPeriodo] = useState(null);
   const [anchorTodos, setAnchorTodos] = useState(null);
+  // Tag creator popover
+  const [tagAnchor, setTagAnchor] = useState(null);
+  const [tagLead, setTagLead] = useState(null);
+  const [tagText, setTagText] = useState("");
 
   useEffect(() => {
     async function fetchFilters() {
@@ -614,6 +725,31 @@ const LeadsSales = () => {
       socket.off(`company-${user.companyId}-contact`, onContact);
     };
   }, [socket, user]);
+
+  const openTagCreator = (e, lead) => {
+    e.stopPropagation();
+    setTagAnchor(e.currentTarget);
+    setTagLead(lead);
+    setTagText("");
+  };
+  const closeTagCreator = () => {
+    setTagAnchor(null);
+    setTagLead(null);
+    setTagText("");
+  };
+  const handleAddTag = async () => {
+    try {
+      const text = String(tagText || "").trim();
+      if (!text || !tagLead) return;
+      const newTags = Array.isArray(tagLead.tags) ? [...tagLead.tags, text] : [text];
+      const record = await leadsSalesService.update(tagLead.id, { tags: newTags });
+      setLeadsState((prev) => prev.map((x) => String(x.id) === String(record.id) ? record : x));
+      closeTagCreator();
+      toast.success("Tag adicionada");
+    } catch (err) {
+      toastError(err);
+    }
+  };
 
   const viewModes = [
     { value: "board", label: "Quadro", icon: <KanbanIcon /> },
@@ -867,6 +1003,7 @@ const LeadsSales = () => {
                   leads={leadsState}
                   contacts={contactsList}
                   onEdit={(lead) => { setEditing(lead); setDrawerOpen(true); }}
+                  onOpenTagCreator={openTagCreator}
                   onAdd={(statusKey) => {
                     setEditing({ status: statusKey });
                     setDrawerOpen(true);
@@ -899,6 +1036,36 @@ const LeadsSales = () => {
           </>
         )}
       </ActivitiesStyleLayout>
+      <Popover
+        open={Boolean(tagAnchor)}
+        anchorEl={tagAnchor}
+        onClose={closeTagCreator}
+        anchorOrigin={{ vertical: "top", horizontal: "left" }}
+        transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div style={{ padding: 10, width: 220 }}>
+          <Typography variant="caption" style={{ color: "#374151" }}>
+            Criar tag
+          </Typography>
+          <TextField
+            autoFocus
+            size="small"
+            fullWidth
+            variant="outlined"
+            placeholder="Ex.: Cliente VIP"
+            value={tagText}
+            onChange={(e) => setTagText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleAddTag(); }}
+            style={{ marginTop: 6 }}
+          />
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 8 }}>
+            <Button size="small" onClick={closeTagCreator}>Cancelar</Button>
+            <Button size="small" color="primary" variant="contained" onClick={handleAddTag}>
+              Adicionar
+            </Button>
+          </div>
+        </div>
+      </Popover>
 
       <CreateLeadSaleModal
         open={drawerOpen}

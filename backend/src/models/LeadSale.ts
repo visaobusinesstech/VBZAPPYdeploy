@@ -33,6 +33,15 @@ class LeadSale extends Model<LeadSale> {
   @Column(DataType.INTEGER)
   value: number;
 
+  @Column
+  companyName: string;
+
+  @Column
+  phone: string;
+
+  @Column(DataType.JSON)
+  tags: string[];
+
   @ForeignKey(() => Contact)
   @Column
   contactId: number;

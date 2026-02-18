@@ -37,13 +37,16 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const { name, description, status, value, contactId, responsibleId, date } = req.body;
+  const { name, description, status, value, contactId, responsibleId, date, companyName, phone, tags } = req.body;
 
   const record = await CreateService({
     name,
     description,
     status,
     value,
+    companyName,
+    phone,
+    tags,
     contactId,
     responsibleId,
     date,
@@ -51,9 +54,10 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   });
 
   const io = getIO();
+  const full = await ShowService(record.id);
   io.of(String(companyId)).emit(`company-${companyId}-leads-sales`, {
     action: "create",
-    lead: record
+    lead: full
   });
 
   return res.status(201).json(record);
@@ -62,7 +66,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const update = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
   const { id } = req.params;
-  const { name, description, status, value, contactId, responsibleId, date } = req.body;
+  const { name, description, status, value, contactId, responsibleId, date, companyName, phone, tags } = req.body;
 
   const record = await UpdateService({
     id,
@@ -70,15 +74,19 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     description,
     status,
     value,
+    companyName,
+    phone,
+    tags,
     contactId,
     responsibleId,
     date
   });
 
   const io = getIO();
+  const full = await ShowService(record.id);
   io.of(String(companyId)).emit(`company-${companyId}-leads-sales`, {
     action: "update",
-    lead: record
+    lead: full
   });
 
   return res.json(record);
@@ -106,4 +114,3 @@ export const remove = async (req: Request, res: Response): Promise<Response> => 
 
   return res.status(200).json({ message: "Lead sale deleted" });
 };
-

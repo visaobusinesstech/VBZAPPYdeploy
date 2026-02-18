@@ -1,5 +1,7 @@
 import { Op } from "sequelize";
 import LeadSale from "../../models/LeadSale";
+import Contact from "../../models/Contact";
+import User from "../../models/User";
 
 interface Request {
   searchParam?: string;
@@ -37,7 +39,9 @@ const ListService = async ({
     const like = `%${searchParam}%`;
     where[Op.or] = [
       { name: { [Op.iLike]: like } },
-      { description: { [Op.iLike]: like } }
+      { description: { [Op.iLike]: like } },
+      { companyName: { [Op.iLike]: like } },
+      { phone: { [Op.iLike]: like } }
     ];
   }
   if (status) where.status = status;
@@ -53,7 +57,11 @@ const ListService = async ({
     where,
     limit,
     offset,
-    order: [["createdAt", "DESC"]]
+    order: [["createdAt", "DESC"]],
+    include: [
+      { model: Contact, attributes: ["id", "name", "number", "profilePicUrl"] },
+      { model: User, attributes: ["id", "name"] }
+    ]
   });
 
   return {

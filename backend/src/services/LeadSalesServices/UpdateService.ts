@@ -6,6 +6,9 @@ interface Request {
   description?: string;
   status?: string;
   value?: number;
+  companyName?: string;
+  phone?: string;
+  tags?: string[];
   contactId?: number;
   responsibleId?: number;
   date?: string | Date | null;
@@ -17,6 +20,9 @@ const UpdateService = async ({
   description,
   status,
   value,
+  companyName,
+  phone,
+  tags,
   contactId,
   responsibleId,
   date
@@ -42,6 +48,9 @@ const UpdateService = async ({
     description: description ?? record.description,
     status: status ?? record.status,
     value: parsedValue ?? record.value,
+    companyName: companyName ?? record.companyName,
+    phone: phone ?? record.phone,
+    tags: tags ?? record.tags,
     contactId: parsedContactId ?? record.contactId,
     responsibleId: parsedResponsibleId ?? record.responsibleId,
     date: parsedDate ?? record.date

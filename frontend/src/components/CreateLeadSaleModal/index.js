@@ -10,7 +10,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  CircularProgress
+  CircularProgress,
+  Grid,
+  Divider
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Close as CloseIcon } from '@material-ui/icons';
@@ -21,9 +23,9 @@ import api from "../../services/api";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
-    width: 420,
+    width: 540,
     maxWidth: '100%',
-    padding: theme.spacing(2),
+    padding: theme.spacing(3),
     borderRadius: 16,
     marginTop: theme.spacing(2),
     marginBottom: theme.spacing(2),
@@ -60,6 +62,13 @@ const useStyles = makeStyles((theme) => ({
       borderRadius: '3px',
     }
   },
+  sectionTitle: {
+    fontWeight: 600,
+    color: '#111827',
+    opacity: 0.9,
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(1)
+  },
   actions: {
     display: 'flex',
     justifyContent: 'space-between',
@@ -88,6 +97,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     description: "",
     status: "novo",
     value: 0,
+    companyName: "",
     contactId: null,
     responsibleId: null,
     date: ""
@@ -100,20 +110,24 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
         description: lead.description || "",
         status: lead.status || "novo",
         value: lead.value || 0,
+        companyName: lead.companyName || "",
         contactId: lead.contactId || null,
         responsibleId: lead.responsibleId || null,
         date: lead.date ? String(lead.date).slice(0,10) : ""
       });
+      setPhone(lead.phone || "");
     } else {
       setForm({
         name: "",
         description: "",
         status: "novo",
         value: 0,
+        companyName: "",
         contactId: null,
         responsibleId: null,
         date: ""
       });
+      setPhone("");
     }
   }, [lead, open]);
 
@@ -163,12 +177,14 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
           }
         }
       }
-      // normalizar payload para evitar erros 500 no backend
+      // normalizar payload
       const payload = {
         name: (form.name || "").trim(),
         description: (form.description || "").trim(),
         status: form.status,
         value: Number(form.value) || 0,
+        companyName: (form.companyName || "").trim() || undefined,
+        phone: sanitizePhone(phone) || undefined,
         contactId: form.contactId || undefined,
         responsibleId:
           form.responsibleId === "" || form.responsibleId === null || form.responsibleId === undefined
@@ -208,77 +224,119 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
       </Box>
 
       <div className={classes.formContainer}>
-        <TextField
-          label="Nome do Lead"
-          variant="outlined"
-          fullWidth
-          value={form.name}
-          onChange={handleChange("name")}
-        />
-        <FormControl variant="outlined" fullWidth>
-          <InputLabel>Status</InputLabel>
-          <Select
-            label="Status"
-            value={form.status}
-            onChange={handleChange("status")}
-          >
-            {statusOptions.map((opt) => (
-              <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <TextField
-          type="number"
-          label="Valor (R$)"
-          variant="outlined"
-          fullWidth
-          value={form.value}
-          onChange={handleChange("value")}
-        />
-        <Autocomplete
-          fullWidth
-          value={selectedContact}
-          options={contacts}
-          onChange={(e, contact) => {
-            setSelectedContact(contact);
-            setForm((prev) => ({ ...prev, contactId: contact ? contact.id : null }));
-          }}
-          getOptionLabel={(option) => option.name || option.number || String(option.id)}
-          renderInput={(params) => (
-            <TextField {...params} label="Contato/Empresa" variant="outlined" />
-          )}
-        />
-        <TextField
-          label="Telefone"
-          variant="outlined"
-          fullWidth
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          disabled={!selectedContact}
-          helperText={!selectedContact ? "Selecione um contato para editar o telefone" : ""}
-        />
-        <FormControl variant="outlined" fullWidth>
-          <InputLabel>Responsável</InputLabel>
-          <Select
-            label="Responsável"
-            value={form.responsibleId || ""}
-            onChange={handleChange("responsibleId")}
-          >
-            <MenuItem value="">&nbsp;</MenuItem>
-            {users.map((u) => (
-              <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <TextField
-          type="date"
-          label="Data"
-          variant="outlined"
-          InputLabelProps={{ shrink: true }}
-          fullWidth
-          value={form.date}
-          onChange={handleChange("date")}
-        />
+        <Typography className={classes.sectionTitle}>Informações do Lead</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <TextField
+              label="Nome do Lead"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={form.name}
+              onChange={handleChange("name")}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <FormControl variant="outlined" fullWidth size="small">
+              <InputLabel>Status</InputLabel>
+              <Select
+                label="Status"
+                value={form.status}
+                onChange={handleChange("status")}
+              >
+                {statusOptions.map((opt) => (
+                  <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              type="number"
+              label="Valor (R$)"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={form.value}
+              onChange={handleChange("value")}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <TextField
+              label="Empresa"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={form.companyName}
+              onChange={handleChange("companyName")}
+              placeholder="Digite o nome da empresa (livre)"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Telefone"
+              variant="outlined"
+              size="small"
+              fullWidth
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-9999"
+            />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              type="date"
+              label="Data"
+              variant="outlined"
+              size="small"
+              InputLabelProps={{ shrink: true }}
+              fullWidth
+              value={form.date}
+              onChange={handleChange("date")}
+            />
+          </Grid>
+        </Grid>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        <Typography className={classes.sectionTitle}>Associações</Typography>
+        <Grid container spacing={2}>
+          <Grid item xs={12}>
+            <Autocomplete
+              fullWidth
+              value={selectedContact}
+              options={contacts}
+              onChange={(e, contact) => {
+                setSelectedContact(contact);
+                setForm((prev) => ({ ...prev, contactId: contact ? contact.id : null }));
+                if (contact?.number) setPhone(contact.number);
+              }}
+              getOptionLabel={(option) => option.name || option.number || String(option.id)}
+              renderInput={(params) => (
+                <TextField {...params} label="Contato" variant="outlined" size="small" />
+              )}
+            />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControl variant="outlined" fullWidth size="small">
+              <InputLabel>Responsável</InputLabel>
+              <Select
+                label="Responsável"
+                value={form.responsibleId || ""}
+                onChange={handleChange("responsibleId")}
+              >
+                <MenuItem value="">&nbsp;</MenuItem>
+                {users.map((u) => (
+                  <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+        </Grid>
+
+        <Divider style={{ margin: '12px 0' }} />
+
+        <Typography className={classes.sectionTitle}>Descrição</Typography>
         <TextField
           label="Descrição"
           variant="outlined"

@@ -5,6 +5,9 @@ interface Request {
   description?: string;
   status?: string;
   value?: number;
+  companyName?: string;
+  phone?: string;
+  tags?: string[];
   contactId?: number;
   responsibleId?: number;
   date?: string | Date;
@@ -16,6 +19,9 @@ const CreateService = async ({
   description,
   status = "novo",
   value = 0,
+  companyName,
+  phone,
+  tags,
   contactId,
   responsibleId,
   date,
@@ -26,6 +32,9 @@ const CreateService = async ({
     description,
     status,
     value,
+    companyName,
+    phone,
+    tags,
     contactId,
     responsibleId,
     date: date ? new Date(date) : null,
@@ -35,4 +44,3 @@ const CreateService = async ({
 };
 
 export default CreateService;
-
