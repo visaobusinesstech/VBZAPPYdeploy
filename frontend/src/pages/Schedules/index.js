@@ -289,13 +289,7 @@ const Schedules = () => {
     };
   }, [socket]);
 
-  useEffect(() => {
-    const prev = document.body.style.backgroundColor;
-    document.body.style.backgroundColor = "#FFFFFF";
-    return () => {
-      document.body.style.backgroundColor = prev;
-    };
-  }, []);
+  // Removido o background branco forçado do body para respeitar o fundo original da página
 
   const cleanContact = () => {
     setContactId("");
@@ -476,7 +470,6 @@ const Schedules = () => {
           disableFilterBar
           hideHeaderDivider
           hideNavDivider
-          rootBackground="#FFFFFF"
           compactHeader
           transparentHeader
           disableFilterBar
@@ -494,7 +487,11 @@ const Schedules = () => {
                   messages={defaultMessages}
                   formats={{
                     agendaDateFormat: "DD/MM ddd",
-                    weekdayFormat: "dddd",
+                    weekdayFormat: (date, culture, loc) => {
+                      const full = loc.format(date, "dddd", culture);
+                      const fmt = full.replace("-feira", "");
+                      return fmt.charAt(0).toUpperCase() + fmt.slice(1);
+                    },
                   }}
                   localizer={localizer}
                   views={["day","week","month"]}
