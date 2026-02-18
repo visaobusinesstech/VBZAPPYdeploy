@@ -25,7 +25,7 @@
   --vb-event-blue-border: #BFDBFE;
   --vb-event-blue-text: #1E40AF;
   --vb-today-bg: #F1F5F9;
-  background: transparent;
+  background: #FFFFFF;
   min-height: 100vh;
 }
 
@@ -187,7 +187,7 @@
 .schedules-header .page-title {
   font-size: 22px;
   line-height: 28px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--vb-text);
   margin: 0;
 }
@@ -199,6 +199,11 @@
   border-radius: var(--vb-radius-lg);
   padding: 12px;
   margin-bottom: 12px;
+}
+.schedules-page .right-aside .aside-top-actions{
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
 }
 .schedules-page .right-aside .aside-header {
   display: flex;
@@ -222,7 +227,7 @@
 }
 .schedules-page .right-aside .aside-title {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--vb-text);
 }
 .schedules-page .activity-item {

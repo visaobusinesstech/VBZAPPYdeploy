@@ -36,6 +36,9 @@ import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
 
 import "./Schedules.css"; // Importe o arquivo CSS
+import CreateEventDrawer from "../../components/CreateEventDrawer";
+import EventDetailsModal from "../../components/EventDetailsModal";
+import activitiesService from "../../services/activitiesService";
 
 // Defina a função getUrlParam antes de usá-la
 function getUrlParam(paramName) {
@@ -210,6 +213,10 @@ const Schedules = () => {
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
   const [contactId, setContactId] = useState(+getUrlParam("contactId"));
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [eventDrawerOpen, setEventDrawerOpen] = useState(false);
+  const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activities, setActivities] = useState([]);
 
   const { getPlanCompany } = usePlans();
 
@@ -300,6 +307,30 @@ const Schedules = () => {
     setScheduleModalOpen(true);
   };
 
+  const handleOpenEventDrawer = () => {
+    setEventDrawerOpen(true);
+  };
+
+  const handleCloseEventDrawer = () => {
+    setEventDrawerOpen(false);
+  };
+
+  const handleEventSaved = async (created) => {
+    try {
+      setActivities((prev) => [{ ...created }, ...prev]);
+    } catch (e) {}
+  };
+
+  const handleSelectEvent = (evt) => {
+    setSelectedEvent(evt);
+    setEventDetailsOpen(true);
+  };
+
+  const handleCloseEventDetails = () => {
+    setSelectedEvent(null);
+    setEventDetailsOpen(false);
+  };
+
   const handleCloseScheduleModal = () => {
     setSelectedSchedule(null);
     setScheduleModalOpen(false);
@@ -378,6 +409,15 @@ const Schedules = () => {
     maintainAspectRatio: false
   };
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await activitiesService.list({ pageNumber: 1 });
+        setActivities(data?.activities || []);
+      } catch (err) {}
+    })();
+  }, []);
+
   const classifySchedule = (schedule) => {
     const typeHint = `${schedule?.type || ""} ${schedule?.category || ""} ${schedule?.source || ""}`.toLowerCase();
     const text = `${schedule?.title || ""} ${schedule?.body || ""} ${schedule?.message || ""} ${schedule?.contact?.name || ""}`.toLowerCase();
@@ -391,13 +431,31 @@ const Schedules = () => {
 
   const eventPropGetter = (event) => {
     const s = event?.resource;
+    const custom = s?.eventColor;
+    if (custom) {
+      const txt =
+        custom === "#D1FAE5" ? "#065F46" :
+        custom === "#EDE9FE" ? "#5B21B6" :
+        custom === "#FEF3C7" ? "#92400E" :
+        custom === "#FEE2E2" ? "#991B1B" : "#1E40AF";
+      return {
+        style: {
+          backgroundColor: custom,
+          border: `1px solid ${custom}`,
+          color: txt,
+          borderRadius: 10,
+          padding: "6px 8px",
+          fontSize: 12
+        }
+      };
+    }
     const cat = classifySchedule(s || {});
     const palette = {
-      evento:   { bg: "#D1FAE5", border: "#A7F3D0", text: "#065F46" }, // verde claro
-      atividade:{ bg: "#EDE9FE", border: "#DDD6FE", text: "#5B21B6" }, // roxo claro
-      projeto:  { bg: "#FEF3C7", border: "#FDE68A", text: "#92400E" }, // amarelo claro
-      lead:     { bg: "#FEE2E2", border: "#FCA5A5", text: "#991B1B" }, // vermelho claro
-      outro:    { bg: "#DBEAFE", border: "#BFDBFE", text: "#1E40AF" }  // azul claro
+      evento:   { bg: "#D1FAE5", border: "#A7F3D0", text: "#065F46" },
+      atividade:{ bg: "#EDE9FE", border: "#DDD6FE", text: "#5B21B6" },
+      projeto:  { bg: "#FEF3C7", border: "#FDE68A", text: "#92400E" },
+      lead:     { bg: "#FEE2E2", border: "#FCA5A5", text: "#991B1B" },
+      outro:    { bg: "#DBEAFE", border: "#BFDBFE", text: "#1E40AF" }
     }[cat];
     return {
       style: {
@@ -416,7 +474,8 @@ const Schedules = () => {
     const goToday = () => toolbarProps.onNavigate("TODAY");
     const goPrev = () => toolbarProps.onNavigate("PREV");
     const goNext = () => toolbarProps.onNavigate("NEXT");
-    const label = toolbarProps.label;
+    const monthRaw = moment(toolbarProps.date).format("MMMM, YYYY");
+    const label = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
@@ -461,15 +520,26 @@ const Schedules = () => {
             user={user}
           />
         )}
+        <CreateEventDrawer
+          open={eventDrawerOpen}
+          onClose={handleCloseEventDrawer}
+          onSave={handleEventSaved}
+        />
+        <EventDetailsModal
+          open={eventDetailsOpen}
+          onClose={handleCloseEventDetails}
+          event={selectedEvent}
+        />
         <ActivitiesStyleLayout
           title={i18n.t("schedules.title")}
           searchPlaceholder={i18n.t("contacts.searchPlaceholder")}
           searchValue={searchParam}
           onSearchChange={(val) => setSearchParam((val || "").toLowerCase())}
-          onCreateClick={handleOpenScheduleModal}
+          onCreateClick={handleOpenEventDrawer}
           disableFilterBar
           hideHeaderDivider
           hideNavDivider
+          rootBackground="#FFFFFF"
           compactHeader
           transparentHeader
           disableFilterBar
@@ -496,30 +566,39 @@ const Schedules = () => {
                   localizer={localizer}
                   views={["day","week","month"]}
                   components={{ toolbar: CustomToolbar }}
-                  events={schedules.map((schedule) => ({
-                    title: (
-                      <div key={schedule.id} className="event-container">
-                        <div style={eventTitleStyle}>{schedule?.contact?.name}</div>
-                        <DeleteOutlineIcon
-                          onClick={() => handleDeleteSchedule(schedule.id)}
-                          className="delete-icon"
-                        />
-                        <EditIcon
-                          onClick={() => {
-                            handleEditSchedule(schedule);
-                            setScheduleModalOpen(true);
-                          }}
-                          className="edit-icon"
-                        />
-                      </div>
-                    ),
-                    start: new Date(schedule.sendAt),
-                    end: new Date(schedule.sendAt),
-                    resource: schedule
-                  }))}
+                  events={[
+                    ...schedules.map((schedule) => ({
+                      title: (
+                        <div key={schedule.id} className="event-container">
+                          <div style={eventTitleStyle}>{schedule?.contact?.name}</div>
+                          <DeleteOutlineIcon
+                            onClick={() => handleDeleteSchedule(schedule.id)}
+                            className="delete-icon"
+                          />
+                          <EditIcon
+                            onClick={() => {
+                              handleEditSchedule(schedule);
+                              setScheduleModalOpen(true);
+                            }}
+                            className="edit-icon"
+                          />
+                        </div>
+                      ),
+                      start: new Date(schedule.sendAt),
+                      end: new Date(schedule.sendAt),
+                      resource: { ...schedule, kind: "schedule" }
+                    })),
+                    ...activities.map((act) => ({
+                      title: act.title || "Evento",
+                      start: new Date(act.date),
+                      end: new Date(act.date),
+                      resource: { ...act, kind: "activity-event" }
+                    }))
+                  ]}
                   startAccessor="start"
                   endAccessor="end"
                   eventPropGetter={eventPropGetter}
+                  onSelectEvent={handleSelectEvent}
                   style={{ height: "calc(100vh - 160px)" }}
                   className={classes.calendarToolbar}
                 />
@@ -527,14 +606,16 @@ const Schedules = () => {
             </Grid>
             <Grid item xs={12} md={3} lg={3}>
               <div className="right-aside">
+                <div className="aside-top-actions">
+                  <button className="aside-action" onClick={handleOpenScheduleModal}>
+                    Evento
+                  </button>
+                </div>
                 <Paper className="aside-card mini-calendar-card" variant="outlined">
                   <div className="aside-header">
                     <Typography className="aside-month" variant="body2">
                       {moment(selectedDate).format("MMMM, YYYY")}
                     </Typography>
-                    <button className="aside-action" onClick={handleOpenScheduleModal}>
-                      Evento
-                    </button>
                   </div>
                   <div className="aside-body">
                     <MiniMonth value={selectedDate} onChange={setSelectedDate} />
