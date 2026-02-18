@@ -40,6 +40,8 @@ import api from "../../services/api";
 import CreateLeadSaleModal from "../../components/CreateLeadSaleModal";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import Autocomplete from "@material-ui/lab/Autocomplete";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
+import leadsSalesService from "../../services/leadsSalesService";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -96,9 +98,13 @@ const useStyles = makeStyles((theme) => ({
   },
   cardsWrapper: {
     marginTop: 8,
-    padding: 4,
-    overflowY: "auto",
-    flex: 1,
+    padding: 10,
+    width: "100%",
+    flex: 0,
+    alignSelf: "flex-start",
+    backgroundColor: "#F4F5F7",
+    border: "1px solid #E6E8EC",
+    borderRadius: 12,
     ...theme.scrollbarStyles,
   },
   card: {
@@ -106,14 +112,23 @@ const useStyles = makeStyles((theme) => ({
     border: "1px solid #E5E7EB",
     borderRadius: 12,
     padding: 12,
-    marginBottom: 12,
-    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    marginBottom: 10,
+    boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
     cursor: "pointer",
     transition: "box-shadow .2s ease, transform .1s ease",
+    position: "relative",
+    overflow: "hidden",
     "&:hover": {
-      boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+      boxShadow: "0 6px 14px rgba(0,0,0,0.08)",
       transform: "translateY(-1px)",
     },
+  },
+  cardTopBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 5,
   },
   cardHeader: {
     display: "flex",
@@ -121,9 +136,9 @@ const useStyles = makeStyles((theme) => ({
     gap: 12,
   },
   avatar: {
-    width: 28,
-    height: 28,
-    fontSize: 13,
+    width: 32,
+    height: 32,
+    fontSize: 14,
     background: "#F3F4F6",
     color: "#374151",
   },
@@ -138,7 +153,7 @@ const useStyles = makeStyles((theme) => ({
   },
   cardSub: {
     fontSize: 12,
-    color: "#6B7280",
+    color: "#9CA3AF",
     marginTop: 2,
   },
   cardValue: {
@@ -165,21 +180,22 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 8,
     borderRadius: 12,
     textTransform: "none",
-    color: "rgba(107, 114, 128, 0.85)", // cinza com leve transparência
-    borderColor: "rgba(209, 213, 219, 0.8)", // borda cinza clara
+    color: "rgba(107, 114, 128, 0.85)",
+    borderColor: "rgba(209, 213, 219, 0.7)",
     borderStyle: "dashed",
-    backgroundColor: "rgba(249, 250, 251, 0.4)", // quase transparente
-    minHeight: 44,
-    fontSize: 14,
+    backgroundColor: "rgba(249, 250, 251, 0.45)",
+    minHeight: 40,
+    padding: "6px 12px",
+    fontSize: 13,
     fontWeight: 500,
-    letterSpacing: 0.2,
+    letterSpacing: 0,
     "& .MuiSvgIcon-root": {
-      fontSize: 18,
+      fontSize: 16,
       color: "rgba(107, 114, 128, 0.8)",
     },
     "&:hover": {
-      backgroundColor: "rgba(243, 244, 246, 0.5)",
-      borderColor: "rgba(209, 213, 219, 0.95)",
+      backgroundColor: "rgba(243, 244, 246, 0.6)",
+      borderColor: "rgba(209, 213, 219, 1)",
     },
   },
   popoverContent: {
@@ -192,11 +208,11 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 const COLUMN_DEFS = [
-  { key: "novo", label: "Novo Lead", color: "#6366F1" },         // indigo
-  { key: "qualificacao", label: "Contato Inicial", color: "#8B5CF6" }, // purple
-  { key: "proposta", label: "Proposta", color: "#F59E0B" },      // amber
-  { key: "negociacao", label: "Reunião", color: "#F97316" },     // orange
-  { key: "fechado", label: "Fechamento", color: "#10B981" },     // emerald
+  { key: "novo", label: "Novo Lead", color: "#6366F1" },
+  { key: "qualificacao", label: "Contato Inicial", color: "#8B5CF6" },
+  { key: "proposta", label: "Proposta", color: "#F59E0B" },
+  { key: "negociacao", label: "Reunião", color: "#F97316" },
+  { key: "fechado", label: "Fechamento", color: "#10B981" },
 ];
 
 function initials(name = "") {
@@ -206,7 +222,7 @@ function initials(name = "") {
   return (i1 + i2).toUpperCase();
 }
 
-const LeadsKanbanBoard = ({ leads, onEdit, onAdd }) => {
+const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove }) => {
   const classes = useStyles();
 
   const leadsByStatus = useMemo(() => {
@@ -222,87 +238,124 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd }) => {
   const getTotalValue = (arr = []) =>
     arr.reduce((sum, l) => sum + (Number(l.value) || 0), 0);
 
+  const handleDragEnd = (result) => {
+    const { source, destination, draggableId } = result || {};
+    if (!destination) return;
+    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
+    if (onMove) onMove(draggableId, source.droppableId, destination.droppableId, destination.index);
+  };
+
   return (
-    <div className={classes.board}>
-      {COLUMN_DEFS.map((col) => {
-        const list = leadsByStatus[col.key] || [];
-        const total = getTotalValue(list);
-        return (
-          <div key={col.key} className={classes.column}>
-            <div className={classes.columnHeader}>
-              <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
-                <div className={classes.columnStripe} style={{ background: col.color }} />
-                <div>
-                  <div className={classes.columnLabel}>{col.label}</div>
-                  <div className={classes.columnMeta}>
-                    <span>R$ {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                    <span>{list.length}</span>
+    <DragDropContext onDragEnd={handleDragEnd}>
+      <div className={classes.board}>
+        {COLUMN_DEFS.map((col) => {
+          const list = leadsByStatus[col.key] || [];
+          const total = getTotalValue(list);
+          const since = (date) => {
+            if (!date) return "0s";
+            const diff = Math.max(0, Math.floor((Date.now() - new Date(date).getTime()) / 1000));
+            if (diff < 60) return `${diff}s`;
+            const m = Math.floor(diff / 60);
+            if (m < 60) return `${m}m`;
+            const h = Math.floor(m / 60);
+            if (h < 24) return `${h}h`;
+            const d = Math.floor(h / 24);
+            return `${d}d`;
+          };
+          return (
+            <div key={col.key} className={classes.column}>
+              <div className={classes.columnHeader}>
+                <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
+                  <div className={classes.columnStripe} style={{ background: col.color }} />
+                  <div>
+                    <div className={classes.columnLabel}>{col.label}</div>
+                    <div className={classes.columnMeta}>
+                      <span>R$ {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                      <span>{list.length}</span>
+                    </div>
                   </div>
                 </div>
+                <IconButton size="small">
+                  <MoreHorizIcon fontSize="small" />
+                </IconButton>
               </div>
-              <IconButton size="small">
-                <MoreHorizIcon fontSize="small" />
-              </IconButton>
+
+              <Droppable droppableId={col.key}>
+                {(providedDroppable) => (
+                  <div className={classes.cardsWrapper} ref={providedDroppable.innerRef} {...providedDroppable.droppableProps}>
+                    {list.map((l, index) => (
+                      <Draggable draggableId={String(l.id)} index={index} key={l.id}>
+                        {(providedDraggable) => (
+                          <div
+                            ref={providedDraggable.innerRef}
+                            {...providedDraggable.draggableProps}
+                            {...providedDraggable.dragHandleProps}
+                            className={classes.card}
+                            onClick={() => onEdit(l)}
+                          >
+                            <div className={classes.cardTopBar} style={{ background: col.color }} />
+                            <div className={classes.cardHeader}>
+                              <Avatar className={classes.avatar}>
+                                {initials(l.name || l.contact?.name || "Lead")}
+                              </Avatar>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className={classes.cardTitle}>{l.name || "Sem nome"}</div>
+                                <div className={classes.cardSub}>
+                                  {l.contact?.name || l.contactId || "—"} • {l.responsible?.name || l.responsibleId || "—"}
+                                </div>
+                              </div>
+                              <div style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: "#10B981" }} />
+                            </div>
+                            {l.contact?.number && (
+                              <div className={classes.cardRow}>
+                                <PhoneIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
+                                <span>{l.contact?.number}</span>
+                              </div>
+                            )}
+                            <div className={classes.cardRow}>
+                              <AddIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
+                            </div>
+                            {l.responsible?.name && (
+                              <div className={classes.cardRow}>
+                                <PersonOutlineIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
+                                <span>{l.responsible?.name}</span>
+                              </div>
+                            )}
+                            <div className={classes.cardValue}>
+                              {l.value ? `R$ ${Number(l.value).toLocaleString()}` : "R$ 0,00"}
+                            </div>
+                            <div className={classes.cardFooter}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                <CheckCircleOutlineIcon style={{ fontSize: 16, color: "#10B981" }} />
+                                <CloseIcon style={{ fontSize: 16, color: "#EF4444" }} />
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#6B7280", fontSize: 12 }}>
+                                <QueryBuilderIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
+                                <span>{since(l.date)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {providedDroppable.placeholder}
+                    <Button
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<AddIcon />}
+                      className={classes.addLeadBtn}
+                      onClick={() => onAdd(col.key)}
+                    >
+                      Adicionar Lead
+                    </Button>
+                  </div>
+                )}
+              </Droppable>
             </div>
-            <div className={classes.cardsWrapper}>
-              {list.map((l) => (
-                <div
-                  key={l.id}
-                  className={classes.card}
-                  onClick={() => onEdit(l)}
-                >
-                  <div className={classes.cardHeader}>
-                    <Avatar className={classes.avatar}>
-                      {initials(l.name || l.contact?.name || "Lead")}
-                    </Avatar>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className={classes.cardTitle}>{l.name || "Sem nome"}</div>
-                      <div className={classes.cardSub}>
-                        {l.contact?.name || l.contactId || "—"} • {l.responsible?.name || l.responsibleId || "—"}
-                      </div>
-                    </div>
-                  </div>
-                  {l.contact?.number && (
-                    <div className={classes.cardRow}>
-                      <PhoneIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                      <span>{l.contact?.number}</span>
-                    </div>
-                  )}
-                  {l.responsible?.name && (
-                    <div className={classes.cardRow}>
-                      <PersonOutlineIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                      <span>{l.responsible?.name}</span>
-                    </div>
-                  )}
-                  <div className={classes.cardValue}>
-                    {l.value ? `R$ ${Number(l.value).toLocaleString()}` : "R$ 0,00"}
-                  </div>
-                  <div className={classes.cardFooter}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <CheckCircleOutlineIcon style={{ fontSize: 16, color: "#10B981" }} />
-                      <CloseIcon style={{ fontSize: 16, color: "#EF4444" }} />
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#6B7280", fontSize: 12 }}>
-                      <QueryBuilderIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                      <span>{l.date ? Math.max(0, Math.round((Date.now() - new Date(l.date).getTime()) / 1000)) : 0}s</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <Button
-                variant="outlined"
-                fullWidth
-                startIcon={<AddIcon />}
-                className={classes.addLeadBtn}
-                onClick={() => onAdd(col.key)}
-              >
-                Adicionar Lead
-              </Button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
+          );
+        })}
+      </div>
+    </DragDropContext>
   );
 };
 
@@ -381,7 +434,6 @@ const LeadsSales = () => {
         const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
         setUsersList(usersResp?.users || []);
       } catch (err) {
-        // ignore errors in filters
       }
     }
     fetchFilters();
@@ -679,6 +731,18 @@ const LeadsSales = () => {
                   onAdd={(statusKey) => {
                     setEditing({ status: statusKey });
                     setDrawerOpen(true);
+                  }}
+                  onMove={async (leadId, sourceCol, destCol) => {
+                    if (sourceCol === destCol) return;
+                    const id = Number(leadId);
+                    const newStatus = destCol;
+                    setLeadsState(prev => prev.map(l => Number(l.id) === id ? { ...l, status: newStatus } : l));
+                    try {
+                      await leadsSalesService.update(id, { status: newStatus });
+                    } catch (err) {
+                      toastError(err);
+                      setLeadsState(prev => prev.map(l => Number(l.id) === id ? { ...l, status: sourceCol } : l));
+                    }
                   }}
                 />
               </div>

@@ -52,7 +52,6 @@ import ForumOutlinedIcon from "@material-ui/icons/ForumOutlined";
 import BusinessIcon from "@material-ui/icons/Business";
 import ConfirmationNumberOutlinedIcon from "@material-ui/icons/ConfirmationNumberOutlined";
 import AndroidIcon from "@material-ui/icons/Android";
-import AssignmentIcon from "@material-ui/icons/Assignment";
 import BusinessCenterIcon from "@material-ui/icons/BusinessCenter";
 import MonetizationOnIcon from "@material-ui/icons/MonetizationOn";
 import StoreIcon from "@material-ui/icons/Store";
@@ -627,26 +626,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               collapsed={collapsed}
             />
           )}
-          <ListItem
-            button
-            onClick={() => setOpenCompaniesSubmenu((prev) => !prev)}
-            className={classes.listItem}
-          >
-            <ListItemIcon style={{ minWidth: 28, marginRight: collapsed ? 0 : 6, justifyContent: 'center' }}>
-              <Avatar className={`${classes.iconHoverActive} ${openCompaniesSubmenu ? "active" : ""}`}>
-                <BusinessIcon />
-              </Avatar>
-            </ListItemIcon>
-            <ListItemText 
-              primary={<Typography className={classes.listItemText}>Empresas</Typography>}
-              style={{ display: collapsed ? 'none' : 'block' }}
-            />
-            {!collapsed && (openCompaniesSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
-          </ListItem>
-          <Collapse in={openCompaniesSubmenu} timeout="auto" unmountOnExit className={classes.submenuContainer}>
-            <ListItemLink to="/companies" primary="Lista de Empresas" icon={<ListIcon />} tooltip={collapsed} collapsed={collapsed} />
-            <ListItemLink to="/leads-convertidos" primary="Leads Convertidos" icon={<AssignmentIcon />} tooltip={collapsed} collapsed={collapsed} />
-          </Collapse>
+          <ListItemLink to="/leads-convertidos" primary="Empresas" icon={<BusinessIcon />} tooltip={collapsed} collapsed={collapsed} />
           {user.showContacts === "enabled" && (
             <ListItemLink
               to="/contacts"
