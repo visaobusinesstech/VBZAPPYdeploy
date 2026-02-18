@@ -25,6 +25,8 @@
   --vb-event-blue-border: #BFDBFE;
   --vb-event-blue-text: #1E40AF;
   --vb-today-bg: #F1F5F9;
+  background: #FFFFFF;
+  min-height: 100vh;
 }
 
 .schedules-page .rbc-calendar { background: transparent; border: none; border-radius: 0; box-shadow: none; padding: 0; }

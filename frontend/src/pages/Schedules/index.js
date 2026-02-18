@@ -289,6 +289,14 @@ const Schedules = () => {
     };
   }, [socket]);
 
+  useEffect(() => {
+    const prev = document.body.style.backgroundColor;
+    document.body.style.backgroundColor = "#FFFFFF";
+    return () => {
+      document.body.style.backgroundColor = prev;
+    };
+  }, []);
+
   const cleanContact = () => {
     setContactId("");
   };
