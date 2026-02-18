@@ -42,6 +42,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import leadsSalesService from "../../services/leadsSalesService";
+import { toast } from "react-toastify";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -72,6 +73,7 @@ const useStyles = makeStyles((theme) => ({
     border: "1px solid #E5E7EB",
     borderRadius: 12,
     padding: 12,
+    minHeight: 56,
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -82,6 +84,9 @@ const useStyles = makeStyles((theme) => ({
     color: "#111827",
     fontSize: 14,
     lineHeight: 1.2,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   },
   columnMeta: {
     display: "flex",
@@ -89,6 +94,25 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "baseline",
     color: "#6B7280",
     fontSize: 12,
+  },
+  columnRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginLeft: 8,
+    whiteSpace: "nowrap",
+  },
+  columnCount: {
+    fontSize: 12,
+    color: "#6B7280",
+    lineHeight: 1.2,
+    padding: 0,
+  },
+  columnMenuBtn: {
+    width: 28,
+    height: 28,
+    padding: 0,
+    color: "#9CA3AF",
   },
   columnStripe: {
     width: 5,
@@ -98,12 +122,12 @@ const useStyles = makeStyles((theme) => ({
   },
   cardsWrapper: {
     marginTop: 8,
-    padding: 10,
+    padding: 12,
     width: "100%",
     flex: 0,
     alignSelf: "flex-start",
-    backgroundColor: "#F4F5F7",
-    border: "1px solid #E6E8EC",
+    backgroundColor: "#F3F4F6",
+    border: "1px solid #E5E7EB",
     borderRadius: 12,
     ...theme.scrollbarStyles,
   },
@@ -111,13 +135,14 @@ const useStyles = makeStyles((theme) => ({
     background: "#fff",
     border: "1px solid #E5E7EB",
     borderRadius: 12,
-    padding: 12,
-    marginBottom: 10,
+    padding: "12px 18px",
+    marginBottom: 12,
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
     cursor: "pointer",
     transition: "box-shadow .2s ease, transform .1s ease",
     position: "relative",
     overflow: "hidden",
+    minHeight: 120,
     "&:hover": {
       boxShadow: "0 6px 14px rgba(0,0,0,0.08)",
       transform: "translateY(-1px)",
@@ -128,12 +153,41 @@ const useStyles = makeStyles((theme) => ({
     top: 0,
     left: 0,
     right: 0,
-    height: 5,
+    height: 3,
+  },
+  cardDeleteBtn: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    minWidth: 22,
+    padding: 0,
+    backgroundColor: "#ffffffEE",
+    border: "1px solid #E5E7EB",
+    borderRadius: 6,
+    color: "#EF4444",
+    transition: "all 120ms ease",
+    "&:hover": {
+      backgroundColor: "#fff",
+      color: "#B91C1C",
+    }
+  },
+  cardTimeBadge: {
+    position: "absolute",
+    bottom: 32,
+    right: 8,
+    fontSize: 10,
+    color: "#6B7280",
+    backgroundColor: "rgba(0,0,0,0.02)",
+    border: "1px solid #E5E7EB",
+    borderRadius: 6,
+    padding: "1px 4px"
   },
   cardHeader: {
     display: "flex",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
   avatar: {
     width: 32,
@@ -142,33 +196,45 @@ const useStyles = makeStyles((theme) => ({
     background: "#F3F4F6",
     color: "#374151",
   },
+  cardAvatarTopRight: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    fontSize: 12,
+    background: "#F3F4F6",
+    color: "#374151",
+    border: "1px solid #E5E7EB",
+  },
   cardTitle: {
     fontWeight: 600,
-    fontSize: 14,
+    fontSize: 13,
     color: "#111827",
-    lineHeight: 1.2,
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    whiteSpace: "nowrap",
+    lineHeight: 1.25,
+    whiteSpace: "normal",
+    wordBreak: "break-word",
+    overflow: "visible",
   },
   cardSub: {
-    fontSize: 12,
+    fontSize: 10.5,
+    fontWeight: 400,
     color: "#9CA3AF",
     marginTop: 2,
   },
   cardValue: {
-    marginTop: 8,
-    fontWeight: 700,
+    marginTop: 6,
+    fontWeight: 600,
     color: "#059669",
-    fontSize: 13,
+    fontSize: 12,
   },
   cardRow: {
     display: "flex",
     alignItems: "center",
-    gap: 8,
-    marginTop: 6,
+    gap: 6,
+    marginTop: 4,
     color: "#6B7280",
-    fontSize: 12,
+    fontSize: 11,
   },
   cardFooter: {
     display: "flex",
@@ -222,7 +288,42 @@ function initials(name = "") {
   return (i1 + i2).toUpperCase();
 }
 
-const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove }) => {
+const AutoShrinkText = ({ text, max = 13, min = 8, className }) => {
+  const containerRef = React.useRef(null);
+  const textRef = React.useRef(null);
+  const [size, setSize] = React.useState(max);
+  const measure = React.useCallback(() => {
+    const container = containerRef.current;
+    const el = textRef.current;
+    if (!container || !el) return;
+    let current = max;
+    el.style.fontSize = `${current}px`;
+    let guard = 0;
+    const limit = Math.max(0, container.clientWidth - 6);
+    while (guard < 80 && current > min && el.scrollWidth > limit) {
+      current -= 0.5;
+      el.style.fontSize = `${current}px`;
+      guard++;
+    }
+    setSize(current);
+  }, [max, min, text]);
+  React.useLayoutEffect(() => {
+    const id = requestAnimationFrame(() => measure());
+    return () => cancelAnimationFrame(id);
+  }, [measure, text]);
+  React.useEffect(() => {
+    const onResize = () => measure();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [measure]);
+  return (
+    <div ref={containerRef} style={{ overflow: "hidden", whiteSpace: "nowrap", minWidth: 0, paddingRight: 12, maxWidth: "100%" }}>
+      <span ref={textRef} className={className} style={{ fontSize: size, display: "inline-block", maxWidth: "100%" }}>{text}</span>
+    </div>
+  );
+};
+
+const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts }) => {
   const classes = useStyles();
 
   const leadsByStatus = useMemo(() => {
@@ -267,17 +368,19 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove }) => {
               <div className={classes.columnHeader}>
                 <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
                   <div className={classes.columnStripe} style={{ background: col.color }} />
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div className={classes.columnLabel}>{col.label}</div>
                     <div className={classes.columnMeta}>
                       <span>R$ {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                      <span>{list.length}</span>
                     </div>
                   </div>
                 </div>
-                <IconButton size="small">
-                  <MoreHorizIcon fontSize="small" />
-                </IconButton>
+                <div className={classes.columnRight}>
+                  <span className={classes.columnCount}>{list.length}</span>
+                  <IconButton size="small" className={classes.columnMenuBtn}>
+                    <MoreHorizIcon fontSize="small" />
+                  </IconButton>
+                </div>
               </div>
 
               <Droppable droppableId={col.key}>
@@ -293,46 +396,65 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove }) => {
                             className={classes.card}
                             onClick={() => onEdit(l)}
                           >
+                            <div className={classes.cardTimeBadge} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                              <QueryBuilderIcon style={{ fontSize: 14, color: "#9CA3AF" }} />
+                              <span>{since(l.date)}</span>
+                            </div>
+                            <IconButton
+                              className={classes.cardDeleteBtn}
+                              size="small"
+                              onClick={(e) => { e.stopPropagation(); onDelete && onDelete(l); }}
+                              title="Excluir lead"
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onMouseUp={(e) => e.stopPropagation()}
+                            >
+                              <CloseIcon style={{ fontSize: 14 }} />
+                            </IconButton>
                             <div className={classes.cardTopBar} style={{ background: col.color }} />
-                            <div className={classes.cardHeader}>
-                              <Avatar className={classes.avatar}>
-                                {initials(l.name || l.contact?.name || "Lead")}
-                              </Avatar>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div className={classes.cardTitle}>{l.name || "Sem nome"}</div>
-                                <div className={classes.cardSub}>
-                                  {l.contact?.name || l.contactId || "—"} • {l.responsible?.name || l.responsibleId || "—"}
-                                </div>
-                              </div>
-                              <div style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: "#10B981" }} />
-                            </div>
-                            {l.contact?.number && (
-                              <div className={classes.cardRow}>
-                                <PhoneIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                                <span>{l.contact?.number}</span>
-                              </div>
-                            )}
-                            <div className={classes.cardRow}>
-                              <AddIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                            </div>
-                            {l.responsible?.name && (
-                              <div className={classes.cardRow}>
-                                <PersonOutlineIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                                <span>{l.responsible?.name}</span>
-                              </div>
-                            )}
+                            {(() => {
+                              // obtém contato via lead ou via lista carregada localmente (prop contacts)
+                              const contact = l.contact || (Array.isArray(contacts) ? contacts.find((c) => String(c.id) === String(l.contactId)) : null);
+                              return (
+                                <>
+                                  <Avatar className={classes.cardAvatarTopRight} src={contact?.profilePicUrl}>
+                                    {initials(l.name || contact?.name || "Lead")}
+                                  </Avatar>
+                                  <div className={classes.cardHeader}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                      <div className={classes.cardTitle}>
+                                        {l.name || "Sem nome"}
+                                      </div>
+                                      <div className={classes.cardSub}>
+                                        {contact?.name || l.contactId || "—"}
+                                      </div>
+                                    </div>
+                                    <div style={{ width: 8, height: 8, borderRadius: 9999, backgroundColor: "#10B981", alignSelf: "flex-start" }} />
+                                  </div>
+                                  {contact?.number && (
+                                    <div className={classes.cardRow}>
+                                      <PhoneIcon style={{ fontSize: 14, color: "#9CA3AF" }} />
+                                      <span>{contact?.number}</span>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                            {/* valor menor */}
                             <div className={classes.cardValue}>
                               {l.value ? `R$ ${Number(l.value).toLocaleString()}` : "R$ 0,00"}
                             </div>
+                            {/* responsável mini */}
+                            {l.responsible?.name && (
+                              <div className={classes.cardRow}>
+                                <PersonOutlineIcon style={{ fontSize: 12, color: "#9CA3AF" }} />
+                                <span style={{ fontSize: 10.5 }}>{l.responsible?.name}</span>
+                              </div>
+                            )}
                             <div className={classes.cardFooter}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                                 <CheckCircleOutlineIcon style={{ fontSize: 16, color: "#10B981" }} />
-                                <CloseIcon style={{ fontSize: 16, color: "#EF4444" }} />
                               </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: 4, color: "#6B7280", fontSize: 12 }}>
-                                <QueryBuilderIcon style={{ fontSize: 16, color: "#9CA3AF" }} />
-                                <span>{since(l.date)}</span>
-                              </div>
+                              <div />
                             </div>
                           </div>
                         )}
@@ -430,7 +552,8 @@ const LeadsSales = () => {
     async function fetchFilters() {
       try {
         const { data: contactsData } = await api.get("/contacts/list");
-        setContactsList(contactsData || []);
+        const list = contactsData || [];
+        setContactsList(list);
         const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
         setUsersList(usersResp?.users || []);
       } catch (err) {
@@ -474,6 +597,21 @@ const LeadsSales = () => {
     socket.on(`company-${user.companyId}-leads-sales`, onLeadEvent);
     return () => {
       socket.off(`company-${user.companyId}-leads-sales`, onLeadEvent);
+    };
+  }, [socket, user]);
+
+  useEffect(() => {
+    if (!socket || !user?.companyId) return;
+    const onContact = (data) => {
+      if (!data?.contact) return;
+      setContactsList((prev) => {
+        const idx = prev.findIndex((c) => String(c.id) === String(data.contact.id));
+        return idx >= 0 ? prev.map((c) => (String(c.id) === String(data.contact.id) ? data.contact : c)) : [data.contact, ...prev];
+      });
+    };
+    socket.on(`company-${user.companyId}-contact`, onContact);
+    return () => {
+      socket.off(`company-${user.companyId}-contact`, onContact);
     };
   }, [socket, user]);
 
@@ -727,6 +865,7 @@ const LeadsSales = () => {
               <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
                 <LeadsKanbanBoard
                   leads={leadsState}
+                  contacts={contactsList}
                   onEdit={(lead) => { setEditing(lead); setDrawerOpen(true); }}
                   onAdd={(statusKey) => {
                     setEditing({ status: statusKey });
@@ -742,6 +881,16 @@ const LeadsSales = () => {
                     } catch (err) {
                       toastError(err);
                       setLeadsState(prev => prev.map(l => Number(l.id) === id ? { ...l, status: sourceCol } : l));
+                    }
+                  }}
+                  onDelete={async (lead) => {
+                    const id = Number(lead.id);
+                    try {
+                      await leadsSalesService.delete(id);
+                      setLeadsState(prev => prev.filter(l => Number(l.id) !== id));
+                      toast.success("Lead excluído.");
+                    } catch (err) {
+                      toastError(err);
                     }
                   }}
                 />

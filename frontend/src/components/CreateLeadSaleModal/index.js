@@ -82,6 +82,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
   const [contacts, setContacts] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
+  const [phone, setPhone] = useState("");
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -136,6 +137,10 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     if (open) load();
   }, [open, lead]);
 
+  useEffect(() => {
+    setPhone(selectedContact?.number || "");
+  }, [selectedContact]);
+
   const handleChange = (field) => (e) => {
     const value = e?.target?.value;
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -144,11 +149,38 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      // Atualiza telefone do contato (se houver alteração)
+      const sanitizePhone = (v) => String(v || "").replace(/\D/g, "");
+      if (selectedContact) {
+        const newDigits = sanitizePhone(phone);
+        const oldDigits = sanitizePhone(selectedContact.number);
+        if (newDigits && newDigits !== oldDigits) {
+          try {
+            await api.put(`/contacts/${selectedContact.id}`, { number: newDigits });
+          } catch (err) {
+            // mantém o fluxo do lead, mas exibe erro do telefone
+            toastError(err);
+          }
+        }
+      }
+      // normalizar payload para evitar erros 500 no backend
+      const payload = {
+        name: (form.name || "").trim(),
+        description: (form.description || "").trim(),
+        status: form.status,
+        value: Number(form.value) || 0,
+        contactId: form.contactId || undefined,
+        responsibleId:
+          form.responsibleId === "" || form.responsibleId === null || form.responsibleId === undefined
+            ? undefined
+            : Number(form.responsibleId),
+        date: form.date && String(form.date).trim() !== "" ? form.date : undefined
+      };
       let saved;
       if (lead && lead.id) {
-        saved = await leadsSalesService.update(lead.id, form);
+        saved = await leadsSalesService.update(lead.id, payload);
       } else {
-        saved = await leadsSalesService.create(form);
+        saved = await leadsSalesService.create(payload);
       }
       setLoading(false);
       if (onSave) onSave(saved);
@@ -216,6 +248,15 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             <TextField {...params} label="Contato/Empresa" variant="outlined" />
           )}
         />
+        <TextField
+          label="Telefone"
+          variant="outlined"
+          fullWidth
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          disabled={!selectedContact}
+          helperText={!selectedContact ? "Selecione um contato para editar o telefone" : ""}
+        />
         <FormControl variant="outlined" fullWidth>
           <InputLabel>Responsável</InputLabel>
           <Select
@@ -264,4 +305,3 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     </Drawer>
   );
 }
-

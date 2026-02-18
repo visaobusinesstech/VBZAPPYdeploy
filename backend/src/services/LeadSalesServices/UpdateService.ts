@@ -26,18 +26,28 @@ const UpdateService = async ({
     throw new Error("Lead sale not found");
   }
 
+  const parsedValue =
+    (typeof value === "string" ? Number(value) : value);
+  const parsedResponsibleId =
+    (responsibleId as any) === "" ? undefined : responsibleId;
+  const parsedContactId =
+    (contactId as any) === "" ? undefined : contactId;
+  const parsedDate =
+    typeof date === "string"
+      ? (date.trim() ? new Date(date) : undefined)
+      : date;
+
   await record.update({
     name: name ?? record.name,
     description: description ?? record.description,
     status: status ?? record.status,
-    value: value ?? record.value,
-    contactId: contactId ?? record.contactId,
-    responsibleId: responsibleId ?? record.responsibleId,
-    date: typeof date === "string" ? new Date(date) : (date ?? record.date)
+    value: parsedValue ?? record.value,
+    contactId: parsedContactId ?? record.contactId,
+    responsibleId: parsedResponsibleId ?? record.responsibleId,
+    date: parsedDate ?? record.date
   } as any);
 
   return record;
 };
 
 export default UpdateService;
-
