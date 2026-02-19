@@ -722,6 +722,19 @@ const Contacts = () => {
           {/* Botões de ação em lote */}
           {isAnyContactSelected && (
             <div className={classes.bulkActions}>
+              <Tooltip title="Enviar Email para selecionados">
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => {
+                    const ids = Array.from(selectedContacts);
+                    const query = selectAllMode ? "all=1" : `contacts=${ids.join(",")}`;
+                    history.push(`/email?tab=agendamento&${query}`);
+                  }}
+                >
+                  Enviar Email
+                </Button>
+              </Tooltip>
               <Tooltip title={selectAllMode ? "Excluir todos os contatos" : "Excluir contatos selecionados"}>
                 <Button
                   variant="contained"
@@ -833,6 +846,20 @@ const Contacts = () => {
               {selectedCount} contato(s) selecionado(s) {selectAllMode && '(TODOS OS CONTATOS)'}
             </Typography>
             <div className={classes.bulkActions}>
+              <Tooltip title="Enviar Email para selecionados">
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  onClick={() => {
+                    const ids = Array.from(selectedContacts);
+                    const query = selectAllMode ? "all=1" : `contacts=${ids.join(",")}`;
+                    history.push(`/email?tab=agendamento&${query}`);
+                  }}
+                >
+                  Enviar Email
+                </Button>
+              </Tooltip>
               <Tooltip title="Cancelar seleção">
                 <Button
                   size="small"

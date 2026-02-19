@@ -661,8 +661,15 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
             {!collapsed && (openMoreSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
           </ListItem>
           <Collapse in={openMoreSubmenu} timeout="auto" unmountOnExit className={`${classes.submenuContainer} ${classes.moreCollapse}`}>
-            <ListItemLink to="/email" primary="Email" icon={<EmailOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-            
+            {/* Relatórios acima da aba Gerência */}
+            <ListItemLink
+              to="/reports"
+              primary={i18n.t("mainDrawer.listItems.reports")}
+              icon={<Description />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+
             {showInternalChat && (
             <ListItemLink
               to="/chats"
@@ -710,13 +717,6 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
                     {!collapsed && (openDashboardSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
                 </ListItem>
                 <Collapse in={openDashboardSubmenu} timeout="auto" unmountOnExit className={classes.submenuContainer}>
-                    <ListItemLink
-                        to="/reports"
-                        primary={i18n.t("mainDrawer.listItems.reports")}
-                        icon={<Description />}
-                        tooltip={collapsed}
-                        collapsed={collapsed}
-                    />
                       <Can
                         role={
                           user.profile === "user" && user.allowRealTime === "enabled"
@@ -793,6 +793,16 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
                 
                 <ListItemLink to="/whatsapp-dashboard" primary="Dashboard" icon={<DashboardOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
            </Collapse>
+
+           {/* Email abaixo de WhatsApp no mesmo espaço */}
+           <ListItemLink
+              to="/email"
+              primary="Email"
+              icon={<EmailOutlinedIcon />}
+              tooltip={collapsed}
+              bottom
+              collapsed={collapsed}
+           />
 
            {showOpenAi && (
              <ListItemLink

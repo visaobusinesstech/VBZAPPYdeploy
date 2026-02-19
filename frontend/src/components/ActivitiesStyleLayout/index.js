@@ -256,7 +256,8 @@ const ActivitiesStyleLayout = ({
   rightFilters,
   rootBackground,
   compactHeader = false,
-  transparentHeader = false
+  transparentHeader = false,
+  scrollContent = true
 }) => {
   const classes = useStyles();
   const tabsRef = React.useRef(null);
@@ -397,7 +398,7 @@ const ActivitiesStyleLayout = ({
         </div>
       </div>
 
-      <div className={classes.content}>
+      <div className={classes.content} style={scrollContent ? undefined : { overflowY: 'visible' }}>
         {children}
       </div>
 

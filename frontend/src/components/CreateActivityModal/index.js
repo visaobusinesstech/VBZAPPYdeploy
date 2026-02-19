@@ -12,6 +12,7 @@ import {
   MenuItem,
   CircularProgress
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import { makeStyles } from '@material-ui/core/styles';
 import { Close as CloseIcon } from '@material-ui/icons';
 import { toast } from "react-toastify";
@@ -76,6 +77,14 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
   const { companies } = useCompanies();
   const { projects } = useProjects({ searchParam: "", pageNumber: 1 });
   const { users } = useUsers();
+
+  const activeUsers = Array.isArray(users) ? users.filter(u => {
+    if (typeof u.isActive === "boolean") return u.isActive;
+    if (typeof u.active === "boolean") return u.active;
+    if (typeof u.disabled === "boolean") return !u.disabled;
+    if (typeof u.status === "string") return ["active", "enabled"].includes(u.status.toLowerCase());
+    return true;
+  }) : [];
   
   const [formValues, setFormValues] = useState({
     title: "",
@@ -225,20 +234,24 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
           size="small"
         />
         
-        {/* New Fields */}
-        <FormControl variant="outlined" fullWidth size="small">
-          <InputLabel>Responsável</InputLabel>
-          <Select
-            value={formValues.responsible}
-            onChange={handleChange("responsible")}
-            label="Responsável"
-          >
-            <MenuItem value=""><em>Nenhum</em></MenuItem>
-            {users && users.map(u => (
-              <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Responsável com busca */}
+        <Autocomplete
+          options={activeUsers}
+          getOptionLabel={(option) => option?.name || option?.fullName || option?.email || String(option?.id)}
+          value={activeUsers.find(u => u.id === formValues.responsible) || null}
+          onChange={(_, value) => setFormValues(prev => ({ ...prev, responsible: value ? value.id : "" }))}
+          noOptionsText="Nenhum usuário encontrado"
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Responsável"
+              variant="outlined"
+              size="small"
+              placeholder="Selecione o responsável"
+              fullWidth
+            />
+          )}
+        />
 
         <FormControl variant="outlined" fullWidth size="small">
           <InputLabel>Empresa</InputLabel>
