@@ -19,6 +19,7 @@ import toastError from "../../errors/toastError";
 import activitiesService from "../../services/activitiesService";
 import useCompanies from "../../hooks/useCompanies";
 import useProjects from "../../hooks/useProjects";
+import useUsers from "../../hooks/useUsers";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -74,6 +75,7 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
   const [loading, setLoading] = useState(false);
   const { companies } = useCompanies();
   const { projects } = useProjects({ searchParam: "", pageNumber: 1 });
+  const { users } = useUsers();
   
   const [formValues, setFormValues] = useState({
     title: "",
@@ -224,15 +226,19 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
         />
         
         {/* New Fields */}
-        <TextField
-          label="Responsável"
-          value={formValues.responsible}
-          onChange={handleChange("responsible")}
-          fullWidth
-          variant="outlined"
-          size="small"
-          placeholder="Selecione o responsável"
-        />
+        <FormControl variant="outlined" fullWidth size="small">
+          <InputLabel>Responsável</InputLabel>
+          <Select
+            value={formValues.responsible}
+            onChange={handleChange("responsible")}
+            label="Responsável"
+          >
+            <MenuItem value=""><em>Nenhum</em></MenuItem>
+            {users && users.map(u => (
+              <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
 
         <FormControl variant="outlined" fullWidth size="small">
           <InputLabel>Empresa</InputLabel>

@@ -214,6 +214,7 @@ const Schedules = () => {
   const [contactId, setContactId] = useState(+getUrlParam("contactId"));
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [eventDrawerOpen, setEventDrawerOpen] = useState(false);
+  const [drawerInitialDate, setDrawerInitialDate] = useState(new Date());
   const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [activities, setActivities] = useState([]);
@@ -307,7 +308,8 @@ const Schedules = () => {
     setScheduleModalOpen(true);
   };
 
-  const handleOpenEventDrawer = () => {
+  const handleOpenEventDrawer = (date) => {
+    setDrawerInitialDate(date || new Date());
     setEventDrawerOpen(true);
   };
 
@@ -524,6 +526,7 @@ const Schedules = () => {
           open={eventDrawerOpen}
           onClose={handleCloseEventDrawer}
           onSave={handleEventSaved}
+          initialDate={drawerInitialDate}
         />
         <EventDetailsModal
           open={eventDetailsOpen}
@@ -566,6 +569,11 @@ const Schedules = () => {
                   localizer={localizer}
                   views={["day","week","month"]}
                   components={{ toolbar: CustomToolbar }}
+                  selectable
+                  onSelectSlot={(slot) => {
+                    setSelectedDate(slot.start);
+                    handleOpenEventDrawer(slot.start);
+                  }}
                   events={[
                     ...schedules.map((schedule) => ({
                       title: (
@@ -608,7 +616,7 @@ const Schedules = () => {
               <div className="right-aside">
                 <div className="aside-top-actions">
                   <button className="aside-action" onClick={handleOpenScheduleModal}>
-                    Evento
+                    Agende uma Mensagem
                   </button>
                 </div>
                 <Paper className="aside-card mini-calendar-card" variant="outlined">

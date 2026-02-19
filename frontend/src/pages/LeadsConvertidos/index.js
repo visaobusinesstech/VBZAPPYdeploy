@@ -256,7 +256,7 @@ const LeadsConvertidos = () => {
         title="Leads Convertidos"
         description="Gerencie seus leads convertidos"
         onCreateClick={handleOpenCreate}
-        searchPlaceholder="Buscar leads..."
+        searchPlaceholder="Buscar empresas..."
         searchValue={searchParam}
         onSearchChange={handleSearch}
         rightFilters={rightFilters}

@@ -4,6 +4,10 @@ const getBaseUrl = (input) => {
   let url = (input || "").trim();
   if (!url) {
     if (typeof window !== "undefined" && window.location && window.location.origin) {
+      const port = String(window.location.port || "");
+      if (port && port !== "8080") {
+        return "http://localhost:8080";
+      }
       return window.location.origin;
     }
     return "http://localhost:8080";

@@ -20,6 +20,7 @@ import toastError from "../../errors/toastError";
 import projectsService from "../../services/projectsService";
 import useCompanies from "../../hooks/useCompanies";
 import useActivities from "../../hooks/useActivities";
+import useUsers from "../../hooks/useUsers";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -74,8 +75,8 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
   const { companies } = useCompanies();
-  // Fetch all activities (assuming pagination allows fetching enough or handle search later)
   const { activities } = useActivities({ searchParam: "", pageNumber: 1 });
+  const { users } = useUsers();
   
   const [formValues, setFormValues] = useState({
     name: "",

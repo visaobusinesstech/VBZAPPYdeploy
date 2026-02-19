@@ -12,11 +12,13 @@ import {
   MenuItem,
   CircularProgress
 } from '@material-ui/core';
+import Autocomplete from '@material-ui/lab/Autocomplete';
 import { makeStyles } from '@material-ui/core/styles';
 import { Close as CloseIcon } from '@material-ui/icons';
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import activitiesService from "../../services/activitiesService";
+import api from "../../services/api";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -67,29 +69,50 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const CreateEventDrawer = ({ open, onClose, onSave }) => {
+const CreateEventDrawer = ({ open, onClose, onSave, initialDate }) => {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
   const [formValues, setFormValues] = useState({
     title: "",
     description: "",
-    datetime: new Date().toISOString().slice(0,16),
+    datetime: "",
     color: "#D1FAE5",
     responsible: "",
+    responsibleId: null,
     location: "",
     address: "",
     phone: "",
     link: ""
   });
 
+  const toInputDateTimeLocal = (dt) => {
+    const d = new Date(dt || new Date());
+    const pad = (n) => String(n).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    const mm = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mi = pad(d.getMinutes());
+    return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+  };
+
   useEffect(() => {
     if (open) {
+      (async () => {
+        try {
+          const { data } = await api.get("/users", { params: { searchParam: "" } });
+          setUsers(data?.users || []);
+        } catch (err) {
+          // ignore
+        }
+      })();
       setFormValues((prev) => ({
         ...prev,
-        datetime: new Date().toISOString().slice(0,16)
+        datetime: toInputDateTimeLocal(initialDate || new Date())
       }));
     }
-  }, [open]);
+  }, [open, initialDate]);
 
   const handleChange = (field) => (event) => {
     setFormValues((prev) => ({
@@ -118,7 +141,7 @@ const CreateEventDrawer = ({ open, onClose, onSave }) => {
         type: mapTypeByColor(formValues.color),
         date: new Date(formValues.datetime).toISOString(),
         status: "pending",
-        responsible: formValues.responsible,
+        owner: formValues.responsible,
         location: formValues.location,
         address: formValues.address,
         phone: formValues.phone,
@@ -195,14 +218,27 @@ const CreateEventDrawer = ({ open, onClose, onSave }) => {
             <MenuItem value="#FEE2E2">Vermelho (lead)</MenuItem>
           </Select>
         </FormControl>
-        <TextField
-          label="Responsável"
-          value={formValues.responsible}
-          onChange={handleChange("responsible")}
-          fullWidth
-          variant="outlined"
-          size="small"
-          placeholder="Nome do responsável"
+        <Autocomplete
+          options={users}
+          getOptionLabel={(opt) => opt?.name || ""}
+          value={users.find((u) => String(u.id) === String(formValues.responsibleId)) || null}
+          onChange={(_, v) => {
+            setFormValues((prev) => ({
+              ...prev,
+              responsibleId: v ? v.id : null,
+              responsible: v ? v.name : ""
+            }));
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Responsável"
+              variant="outlined"
+              size="small"
+              placeholder="Selecione um usuário"
+              fullWidth
+            />
+          )}
         />
         <TextField
           label="Local"
