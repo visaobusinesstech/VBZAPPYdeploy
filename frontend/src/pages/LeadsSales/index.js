@@ -51,6 +51,13 @@ const useStyles = makeStyles((theme) => ({
     height: "100%",
     overflow: "hidden",
   },
+  fixedContent: {
+    width: "100%",
+    maxWidth: 1200,
+    margin: "0 auto",
+    padding: theme.spacing(0, 2),
+    boxSizing: "border-box",
+  },
   board: {
     display: "grid",
     gridTemplateColumns: "repeat(5, 1fr)",

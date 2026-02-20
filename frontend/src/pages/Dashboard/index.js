@@ -7,6 +7,7 @@ import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import { useTheme } from "@material-ui/core/styles";
 import { IconButton } from "@mui/material";
+import { useHistory } from "react-router-dom";
 import { Groups, SaveAlt } from "@mui/icons-material";
 
 import CallIcon from "@material-ui/icons/Call";
@@ -122,8 +123,15 @@ const useStyles = makeStyles((theme) => ({
     width: 16,
     height: 16,
   },
+  miniTopbarClock: {
+    color: theme.palette.text.secondary,
+    fontSize: "0.8rem",
+    fontWeight: 500,
+  },
   blocksWrapper: {
     width: "100%",
+    maxWidth: 1100,
+    margin: "0 auto",
   },
   blockPaper: {
     padding: theme.spacing(2.5),
@@ -133,7 +141,7 @@ const useStyles = makeStyles((theme) => ({
       theme.palette.mode === "light"
         ? "0 10px 30px rgba(2, 6, 23, 0.08)"
         : theme.shadows[4],
-    minHeight: 280,
+    height: 320, // tamanho padrao mais quadrado
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -145,12 +153,19 @@ const useStyles = makeStyles((theme) => ({
           ? "0 20px 40px rgba(2, 6, 23, 0.12)"
           : theme.shadows[6],
     },
+    "&:hover $dragHandleBtn": {
+      visibility: "visible",
+    },
+    [theme.breakpoints.down("sm")]: {
+      height: 280,
+    },
   },
   blockHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: theme.spacing(1.5),
+    position: "relative",
   },
   blockHeaderTitle: {
     display: "flex",
@@ -162,9 +177,26 @@ const useStyles = makeStyles((theme) => ({
     width: 22,
     height: 22,
     color: theme.palette.text.secondary,
+    stroke: "#111",
+    strokeWidth: 1.75,
+  },
+  dragHandleBtn: {
+    position: "absolute",
+    right: theme.spacing(0.5),
+    top: theme.spacing(0.5),
+    padding: 4,
+    visibility: "hidden",
+  },
+  blockPaperHover: {},
+  blockContent: {
+    flex: 1,
+    overflowY: "auto",
+    overflowX: "hidden",
+    paddingRight: theme.spacing(0.5),
   },
   blockTitle: {
     fontWeight: 600,
+    fontSize: "1rem",
   },
   blockList: {
     listStyle: "none",
@@ -471,6 +503,11 @@ const Dashboard = () => {
   });
   const drawerCtx = useContext(DrawerContext);
   const drawerOpen = drawerCtx && typeof drawerCtx.drawerOpen !== "undefined" ? drawerCtx.drawerOpen : false;
+  const toggleDrawer = () => {
+    if (drawerCtx && typeof drawerCtx.setDrawerOpen === "function") {
+      drawerCtx.setDrawerOpen(!drawerOpen);
+    }
+  };
 
   const exportarGridParaExcel = () => {
     const ws = XLSX.utils.table_to_sheet(
@@ -663,7 +700,8 @@ const Dashboard = () => {
       });
       const todayStr = moment().format("YYYY-MM-DD");
       const filtered = (data?.schedules || []).filter((s) => {
-        const dt = moment(s.sendAt || s.date).format("YYYY-MM-DD");
+        const base = s.sendAt || s.date || s.startAt || s.startDate || s.createdAt;
+        const dt = moment(base).local().format("YYYY-MM-DD");
         return dt === todayStr;
       });
       setSchedulesToday(filtered.slice(0, 5));
@@ -671,6 +709,15 @@ const Dashboard = () => {
       setSchedulesToday([]);
     }
   }
+
+  const history = useHistory();
+  const [nowText, setNowText] = useState(moment().format("ddd, D MMM • HH:mm"));
+  useEffect(() => {
+    const id = setInterval(() => {
+      setNowText(moment().format("ddd, D MMM • HH:mm"));
+    }, 30000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     loadTodaySchedules();
@@ -829,6 +876,15 @@ const Dashboard = () => {
               <span>{moment().format("dddd, D [de] MMM")}</span>
             </div>
             <div className={classes.agendaControls}>
+              <Button
+                variant="contained"
+                size="small"
+                color="primary"
+                className={classes.todayButton}
+                onClick={() => history.push("/schedules")}
+              >
+                Ver Calendário
+              </Button>
               <Button variant="outlined" size="small" className={classes.todayButton} onClick={loadTodaySchedules}>
                 Hoje
               </Button>
@@ -924,7 +980,7 @@ const Dashboard = () => {
                   </Typography>
                 </div>
                 <Typography className={classes.blockItemMeta}>
-                  {p.status || "-"}
+                  {(p.status ? (p.status.charAt(0).toUpperCase() + p.status.slice(1)) : "Backlog")}
                 </Typography>
               </li>
             );
@@ -1090,7 +1146,7 @@ const Dashboard = () => {
                   <IconButton
                     size="small"
                     className={classes.miniTopbarButton}
-                    onClick={handleOpenSettings}
+                    onClick={toggleDrawer}
                     aria-label="Menu"
                   >
                     <svg className={classes.miniTopbarIconSmall} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1098,6 +1154,7 @@ const Dashboard = () => {
                     </svg>
                   </IconButton>
                 )}
+                <span className={classes.miniTopbarClock}>{nowText}</span>
                 <IconButton
                   size="small"
                   className={classes.miniTopbarButton}
@@ -1124,14 +1181,7 @@ const Dashboard = () => {
                           container
                           spacing={2}
                           className={classes.container}
-                            style={{
-                              margin: 0,
-                              width: "100%",
-                              marginTop: 0,
-                              maxWidth: 1100,
-                              marginLeft: 0,
-                              marginRight: "auto"
-                            }}
+                            style={{ margin: 0, width: "100%", marginTop: 0 }}
                         >
                           {blockOrder.map((id, index) => {
                             const config = (blockConfigs || []).find((b) => b.id === id) ||
@@ -1150,7 +1200,6 @@ const Dashboard = () => {
                                     md={6}
                                     ref={dragProvided.innerRef}
                                     {...dragProvided.draggableProps}
-                                    {...dragProvided.dragHandleProps}
                                   >
                                     <Paper className={classes.blockPaper}>
                                       <div className={classes.blockHeader}>
@@ -1160,8 +1209,25 @@ const Dashboard = () => {
                                             {config.title}
                                           </Typography>
                                         </div>
+                                        <IconButton
+                                          className={classes.dragHandleBtn}
+                                          {...dragProvided.dragHandleProps}
+                                          aria-label="Mover bloco"
+                                          title="Arraste para mover"
+                                        >
+                                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                            <circle cx="9" cy="7" r="1.5"/>
+                                            <circle cx="15" cy="7" r="1.5"/>
+                                            <circle cx="9" cy="12" r="1.5"/>
+                                            <circle cx="15" cy="12" r="1.5"/>
+                                            <circle cx="9" cy="17" r="1.5"/>
+                                            <circle cx="15" cy="17" r="1.5"/>
+                                          </svg>
+                                        </IconButton>
                                       </div>
-                                      {renderBlockContent(id)}
+                                      <div className={classes.blockContent}>
+                                        {renderBlockContent(id)}
+                                      </div>
                                     </Paper>
                                   </Grid2>
                                 )}
