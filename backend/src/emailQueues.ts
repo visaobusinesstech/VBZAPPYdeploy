@@ -71,3 +71,5 @@ emailScheduler.process(async () => {
   await handleEmailScheduler();
 });
 
+export { emailSendQueue, emailScheduler };
+

@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import "dotenv/config"; // Carrega variáveis do .env
 
 // Função para testar a conexão SMTP e diagnosticar problemas
 export async function testSmtpConnection() {
