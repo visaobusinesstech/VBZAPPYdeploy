@@ -136,24 +136,31 @@ const SettingsCustom = () => {
   const isSuper = () => {
     return currentUser && currentUser.super;
   };
+  const isSpecificAdminUI = () => {
+    return currentUser?.email?.toLowerCase() === "admin@admin.com";
+  };
 
-  // Construct viewModes (Tabs)
-  const settingsTabs = [
+  // Construct viewModes (Tabs) - keeping Plans and Financeiro as the last items, with Plans before Financeiro
+  const baseTabs = [
     { value: "options", label: i18n.t("settings.tabs.options") },
     ...(schedulesEnabled ? [{ value: "schedules", label: "Horários" }] : []),
     ...(user.profile === "admin" && user.finalizacaoComValorVendaAtiva ? [{ value: "finalizacao", label: "Finalização do Atendimento" }] : []),
     ...(isSuper() ? [{ value: "companies", label: i18n.t("settings.tabs.companies") }] : []),
-    ...(isSuper() ? [{ value: "plans", label: i18n.t("settings.tabs.plans") }] : []),
     ...(isSuper() ? [{ value: "whitelabel", label: "Identidade Visual" }] : []),
     { value: "users", label: "Usuários" },
     { value: "connections", label: "Gerenciar Conexões" },
     { value: "integrations", label: "Integrações" },
     { value: "email", label: "Email" },
-    { value: "financeiro", label: "Financeiro" },
     { value: "tags", label: "Tags" },
-    { value: "birthday", label: "Config. Aniversário" },
     { value: "announcements", label: "Informativos" },
   ];
+  const trailingTabs = isSpecificAdminUI()
+    ? [
+        { value: "plans", label: i18n.t("settings.tabs.plans") },
+        { value: "financeiro", label: "Financeiro" }
+      ]
+    : [];
+  const settingsTabs = [...baseTabs, ...trailingTabs];
 
   return (
     <>
@@ -196,13 +203,15 @@ const SettingsCustom = () => {
                       <CompaniesManager />
                     </TabPanel>
 
-                    <TabPanel
-                      className={classes.container}
-                      value={tab}
-                      name={"plans"}
-                    >
-                      <PlansManager />
-                    </TabPanel>
+                    {isSpecificAdminUI() && (
+                      <TabPanel
+                        className={classes.container}
+                        value={tab}
+                        name={"plans"}
+                      >
+                        <PlansManager />
+                      </TabPanel>
+                    )}
 
                     <TabPanel
                       className={classes.container}
@@ -266,13 +275,15 @@ const SettingsCustom = () => {
               >
                 <EmailSettings renderAsTab={true} />
               </TabPanel>
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"financeiro"}
-              >
-                <Invoices renderAsTab={true} />
-              </TabPanel>
+              {isSpecificAdminUI() && (
+                <TabPanel
+                  className={classes.container}
+                  value={tab}
+                  name={"financeiro"}
+                >
+                  <Invoices renderAsTab={true} />
+                </TabPanel>
+              )}
               <TabPanel
                 className={classes.container}
                 value={tab}
@@ -281,13 +292,6 @@ const SettingsCustom = () => {
                 <Tags renderAsTab={true} />
               </TabPanel>
               
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"birthday"}
-              >
-                <BirthdaySettings renderAsTab={true} />
-              </TabPanel>
               <TabPanel
                 className={classes.container}
                 value={tab}

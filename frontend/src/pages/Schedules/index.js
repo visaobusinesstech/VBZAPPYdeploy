@@ -39,6 +39,9 @@ import "./Schedules.css"; // Importe o arquivo CSS
 import CreateEventDrawer from "../../components/CreateEventDrawer";
 import EventDetailsModal from "../../components/EventDetailsModal";
 import activitiesService from "../../services/activitiesService";
+import IconButton from "@material-ui/core/IconButton";
+import MenuIcon from "@material-ui/icons/Menu";
+import { DrawerContext } from "../../context/DrawerContext";
 
 // Defina a função getUrlParam antes de usá-la
 function getUrlParam(paramName) {
@@ -201,6 +204,7 @@ const Schedules = () => {
 
   //   const socketManager = useContext(SocketContext);
   const { user, socket } = useContext(AuthContext);
+  const drawerCtx = useContext(DrawerContext);
 
   const [loading, setLoading] = useState(false);
   const [pageNumber, setPageNumber] = useState(1);
@@ -551,7 +555,14 @@ const Schedules = () => {
         >
           <div className="schedules-header">
             <div className="breadcrumb">Dashboard &lt; Calendário</div>
-            <h1 className="page-title">Calendário</h1>
+            <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              {drawerCtx && drawerCtx.drawerOpen === false ? (
+                <IconButton size="small" onClick={() => drawerCtx.setDrawerOpen(true)} style={{ marginRight: 6 }}>
+                  <MenuIcon fontSize="small" />
+                </IconButton>
+              ) : null}
+              Calendário
+            </h1>
           </div>
           <Grid container spacing={2}>
             <Grid item xs={12} md={9} lg={9}>

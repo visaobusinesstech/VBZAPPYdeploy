@@ -11,7 +11,7 @@ import { PageTitleProvider } from "./context/PageTitleContext";
 import Favicon from "react-favicon";
 import { getBackendUrl } from "./config";
 import Routes from "./routes";
-import defaultLogoLight from "./assets/logo.png";
+import defaultLogoLight from "./assets/logo-black.png";
 import defaultLogoDark from "./assets/logo-black.png";
 import defaultLogoFavicon from "./assets/favicon.ico";
 import useSettings from "./hooks/useSettings";
@@ -49,6 +49,7 @@ const App = () => {
   const [appLogoLight, setAppLogoLight] = useState(defaultLogoLight);
   const [appLogoDark, setAppLogoDark] = useState(defaultLogoDark);
   const [appLogoFavicon, setAppLogoFavicon] = useState(defaultLogoFavicon);
+  const [appLogoTickets, setAppLogoTickets] = useState("");
   const [appName, setAppName] = useState(appNameLocalStorage);
   const { getPublicSetting } = useSettings();
 
@@ -66,14 +67,16 @@ const App = () => {
       setAppLogoLight,
       setAppLogoDark,
       setAppLogoFavicon,
+      setAppLogoTickets,
       setAppName,
       appLogoLight,
       appLogoDark,
       appLogoFavicon,
+      appLogoTickets,
       appName,
       mode,
     }),
-    [appLogoLight, appLogoDark, appLogoFavicon, appName, mode]
+    [appLogoLight, appLogoDark, appLogoFavicon, appLogoTickets, appName, mode]
   );
 
   const theme = useMemo(
@@ -319,6 +322,7 @@ const App = () => {
           appLogoLight,
           appLogoDark,
           appLogoFavicon,
+          appLogoTickets,
           appName,
           calculatedLogoDark: () => {
             if (
@@ -345,6 +349,7 @@ const App = () => {
       appLogoLight,
       appLogoDark,
       appLogoFavicon,
+      appLogoTickets,
       appName,
       locale,
       mode,
@@ -395,6 +400,13 @@ const App = () => {
         setAppLogoFavicon(
           file ? getBackendUrl() + "/public/" + file : defaultLogoFavicon
         );
+      })
+      .catch((error) => {
+        console.log("Error reading setting", error);
+      });
+    getPublicSetting("appLogoTickets")
+      .then((file) => {
+        setAppLogoTickets(file ? getBackendUrl() + "/public/" + file : "");
       })
       .catch((error) => {
         console.log("Error reading setting", error);

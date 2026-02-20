@@ -12,6 +12,7 @@ const publicSettingsKeys = [
   "appLogoLight",
   "appLogoDark",
   "appLogoFavicon",
+  "appLogoTickets",
   "appName",
   "enabledLanguages",
   "appLogoBackgroundLight",

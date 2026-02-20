@@ -69,9 +69,13 @@ const useStyles = makeStyles((theme) => ({
 	},
 	logo: {
 		logo: theme.logo,
-		content: "url(" + (theme.mode === "light" 
-			? theme.calculatedLogoLight() 
-			: theme.calculatedLogoDark()) + ")"
+		content: "url(" + (
+			theme.appLogoTickets && theme.appLogoTickets.length > 0
+				? theme.appLogoTickets
+				: (theme.mode === "light"
+					? (theme.appLogoLight || theme.calculatedLogoLight())
+					: (theme.appLogoDark || theme.calculatedLogoDark()))
+		) + ")"
 	},
 }));
 

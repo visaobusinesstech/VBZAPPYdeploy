@@ -231,6 +231,7 @@ export default function Whitelabel(props) {
   const logoLightInput = useRef(null);
   const logoDarkInput = useRef(null);
   const logoFaviconInput = useRef(null);
+  const ticketsLogoInput = useRef(null);
   const backgroundLightInput = useRef(null);
   const backgroundDarkInput = useRef(null);
   const appNameInput = useRef(null);
@@ -276,6 +277,9 @@ export default function Whitelabel(props) {
       const appLogoFavicon = settings.find(
         (s) => s.key === "appLogoFavicon"
       )?.value;
+      const appLogoTickets = settings.find(
+        (s) => s.key === "appLogoTickets"
+      )?.value;
       const appLogoBackgroundLight = settings.find(
         (s) => s.key === "appLogoBackgroundLight"
       )?.value;
@@ -303,6 +307,7 @@ export default function Whitelabel(props) {
           appLogoLight,
           appLogoDark,
           appLogoFavicon,
+          appLogoTickets,
           appLogoBackgroundLight,
           appLogoBackgroundDark,
           appName,
@@ -375,6 +380,29 @@ export default function Whitelabel(props) {
         console.error(`Houve um problema ao realizar o upload da imagem.`);
         console.log(err);
       });
+  };
+
+  const uploadUnifiedLogo = async (e) => {
+    if (!e.target.files) {
+      return;
+    }
+    const file = e.target.files[0];
+    const upload = async (mode) => {
+      const fd = new FormData();
+      fd.append("typeArch", "logo");
+      fd.append("mode", mode);
+      fd.append("file", file);
+      const resp = await api.post("/settings-whitelabel/logo", fd);
+      updateSettingsLoaded(`appLogo${mode}`, resp.data);
+      colorMode[`setAppLogo${mode}`](getBackendUrl() + "/public/" + resp.data);
+    };
+    try {
+      await upload("Light");
+      await upload("Dark");
+      toast.success("Logo atualizada.");
+    } catch {
+      toast.error("Falha ao atualizar a logo.");
+    }
   };
 
   if (loading) {
@@ -597,6 +625,95 @@ export default function Whitelabel(props) {
                                 <AttachFile
                                   titleAccess={i18n.t("whitelabel.upload")}
                                 />
+                              </IconButton>
+                            </label>
+                          </>
+                        ),
+                      }}
+                    />
+                  </FormControl>
+                </Grid>
+
+                <Grid xs={12} item>
+                  <FormControl className={classes.formField} fullWidth>
+                    <TextField
+                      label="Insira sua Logo"
+                      variant="outlined"
+                      value=""
+                      size="small"
+                      placeholder="Clique no clipe para anexar"
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <>
+                            <input
+                              type="file"
+                              id="upload-unified-logo-button"
+                              className={classes.uploadInput}
+                              onChange={uploadUnifiedLogo}
+                              accept="image/png,image/jpeg,image/webp"
+                            />
+                            <label htmlFor="upload-unified-logo-button">
+                              <IconButton
+                                size="small"
+                                color="default"
+                                onClick={() => {
+                                  const input = document.getElementById("upload-unified-logo-button");
+                                  if (input) input.click();
+                                }}
+                              >
+                                <AttachFile titleAccess="Anexar" />
+                              </IconButton>
+                            </label>
+                          </>
+                        ),
+                      }}
+                    />
+                  </FormControl>
+                </Grid>
+
+                <Grid xs={12} sm={6} md={4} item>
+                  <FormControl className={classes.formField} fullWidth>
+                    <TextField
+                      id="logo-tickets-upload-field"
+                      label="Logo Atendimentos"
+                      variant="outlined"
+                      value={settingsLoaded.appLogoTickets || ""}
+                      size="small"
+                      className={classes.uploadField}
+                      InputProps={{
+                        readOnly: true,
+                        endAdornment: (
+                          <>
+                            {settingsLoaded.appLogoTickets && (
+                              <IconButton
+                                size="small"
+                                color="default"
+                                onClick={() => {
+                                  handleSaveSetting("appLogoTickets", "");
+                                  colorMode.setAppLogoTickets("");
+                                }}
+                              >
+                                <Delete titleAccess={i18n.t("whitelabel.delete")} />
+                              </IconButton>
+                            )}
+                            <input
+                              type="file"
+                              id="upload-logo-tickets-button"
+                              ref={ticketsLogoInput}
+                              className={classes.uploadInput}
+                              onChange={(e) => uploadLogo(e, "Tickets")}
+                              accept="image/png,image/jpeg,image/webp"
+                            />
+                            <label htmlFor="upload-logo-tickets-button">
+                              <IconButton
+                                size="small"
+                                color="default"
+                                onClick={() => {
+                                  ticketsLogoInput.current && ticketsLogoInput.current.click();
+                                }}
+                              >
+                                <AttachFile titleAccess={i18n.t("whitelabel.upload")} />
                               </IconButton>
                             </label>
                           </>
@@ -880,6 +997,25 @@ export default function Whitelabel(props) {
                       />
                       <div className={classes.previewLabel}>
                         {i18n.t("whitelabel.favicon")}
+                      </div>
+                    </div>
+                  </Grid>
+
+                  <Grid xs={12} sm={6} md={3} item>
+                    <div className={`${classes.previewCard} ${classes.previewCardLight}`}>
+                      <img
+                        className={classes.previewImage}
+                        src={settingsLoaded.appLogoTickets ?
+                          getBackendUrl() + "/public/" + settingsLoaded.appLogoTickets :
+                          (defaultLogoLight)
+                        }
+                        alt="preview tickets-logo"
+                        onError={(e) => {
+                          e.target.src = defaultLogoLight;
+                        }}
+                      />
+                      <div className={classes.previewLabel}>
+                        Logo Atendimentos
                       </div>
                     </div>
                   </Grid>

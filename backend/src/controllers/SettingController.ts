@@ -127,7 +127,8 @@ export const storeLogo = async (
     "Dark",
     "Favicon",
     "BackgroundLight",
-    "BackgroundDark"
+    "BackgroundDark",
+    "Tickets"
   ];
 
   if (validModes.indexOf(mode) === -1) {

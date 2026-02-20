@@ -357,7 +357,7 @@ const useStyles = makeStyles((theme) => ({
     maxHeight: "90px", // Aumentado um pouco mais
     maxWidth: "100%", // Permite ocupar largura disponível
     objectFit: "contain", // Garante que a imagem caiba sem distorcer
-    content: `url(${theme.mode === "light" ? logoDark : logo})`,
+    content: `url(${theme.mode === "light" ? theme.calculatedLogoDark() : theme.calculatedLogoLight()})`,
     transition: "all 0.3s ease",
     cursor: "pointer", // Adicionado cursor pointer
     "&:hover": {
@@ -369,7 +369,7 @@ const useStyles = makeStyles((theme) => ({
   hideLogo: {
     width: "30px", // Reduzido de 35px
     maxWidth: "30px",
-    content: `url(${theme.mode === "light" ? logoDark : logo})`,
+    content: `url(${theme.mode === "light" ? theme.calculatedLogoDark() : theme.calculatedLogoLight()})`,
     margin: "0 auto", // Centraliza
   },
 
@@ -920,7 +920,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
         >
           <div className={classes.toolbarIcon}>
             <img
-              src={theme.mode === "light" ? logoDark : logo}
+              src={theme.mode === "light" ? theme.calculatedLogoDark() : theme.calculatedLogoLight()}
               alt="VBSolution"
               className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
               onClick={() => setDrawerOpen(!drawerOpen)}

@@ -1,16 +1,17 @@
 import express from "express";
 import isAuth from "../middleware/isAuth";
+import isSpecificAdmin from "../middleware/isSpecificAdmin";
 
 import * as PlanController from "../controllers/PlanController";
 
 const planRoutes = express.Router();
 
-planRoutes.get("/plans", isAuth, PlanController.index);
-planRoutes.get("/plans/list", PlanController.list);
-planRoutes.get("/plans/all", isAuth, PlanController.list);
-planRoutes.get("/plans/:id", isAuth, PlanController.show);
-planRoutes.post("/plans", isAuth, PlanController.store);
-planRoutes.put("/plans/:id", isAuth, PlanController.update);
-planRoutes.delete("/plans/:id", isAuth, PlanController.remove);
+planRoutes.get("/plans", isAuth, isSpecificAdmin, PlanController.index);
+planRoutes.get("/plans/list", isAuth, isSpecificAdmin, PlanController.list);
+planRoutes.get("/plans/all", isAuth, isSpecificAdmin, PlanController.list);
+planRoutes.get("/plans/:id", isAuth, isSpecificAdmin, PlanController.show);
+planRoutes.post("/plans", isAuth, isSpecificAdmin, PlanController.store);
+planRoutes.put("/plans/:id", isAuth, isSpecificAdmin, PlanController.update);
+planRoutes.delete("/plans/:id", isAuth, isSpecificAdmin, PlanController.remove);
 
 export default planRoutes;

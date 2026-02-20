@@ -56,11 +56,21 @@ import {
   Tabs,
   LinearProgress,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { i18n } from "../../translate/i18n";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import { ArrowDownward, ArrowUpward } from "@material-ui/icons";
+import api from "../../services/api";
+import { DrawerContext } from "../../context/DrawerContext";
 
 const useStyles = makeStyles((theme) => ({
   overline: {
@@ -73,32 +83,85 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: "'Plus Jakarta Sans', sans-serif'",
   },
   greetingContainer: {
-    marginBottom: theme.spacing(3),
+    marginBottom: theme.spacing(2),
+    marginLeft: theme.spacing(1),
   },
   greetingTitle: {
-    fontWeight: 600,
-    marginBottom: theme.spacing(1),
+    fontWeight: 700,
+    marginBottom: theme.spacing(0.5),
+    fontSize: "1.5rem",
   },
   greetingSubtitle: {
     color: theme.palette.text.secondary,
+  },
+  miniTopbar: {
+    backgroundColor: "#ffffff",
+    borderRadius: 0,
+    padding: theme.spacing(0.5, 1),
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 0,
+    marginBottom: theme.spacing(2),
+    // Full-bleed within Container to encostar na lateral do menu
+    marginLeft: -16,
+    marginRight: -16,
+    width: "calc(100% + 32px)",
+    boxShadow:
+      theme.palette.mode === "light"
+        ? "0 2px 10px rgba(0,0,0,0.06)"
+        : theme.shadows[1],
+  },
+  miniTopbarButton: {
+    color: "#000",
+    backgroundColor: "transparent",
+    opacity: 1,
+    padding: 4,
+  },
+  miniTopbarIconSmall: {
+    width: 16,
+    height: 16,
   },
   blocksWrapper: {
     width: "100%",
   },
   blockPaper: {
-    padding: theme.spacing(2),
-    borderRadius: 12,
+    padding: theme.spacing(2.5),
+    borderRadius: 18,
     backgroundColor: theme.palette.background.paper,
-    boxShadow: theme.shadows[2],
-    minHeight: 220,
+    boxShadow:
+      theme.palette.mode === "light"
+        ? "0 10px 30px rgba(2, 6, 23, 0.08)"
+        : theme.shadows[4],
+    minHeight: 280,
     display: "flex",
     flexDirection: "column",
+    overflow: "hidden",
+    transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    "&:hover": {
+      transform: "translateY(-2px)",
+      boxShadow:
+        theme.palette.mode === "light"
+          ? "0 20px 40px rgba(2, 6, 23, 0.12)"
+          : theme.shadows[6],
+    },
   },
   blockHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: theme.spacing(1.5),
+  },
+  blockHeaderTitle: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    fontWeight: 700,
+  },
+  blockHeaderIcon: {
+    width: 22,
+    height: 22,
+    color: theme.palette.text.secondary,
   },
   blockTitle: {
     fontWeight: 600,
@@ -112,13 +175,24 @@ const useStyles = makeStyles((theme) => ({
   blockListItem: {
     display: "flex",
     flexDirection: "column",
-    padding: theme.spacing(1),
-    borderRadius: 8,
+    padding: theme.spacing(1.25),
+    borderRadius: 10,
     marginBottom: theme.spacing(1),
     backgroundColor:
       theme.palette.mode === "light"
         ? "#f9fafb"
         : "rgba(255,255,255,0.04)",
+    transition: "background-color 0.15s ease, box-shadow 0.15s ease",
+    "&:hover": {
+      backgroundColor:
+        theme.palette.mode === "light"
+          ? "#f3f4f6"
+          : "rgba(255,255,255,0.08)",
+      boxShadow:
+        theme.palette.mode === "light"
+          ? "inset 0 0 0 1px rgba(0,0,0,0.04)"
+          : "inset 0 0 0 1px rgba(255,255,255,0.06)",
+    },
   },
   blockItemTitle: {
     fontSize: "0.95rem",
@@ -128,6 +202,54 @@ const useStyles = makeStyles((theme) => ({
     fontSize: "0.8rem",
     color: theme.palette.text.secondary,
     marginTop: 2,
+  },
+  dotLine: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: "50%",
+    flexShrink: 0,
+  },
+  agendaItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1.5),
+    padding: theme.spacing(1),
+    borderRadius: 10,
+    marginBottom: theme.spacing(1),
+  },
+  agendaTime: {
+    fontSize: "0.8rem",
+    color: theme.palette.text.secondary,
+    minWidth: 48,
+    textAlign: "right",
+  },
+  agendaHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing(1),
+  },
+  agendaDate: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+    color: theme.palette.text.secondary,
+    fontSize: "0.9rem",
+  },
+  agendaControls: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
+  },
+  todayButton: {
+    textTransform: "none",
+    padding: theme.spacing(0.5, 1.2),
+    minHeight: 28,
   },
   h4: {
     fontFamily: "'Plus Jakarta Sans', sans-serif'",
@@ -245,8 +367,13 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "auto",
     overflowX: "hidden",
     ...theme.scrollbarStyles,
-    backgroundColor: "transparent !important",
-    borderRadius: "10px",
+    backgroundColor:
+      theme.palette.mode === "light"
+        ? "#f3f6fb !important"
+        : "transparent !important",
+    borderRadius: 0,
+    borderTopLeftRadius: 0,
+    borderTopRightRadius: 0,
   },
   paper: {
     padding: theme.spacing(2),
@@ -286,8 +413,9 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const dashboardBlocks = [
+const defaultBlocks = [
   { id: "pendingActivities", title: "Atividades Pendentes" },
+  { id: "agenda", title: "Agenda" },
   { id: "recentActivities", title: "Atividades Recentes" },
   { id: "recentProjects", title: "Últimos Projetos" },
 ];
@@ -325,9 +453,12 @@ const Dashboard = () => {
   const [dateEndTicket, setDateEndTicket] = useState(now);
   const [queueTicket, setQueueTicket] = useState(false);
   const [fetchDataFilter, setFetchDataFilter] = useState(false);
-  const [blockOrder, setBlockOrder] = useState(
-    dashboardBlocks.map((b) => b.id)
-  );
+  const [blockOrder, setBlockOrder] = useState(defaultBlocks.map((b) => b.id));
+  const [blockConfigs, setBlockConfigs] = useState(defaultBlocks);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [addDueActivities, setAddDueActivities] = useState(false);
+  const [addDueProjects, setAddDueProjects] = useState(false);
+  const [schedulesToday, setSchedulesToday] = useState([]);
 
   const { user } = useContext(AuthContext);
   const { activities, loading: loadingActivities } = useActivities({
@@ -338,6 +469,8 @@ const Dashboard = () => {
     pageNumber: 1,
     searchParam: "",
   });
+  const drawerCtx = useContext(DrawerContext);
+  const drawerOpen = drawerCtx && typeof drawerCtx.drawerOpen !== "undefined" ? drawerCtx.drawerOpen : false;
 
   const exportarGridParaExcel = () => {
     const ws = XLSX.utils.table_to_sheet(
@@ -360,15 +493,15 @@ const Dashboard = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        const validIds = dashboardBlocks.map((b) => b.id);
+        const validIds = defaultBlocks.map((b) => b.id);
         const filtered = parsed.filter((id) => validIds.includes(id));
         const missing = validIds.filter((id) => !filtered.includes(id));
         setBlockOrder([...filtered, ...missing]);
       } catch (e) {
-        setBlockOrder(dashboardBlocks.map((b) => b.id));
+        setBlockOrder(defaultBlocks.map((b) => b.id));
       }
     } else {
-      setBlockOrder(dashboardBlocks.map((b) => b.id));
+      setBlockOrder(defaultBlocks.map((b) => b.id));
     }
   }, [user.id]);
 
@@ -520,8 +653,65 @@ const Dashboard = () => {
     } else {
       base = "Boa noite";
     }
-    return `${base.toUpperCase()}, ${user.name}`;
+    return `${base}, ${user.name}`;
   }, [user.name]);
+
+  async function loadTodaySchedules() {
+    try {
+      const { data } = await api.get("/schedules", {
+        params: { pageNumber: 1, searchParam: "" },
+      });
+      const todayStr = moment().format("YYYY-MM-DD");
+      const filtered = (data?.schedules || []).filter((s) => {
+        const dt = moment(s.sendAt || s.date).format("YYYY-MM-DD");
+        return dt === todayStr;
+      });
+      setSchedulesToday(filtered.slice(0, 5));
+    } catch (e) {
+      setSchedulesToday([]);
+    }
+  }
+
+  useEffect(() => {
+    loadTodaySchedules();
+  }, []);
+
+  // Ícones distintos por bloco (cabeçalho)
+  const renderHeaderIconById = (blockId) => {
+    if (blockId === "agenda") {
+      return (
+        <svg className={classes.blockHeaderIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      );
+    }
+    if (blockId === "pendingActivities" || blockId === "dueActivities") {
+      return (
+        <svg className={classes.blockHeaderIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="3" y="4" width="18" height="18" rx="3" ry="3" />
+          <path d="M9 12l2 2 4-4" />
+        </svg>
+      );
+    }
+    if (blockId === "recentProjects" || blockId === "dueProjects") {
+      return (
+        <svg className={classes.blockHeaderIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M3 7h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <path d="M3 7l3-3h6l3 3" />
+        </svg>
+      );
+    }
+    // recentActivities (relógio)
+    return (
+      <svg className={classes.blockHeaderIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 6v6l4 2" />
+      </svg>
+    );
+  };
 
   const pendingActivities = useMemo(() => {
     return activities
@@ -544,6 +734,29 @@ const Dashboard = () => {
     return [...projects].slice(0, 5);
   }, [projects]);
 
+  const dueActivities = useMemo(() => {
+    const limit = moment().add(7, "days");
+    return activities
+      .filter((a) => {
+        if (!a?.date) return false;
+        const d = moment(a.date);
+        return d.isSameOrAfter(moment(), "day") && d.isSameOrBefore(limit, "day");
+      })
+      .slice(0, 5);
+  }, [activities]);
+
+  const dueProjects = useMemo(() => {
+    const limit = moment().add(7, "days");
+    return projects
+      .filter((p) => {
+        const key = p?.dueDate || p?.deadline || p?.date;
+        if (!key) return false;
+        const d = moment(key);
+        return d.isSameOrAfter(moment(), "day") && d.isSameOrBefore(limit, "day");
+      })
+      .slice(0, 5);
+  }, [projects]);
+
   const renderBlockContent = (id) => {
     if (id === "pendingActivities") {
       if (loadingActivities) {
@@ -560,17 +773,85 @@ const Dashboard = () => {
       }
       return (
         <ul className={classes.blockList}>
-          {pendingActivities.map((a) => (
-            <li key={a.id} className={classes.blockListItem}>
-              <Typography className={classes.blockItemTitle}>
-                {a.title || "Sem título"}
-              </Typography>
-              <Typography className={classes.blockItemMeta}>
-                {a.date}
-              </Typography>
-            </li>
-          ))}
+          {pendingActivities.map((a) => {
+            const color = "#f59e0b"; // laranja
+            return (
+              <li key={a.id} className={classes.blockListItem}>
+                <div className={classes.dotLine}>
+                  <span className={classes.dot} style={{ backgroundColor: color }} />
+                  <Typography className={classes.blockItemTitle}>
+                    {a.title || "Sem título"}
+                  </Typography>
+                </div>
+                <Typography className={classes.blockItemMeta}>
+                  Pendente • {a.date || "-"}
+                </Typography>
+              </li>
+            );
+          })}
         </ul>
+      );
+    }
+    if (id === "agenda") {
+      if (!schedulesToday.length) {
+        return (
+          <div>
+            <div className={classes.agendaHeader}>
+              <div className={classes.agendaDate}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <span>{moment().format("dddd, D [de] MMM")}</span>
+              </div>
+              <div className={classes.agendaControls}>
+                <Button variant="outlined" size="small" className={classes.todayButton} onClick={loadTodaySchedules}>
+                  Hoje
+                </Button>
+              </div>
+            </div>
+            <Typography color="textSecondary">Nenhum evento para hoje.</Typography>
+          </div>
+        );
+      }
+      return (
+        <div>
+          <div className={classes.agendaHeader}>
+            <div className={classes.agendaDate}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              <span>{moment().format("dddd, D [de] MMM")}</span>
+            </div>
+            <div className={classes.agendaControls}>
+              <Button variant="outlined" size="small" className={classes.todayButton} onClick={loadTodaySchedules}>
+                Hoje
+              </Button>
+            </div>
+          </div>
+          {schedulesToday.map((e, idx) => {
+            const palette = ["#dbeafe", "#dcfce7", "#EDE9FE"];
+            const bg = palette[idx % palette.length];
+            return (
+              <div key={e.id} className={classes.agendaItem} style={{ backgroundColor: bg }}>
+                <span className={classes.dot} style={{ backgroundColor: "#3b82f6" }} />
+                <div className={classes.agendaTime}>
+                  {moment(e.sendAt || e.date).format("HH:mm")}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <Typography className={classes.blockItemTitle}>
+                    {e.title || e?.contact?.name || "Evento"}
+                  </Typography>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       );
     }
     if (id === "recentActivities") {
@@ -588,16 +869,29 @@ const Dashboard = () => {
       }
       return (
         <ul className={classes.blockList}>
-          {recentActivities.map((a) => (
-            <li key={a.id} className={classes.blockListItem}>
-              <Typography className={classes.blockItemTitle}>
-                {a.title || "Sem título"}
-              </Typography>
-              <Typography className={classes.blockItemMeta}>
-                {a.date}
-              </Typography>
-            </li>
-          ))}
+          {recentActivities.map((a, idx) => {
+            const status = (a.status || "").toLowerCase();
+            let color = "#3b82f6"; // em andamento
+            let label = "Em andamento";
+            if (status.includes("done") || status.includes("concl")) {
+              color = "#10b981"; label = "Concluído";
+            } else if (status.includes("pend")) {
+              color = "#f59e0b"; label = "Pendente";
+            }
+            return (
+              <li key={a.id} className={classes.blockListItem}>
+                <div className={classes.dotLine}>
+                  <span className={classes.dot} style={{ backgroundColor: color }} />
+                  <Typography className={classes.blockItemTitle}>
+                    {a.title || "Sem título"}
+                  </Typography>
+                </div>
+                <Typography className={classes.blockItemMeta}>
+                  {label} • {a.date || "-"}
+                </Typography>
+              </li>
+            );
+          })}
         </ul>
       );
     }
@@ -616,13 +910,68 @@ const Dashboard = () => {
       }
       return (
         <ul className={classes.blockList}>
-          {recentProjects.map((p) => (
-            <li key={p.id} className={classes.blockListItem}>
+          {recentProjects.map((p) => {
+            const status = (p.status || "").toLowerCase();
+            let color = "#3b82f6";
+            if (status.includes("done") || status.includes("concl")) color = "#10b981";
+            if (status.includes("pend")) color = "#f59e0b";
+            return (
+              <li key={p.id} className={classes.blockListItem}>
+                <div className={classes.dotLine}>
+                  <span className={classes.dot} style={{ backgroundColor: color }} />
+                  <Typography className={classes.blockItemTitle}>
+                    {p.title || "Sem título"}
+                  </Typography>
+                </div>
+                <Typography className={classes.blockItemMeta}>
+                  {p.status || "-"}
+                </Typography>
+              </li>
+            );
+          })}
+        </ul>
+      );
+    }
+    if (id === "dueActivities") {
+      if (!dueActivities.length) {
+        return (
+          <Typography color="textSecondary">
+            Nenhuma atividade a vencer nos próximos 7 dias.
+          </Typography>
+        );
+      }
+      return (
+        <ul className={classes.blockList}>
+          {dueActivities.map((a) => (
+            <li key={a.id} className={classes.blockListItem}>
               <Typography className={classes.blockItemTitle}>
-                {p.title || "Sem título"}
+                {a.title || "Sem título"}
               </Typography>
               <Typography className={classes.blockItemMeta}>
-                {p.status}
+                {a.date}
+              </Typography>
+            </li>
+          ))}
+        </ul>
+      );
+    }
+    if (id === "dueProjects") {
+      if (!dueProjects.length) {
+        return (
+          <Typography color="textSecondary">
+            Nenhum projeto a vencer nos próximos 7 dias.
+          </Typography>
+        );
+      }
+      return (
+        <ul className={classes.blockList}>
+          {dueProjects.map((p) => (
+            <li key={p.id} className={classes.blockListItem}>
+              <Typography className={classes.blockItemTitle}>
+                {p.title || p.name || "Projeto"}
+              </Typography>
+              <Typography className={classes.blockItemMeta}>
+                {p.status || moment(p.dueDate || p.deadline || p.date).format("DD/MM/YYYY")}
               </Typography>
             </li>
           ))}
@@ -630,6 +979,28 @@ const Dashboard = () => {
       );
     }
     return null;
+  };
+
+  const handleOpenSettings = () => setSettingsOpen(true);
+  const handleCloseSettings = () => setSettingsOpen(false);
+  const handleApplySettings = () => {
+    const newBlocks = [...blockConfigs];
+    if (addDueActivities && !newBlocks.find((b) => b.id === "dueActivities")) {
+      newBlocks.push({ id: "dueActivities", title: "Atividades a Vencer" });
+    }
+    if (addDueProjects && !newBlocks.find((b) => b.id === "dueProjects")) {
+      newBlocks.push({ id: "dueProjects", title: "Projetos à Vencer" });
+    }
+    setBlockConfigs(newBlocks);
+    const order = [...blockOrder];
+    if (addDueActivities && !order.includes("dueActivities")) {
+      order.push("dueActivities");
+    }
+    if (addDueProjects && !order.includes("dueProjects")) {
+      order.push("dueProjects");
+    }
+    setBlockOrder(order);
+    handleCloseSettings();
   };
 
   const GetUsers = () => {
@@ -708,20 +1079,37 @@ const Dashboard = () => {
               className={classes.container}
               style={{
                 padding: "16px",
+                paddingTop: 0,
                 maxWidth: "100%",
                 overflowX: "hidden",
                 marginTop: 0,
               }}
             >
+              <div className={classes.miniTopbar}>
+                {!drawerOpen && (
+                  <IconButton
+                    size="small"
+                    className={classes.miniTopbarButton}
+                    onClick={handleOpenSettings}
+                    aria-label="Menu"
+                  >
+                    <svg className={classes.miniTopbarIconSmall} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 6h18M3 12h18M3 18h18"/>
+                    </svg>
+                  </IconButton>
+                )}
+                <IconButton
+                  size="small"
+                  className={classes.miniTopbarButton}
+                  onClick={handleOpenSettings}
+                  aria-label="Opções"
+                >
+                  <MoreHorizIcon style={{ fontSize: 18, color: "#000" }} />
+                </IconButton>
+              </div>
               <div className={classes.greetingContainer}>
                 <Typography variant="h4" className={classes.greetingTitle}>
                   {greetingText}
-                </Typography>
-                <Typography
-                  variant="subtitle1"
-                  className={classes.greetingSubtitle}
-                >
-                  Estes blocos puxam dados criados em Atividades e Projetos.
                 </Typography>
               </div>
               <div className={classes.blocksWrapper}>
@@ -731,17 +1119,23 @@ const Dashboard = () => {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                      >
+                        >
                         <Grid2
                           container
                           spacing={2}
                           className={classes.container}
-                          style={{ margin: 0, width: "100%", marginTop: 0 }}
+                            style={{
+                              margin: 0,
+                              width: "100%",
+                              marginTop: 0,
+                              maxWidth: 1100,
+                              marginLeft: 0,
+                              marginRight: "auto"
+                            }}
                         >
                           {blockOrder.map((id, index) => {
-                            const config = dashboardBlocks.find(
-                              (b) => b.id === id
-                            );
+                            const config = (blockConfigs || []).find((b) => b.id === id) ||
+                              defaultBlocks.find((b) => b.id === id);
                             if (!config) return null;
                             return (
                               <Draggable
@@ -753,19 +1147,19 @@ const Dashboard = () => {
                                   <Grid2
                                     item
                                     xs={12}
-                                    md={index < 2 ? 6 : 12}
+                                    md={6}
                                     ref={dragProvided.innerRef}
                                     {...dragProvided.draggableProps}
                                     {...dragProvided.dragHandleProps}
                                   >
                                     <Paper className={classes.blockPaper}>
                                       <div className={classes.blockHeader}>
-                                        <Typography
-                                          variant="h6"
-                                          className={classes.blockTitle}
-                                        >
-                                          {config.title}
-                                        </Typography>
+                                        <div className={classes.blockHeaderTitle}>
+                                          {renderHeaderIconById(id)}
+                                          <Typography variant="h6" className={classes.blockTitle}>
+                                            {config.title}
+                                          </Typography>
+                                        </div>
                                       </div>
                                       {renderBlockContent(id)}
                                     </Paper>
@@ -783,6 +1177,37 @@ const Dashboard = () => {
               </div>
             </Container>
           </Paper>
+          <Dialog open={settingsOpen} onClose={handleCloseSettings}>
+            <DialogTitle>Adicionar blocos</DialogTitle>
+            <DialogContent>
+              <FormGroup>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={addDueActivities}
+                      onChange={(e) => setAddDueActivities(e.target.checked)}
+                    />
+                  }
+                  label="Atividades a Vencer"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={addDueProjects}
+                      onChange={(e) => setAddDueProjects(e.target.checked)}
+                    />
+                  }
+                  label="Projetos à Vencer"
+                />
+              </FormGroup>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handleCloseSettings}>Cancelar</Button>
+              <Button variant="contained" color="primary" onClick={handleApplySettings}>
+                Adicionar
+              </Button>
+            </DialogActions>
+          </Dialog>
         </MainContainer>
       )}
     </>

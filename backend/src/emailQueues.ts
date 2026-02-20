@@ -12,8 +12,15 @@ import { getCompanyTransporter } from "./helpers/SmtpTransport";
 
 const connection = REDIS_URI_CONNECTION;
 
-const emailSendQueue = new BullQueue("EmailSendQueue", connection);
-const emailScheduler = new BullQueue("EmailScheduler", connection);
+const USE_REDIS = !!(connection && connection !== "");
+
+let emailSendQueue: BullQueue.Queue | null = null;
+let emailScheduler: BullQueue.Queue | null = null;
+
+if (USE_REDIS) {
+  emailSendQueue = new BullQueue("EmailSendQueue", connection);
+  emailScheduler = new BullQueue("EmailScheduler", connection);
+}
 
 async function processEmailSend(job: any) {
   const { scheduleId } = job.data;
@@ -62,15 +69,31 @@ async function handleEmailScheduler() {
     },
     limit: 200
   } as any);
-  for (const s of due) {
-    await emailSendQueue.add({ scheduleId: s.id }, { removeOnComplete: true });
+  if (USE_REDIS && emailSendQueue) {
+    for (const s of due) {
+      await emailSendQueue.add({ scheduleId: s.id }, { removeOnComplete: true });
+    }
+  } else {
+    for (const s of due) {
+      await processEmailSend({ data: { scheduleId: s.id } } as any);
+    }
   }
 }
 
-emailSendQueue.process(processEmailSend as any);
-emailScheduler.add("ScanDueEmailSchedules", {}, { repeat: { cron: "*/30 * * * * *", key: "scan-email-schedules" }, removeOnComplete: true });
-emailScheduler.process(async () => {
-  await handleEmailScheduler();
-});
+if (USE_REDIS && emailSendQueue && emailScheduler) {
+  emailSendQueue.process(processEmailSend as any);
+  emailScheduler.add(
+    "ScanDueEmailSchedules",
+    {},
+    { repeat: { cron: "*/30 * * * * *", key: "scan-email-schedules" }, removeOnComplete: true }
+  );
+  emailScheduler.process(async () => {
+    await handleEmailScheduler();
+  });
+} else {
+  setInterval(() => {
+    handleEmailScheduler().catch(() => {});
+  }, 30 * 1000);
+}
 
 export { emailSendQueue, emailScheduler };

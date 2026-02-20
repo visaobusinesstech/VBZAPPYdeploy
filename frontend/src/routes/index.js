@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from "react";
-import { BrowserRouter, Switch } from "react-router-dom";
+import { BrowserRouter, Switch, Redirect } from "react-router-dom";
 import { ToastContainer } from "react-toastify";
 import moment from "moment";
 
@@ -87,6 +87,11 @@ const RoutesContent = () => {
     return hojeInicio.isAfter(vencimentoInicio, 'day');
   };
 
+  const FinanceiroGuard = (props) => {
+    const allowed = user?.email?.toLowerCase() === "admin@admin.com";
+    return allowed ? <Financeiro {...props} /> : <Redirect to="/" />;
+  };
+
   return (
     <TicketsContextProvider>
       <Switch>
@@ -97,7 +102,7 @@ const RoutesContent = () => {
                 <Route
                   exact
                   path="/financeiro"
-                  component={Financeiro}
+                  component={FinanceiroGuard}
                   isPrivate
                   title="Financeiro"
                 />

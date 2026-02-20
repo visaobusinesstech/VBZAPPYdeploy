@@ -488,28 +488,30 @@ const EmailPage = () => {
     setScheduleOpen(true);
     (async () => {
       try {
-        const res = await emailService.contacts.list({ pageNumber: 1 });
-        const emailContacts = res?.contacts || res?.records || res?.rows || [];
-        if (emailContacts.length > 0) {
+        // Preferir contatos do sistema (atualizados) e, se vazio, cair para contatos do módulo de e-mail
+        const systemRes = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
+        const systemList = (systemRes.data?.contacts || systemRes.data?.rows || systemRes.data?.records || [])
+          .filter(c => c?.email && String(c.email).includes("@"))
+          .map(c => ({ ...c, _source: "system" }));
+        if (systemList.length > 0) {
+          setContactsList(systemList);
+          setContactsSource("system");
+        } else {
+          const res = await emailService.contacts.list({ pageNumber: 1 });
+          const emailContacts = res?.contacts || res?.records || res?.rows || [];
           setContactsList(emailContacts.map(c => ({ ...c, _source: "email" })));
           setContactsSource("email");
-        } else {
-          // Fallback: buscar contatos gerais com e-mail preenchido
-          try {
-            const fallback = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
-            const list = (fallback.data?.contacts || fallback.data?.rows || fallback.data?.records || [])
-              .filter(c => c?.email && String(c.email).includes("@"))
-              .map(c => ({ ...c, _source: "system" }));
-            setContactsList(list);
-            setContactsSource("system");
-          } catch {
-            setContactsList([]);
-            setContactsSource("email");
-          }
         }
       } catch {
-        setContactsList([]);
-        setContactsSource("email");
+        try {
+          const res = await emailService.contacts.list({ pageNumber: 1 });
+          const emailContacts = res?.contacts || res?.records || res?.rows || [];
+          setContactsList(emailContacts.map(c => ({ ...c, _source: "email" })));
+          setContactsSource("email");
+        } catch {
+          setContactsList([]);
+          setContactsSource("email");
+        }
       }
     })();
   };
@@ -647,9 +649,24 @@ const EmailPage = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {(schedulesList || []).map((s) => (
+                    {(schedulesList || []).map((s) => {
+                      const now = new Date();
+                      const sched = s.scheduledAt ? new Date(s.scheduledAt) : null;
+                      const isDueOrPast = sched ? sched.getTime() <= now.getTime() : false;
+                      const statusPt = (() => {
+                        switch (s.status) {
+                          case "sent": return "Enviado";
+                          case "failed": return "Falhou";
+                          case "retrying": return "Tentando novamente";
+                          case "canceled": return "Cancelado";
+                          case "scheduled":
+                          default:
+                            return isDueOrPast ? "Enviado Agora" : "Agendado";
+                        }
+                      })();
+                      return (
                       <TableRow key={s.id}>
-                        <TableCell>{s.status}</TableCell>
+                        <TableCell>{statusPt}</TableCell>
                         <TableCell>
                           <div style={{ fontWeight: 600 }}>{s.contactName || s.contactEmail}</div>
                           <div style={{ fontSize: 12, color: "#64748B" }}>{s.contactEmail}</div>
@@ -658,7 +675,7 @@ const EmailPage = () => {
                         <TableCell>{s.subject || "-"}</TableCell>
                         <TableCell>{s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : "-"}</TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                     {(!schedulesList || schedulesList.length === 0) && (
                       <TableRow><TableCell colSpan={5} align="center">Nenhum agendamento encontrado</TableCell></TableRow>
                     )}
@@ -897,10 +914,24 @@ const EmailPage = () => {
                 />
                 <Button variant="outlined" onClick={async () => {
                   if (!contactsList.length) {
-                    const res = await emailService.contacts.list({ pageNumber: 1 });
-                    const list = res?.contacts || res?.records || res?.rows || [];
-                    setContactsList(list);
-                    setRecipients(list.map(c => String(c.id)));
+                    if (contactsSource === "system") {
+                      try {
+                        const res = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
+                        const list = (res.data?.contacts || res.data?.rows || res.data?.records || [])
+                          .filter(c => c?.email && String(c.email).includes("@"))
+                          .map(c => ({ ...c, _source: "system" }));
+                        setContactsList(list);
+                        setRecipients(list.map(c => String(c.id)));
+                      } catch {
+                        setContactsList([]);
+                        setRecipients([]);
+                      }
+                    } else {
+                      const res = await emailService.contacts.list({ pageNumber: 1 });
+                      const list = res?.contacts || res?.records || res?.rows || [];
+                      setContactsList(list.map(c => ({ ...c, _source: "email" })));
+                      setRecipients(list.map(c => String(c.id)));
+                    }
                   } else {
                     setRecipients(contactsList.map(c => String(c.id)));
                   }
