@@ -50,27 +50,12 @@ export async function SendMailDirect(mailData: MailData) {
   }
 }
 
-// Função inteligente que detecta se o Redis está disponível
-// Se não estiver, usa envio direto em vez de filas
 export async function SendMailSmart(mailData: MailData) {
-  // Verifica se o Redis está configurado e disponível
-  const isRedisAvailable = REDIS_URI_CONNECTION && REDIS_URI_CONNECTION !== "";
-  
-  if (isRedisAvailable) {
-    // Se Redis estiver disponível, usa o sistema de filas normal
-    // Importa dinamicamente para evitar dependência circular
-    const { emailSendQueue } = await import("../emailQueues");
-    await emailSendQueue.add({ mailData }, { removeOnComplete: true });
-    return { success: true, method: "queue" };
-  } else {
-    // Se Redis não estiver disponível, usa envio direto
-    console.log("Redis não disponível, usando envio direto de email");
-    try {
-      const result = await SendMailDirect(mailData);
-      return { success: true, method: "direct" };
-    } catch (error) {
-      console.error("Falha no envio direto de email:", error);
-      return { success: false, method: "direct", error };
-    }
+  try {
+    const result = await SendMailDirect(mailData);
+    return { success: true, method: "direct", result };
+  } catch (error) {
+    console.error("Erro no SendMailSmart:", error);
+    throw error;
   }
 }

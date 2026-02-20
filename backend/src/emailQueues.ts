@@ -7,6 +7,7 @@ import EmailTemplate from "./models/EmailTemplate";
 import EmailContact from "./models/EmailContact";
 import EmailLog from "./models/EmailLog";
 import EmailAnalytics from "./models/EmailAnalytics";
+import SmtpConfig from "./models/SmtpConfig";
 import { getCompanyTransporter } from "./helpers/SmtpTransport";
 
 const connection = REDIS_URI_CONNECTION;
@@ -24,7 +25,8 @@ async function processEmailSend(job: any) {
   try {
     const companyId = schedule.companyId;
     const transporter = await getCompanyTransporter(companyId);
-    const from = process.env.MAIL_FROM || undefined;
+    const smtpConfig = await SmtpConfig.findOne({ where: { companyId, isDefault: true } });
+    const from = process.env.MAIL_FROM || smtpConfig?.smtpUsername || undefined;
     const subject = (schedule as any).campaign?.subject || (schedule as any).campaign?.template?.subject || "";
     const html = (schedule as any).campaign?.template?.contentHtml || null;
     const text = (schedule as any).campaign?.template?.contentText || undefined;
@@ -72,4 +74,3 @@ emailScheduler.process(async () => {
 });
 
 export { emailSendQueue, emailScheduler };
-

@@ -13,28 +13,20 @@ export async function getCompanyTransporter(companyId: number): Promise<Transpor
 
   const config = await SmtpConfig.findOne({ where: { companyId, isDefault: true } });
 
-  if (config) {
-    const secure = config.smtpEncryption === "ssl";
-    const transporter = nodemailer.createTransport({
-      host: config.smtpHost,
-      port: config.smtpPort,
-      secure,
-      pool: true,
-      auth: config.smtpUsername || config.smtpPassword ? { user: config.smtpUsername, pass: config.smtpPassword } : undefined
-    } as any);
-    cache[key] = transporter;
-    return transporter;
+  if (!config) {
+    throw new Error(`SMTP_NOT_CONFIGURED: Empresa ${companyId} não possui configuração SMTP. Configure em Configurações > Email.`);
   }
 
-  const fallback = nodemailer.createTransport({
-    host: process.env.MAIL_HOST,
-    port: Number(process.env.MAIL_PORT || 587),
-    secure: String(process.env.MAIL_SECURE || "false").toLowerCase() === "true",
+  const secure = config.smtpEncryption === "ssl";
+  const transporter = nodemailer.createTransport({
+    host: config.smtpHost,
+    port: config.smtpPort,
+    secure,
     pool: true,
-    auth: process.env.MAIL_USER || process.env.MAIL_PASS ? { user: process.env.MAIL_USER, pass: process.env.MAIL_PASS } : undefined
+    auth: config.smtpUsername || config.smtpPassword ? { user: config.smtpUsername, pass: config.smtpPassword } : undefined
   } as any);
-  cache[key] = fallback;
-  return fallback;
+  cache[key] = transporter;
+  return transporter;
 }
 
 export async function verifyCredentials(params: {
