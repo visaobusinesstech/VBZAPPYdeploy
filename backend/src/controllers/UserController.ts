@@ -11,7 +11,7 @@ import ShowUserService from "../services/UserServices/ShowUserService";
 import DeleteUserService from "../services/UserServices/DeleteUserService";
 import SimpleListService from "../services/UserServices/SimpleListService";
 import CreateCompanyService from "../services/CompanyService/CreateCompanyService";
-import { SendMail } from "../helpers/SendMail";
+import { SendMailSmart } from "../helpers/SendMail";
 import { useDate } from "../utils/useDate";
 import ShowCompanyService from "../services/CompanyService/ShowCompanyService";
 import { getWbot } from "../libs/wbot";
@@ -168,7 +168,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
         )}`
       };
 
-      await SendMail(_email);
+      await SendMailSmart(_email);
     } catch (error) {
       console.log("Não consegui enviar o email");
     }
