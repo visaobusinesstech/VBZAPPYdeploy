@@ -33,6 +33,7 @@ import facebookIcon from "../../assets/facebook.png";
 import insatagramIcon from "../../assets/instagram.png";
 import whatsappIcon from "../../assets/whatsapp.png";
 import { TicketsContext } from "../../context/Tickets/TicketsContext";
+import { getBackendUrl } from "../../config";
 
 const useStyles = makeStyles((theme) => ({
     ticket: {
@@ -266,6 +267,15 @@ const TicketListItem = ({ ticket }) => {
     const { user } = useContext(AuthContext);
     const { setCurrentTicket, setTabOpen } = useContext(TicketsContext);
     const [imageModalOpen, setImageModalOpen] = useState(false); // Estado para o modal da imagem
+    const backendUrl = getBackendUrl() || "http://localhost:8080";
+
+    const resolveImageUrl = (url) => {
+        if (!url || typeof url !== "string") return "";
+        const u = url.trim();
+        if (/^(data:|blob:|https?:\/\/)/i.test(u)) return u;
+        if (u.startsWith("/")) return `${backendUrl}${u}`;
+        return `${backendUrl}/public/${u}`;
+    };
 
     useEffect(() => {
         return () => {
@@ -443,9 +453,13 @@ const TicketListItem = ({ ticket }) => {
                     >
                         <Avatar
                             alt={ticket?.contact?.name}
-                            src={ticket?.contact?.urlPicture}
+                            src={resolveImageUrl(ticket?.contact?.urlPicture)}
                             className={classes.clickableAvatar}
                             onClick={handleImageClick}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = `${backendUrl}/public/app/noimage.png`;
+                            }}
                         />
                     </Badge>
                 </ListItemAvatar>

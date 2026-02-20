@@ -48,6 +48,7 @@ import { useParams, useHistory } from 'react-router-dom';
 import { downloadResource } from "../../utils";
 import Template from "./templates";
 import { usePdfViewer } from "../../hooks/usePdfViewer";
+import { getBackendUrl } from "../../config";
 
 const useStyles = makeStyles((theme) => ({
   messagesListWrapper: {
@@ -478,6 +479,18 @@ const MessagesList = ({
   const { showSelectMessageCheckbox } = useContext(ForwardMessageContext);
   const { user, socket } = useContext(AuthContext);
   const companyId = user.companyId;
+  const backendUrl = getBackendUrl() || "http://localhost:8080";
+  const resolveMediaUrl = (url) => {
+    if (!url || typeof url !== "string") return "";
+    const u = url.trim();
+    if (/^(data:|blob:|https?:\/\/)/i.test(u)) return u;
+    if (u.startsWith("/")) return `${backendUrl}${u}`;
+    return `${backendUrl}/public/${u}`;
+  };
+  const pickMediaUrl = (obj) => {
+    if (!obj) return "";
+    return obj.mediaUrl || obj.mediaPath || obj.url || "";
+  };
 
   useEffect(() => {
     async function fetchData() {
@@ -771,7 +784,7 @@ const MessagesList = ({
           backgroundColor: 'transparent'
         }}>
           <AudioModal
-            url={message.mediaUrl}
+            url={resolveMediaUrl(message.mediaUrl)}
             message={message}
           />
         </div>
@@ -781,7 +794,7 @@ const MessagesList = ({
     // Imagens
     else if (message.mediaType === "image") {
       console.log("🖼️ Renderizando como imagem");
-      return <ModalImageCors imageUrl={message.mediaUrl} />;
+      return <ModalImageCors imageUrl={pickMediaUrl(message)} />;
     }
 
     // Vídeos
@@ -813,7 +826,7 @@ const MessagesList = ({
           {/* Vídeo player melhorado */}
           <video
             className={classes.messageMedia}
-            src={message.mediaUrl}
+            src={resolveMediaUrl(message.mediaUrl)}
             controls
             preload="metadata"
             playsInline
@@ -841,15 +854,15 @@ const MessagesList = ({
             }}
             onError={(e) => {
               console.error("❌ Erro ao carregar vídeo:", e);
-              console.log("🔗 URL do vídeo:", message.mediaUrl);
+              console.log("🔗 URL do vídeo:", resolveMediaUrl(message.mediaUrl));
               setVideoLoading(false);
               setVideoError(true);
             }}
           >
             {/* ✅ CORREÇÃO: Múltiplos formatos para compatibilidade */}
-            <source src={message.mediaUrl} type="video/mp4" />
-            <source src={message.mediaUrl} type="video/webm" />
-            <source src={message.mediaUrl} type="video/ogg" />
+            <source src={resolveMediaUrl(message.mediaUrl)} type="video/mp4" />
+            <source src={resolveMediaUrl(message.mediaUrl)} type="video/webm" />
+            <source src={resolveMediaUrl(message.mediaUrl)} type="video/ogg" />
             
             {/* Fallback para navegadores antigos */}
             Seu navegador não suporta reprodução de vídeo.
@@ -1046,7 +1059,7 @@ const MessagesList = ({
           {message.quotedMsg.mediaType === "audio"
             && (
               <div className={classes.downloadMedia}>
-                <AudioModal url={message.quotedMsg.mediaUrl} />
+                <AudioModal url={resolveMediaUrl(pickMediaUrl(message.quotedMsg))} />
               </div>
             )
           }
@@ -1055,7 +1068,7 @@ const MessagesList = ({
               <div style={{ maxWidth: "300px", width: "100%" }}>
                 <video
                   className={classes.messageMedia}
-                  src={message.quotedMsg.mediaUrl}
+                  src={resolveMediaUrl(pickMediaUrl(message.quotedMsg))}
                   controls
                   preload="metadata"
                   style={{ 
@@ -1069,9 +1082,9 @@ const MessagesList = ({
                     console.error("❌ Erro ao carregar vídeo citado:", e);
                   }}
                 >
-                  <source src={message.quotedMsg.mediaUrl} type="video/mp4" />
-                  <source src={message.quotedMsg.mediaUrl} type="video/webm" />
-                  <source src={message.quotedMsg.mediaUrl} type="video/ogg" />
+                  <source src={resolveMediaUrl(pickMediaUrl(message.quotedMsg))} type="video/mp4" />
+                  <source src={resolveMediaUrl(pickMediaUrl(message.quotedMsg))} type="video/webm" />
+                  <source src={resolveMediaUrl(pickMediaUrl(message.quotedMsg))} type="video/ogg" />
                   <div style={{ padding: "10px", textAlign: "center", fontSize: "12px", color: "#999" }}>
                     ❌ Erro ao carregar vídeo
                   </div>
@@ -1091,7 +1104,7 @@ const MessagesList = ({
                   startIcon={<GetApp />}
                   variant="outlined"
                   target="_blank"
-                  href={message.quotedMsg.mediaUrl}
+                  href={resolveMediaUrl(pickMediaUrl(message.quotedMsg))}
                 >
                   Download
                 </Button>
@@ -1101,7 +1114,7 @@ const MessagesList = ({
 
           {message.quotedMsg.mediaType === "image"
             && (
-              <ModalImageCors imageUrl={message.quotedMsg.mediaUrl} />)
+              <ModalImageCors imageUrl={pickMediaUrl(message.quotedMsg)} />)
             || message.quotedMsg?.body}
 
           {!message.quotedMsg.mediaType === "image" && message.quotedMsg?.body}

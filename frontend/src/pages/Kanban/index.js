@@ -23,6 +23,8 @@ const useStyles = makeStyles(theme => ({
     overflowX: 'auto',
     ...theme.scrollbarStyles,
     borderRadius: '10px',
+    maxWidth: 1200,
+    margin: '0 auto',
   },
   button: {
     borderRadius: '10px',

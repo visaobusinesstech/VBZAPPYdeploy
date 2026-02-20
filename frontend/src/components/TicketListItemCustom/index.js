@@ -22,6 +22,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { TicketsContext } from "../../context/Tickets/TicketsContext";
 import toastError from "../../errors/toastError";
 import { v4 as uuidv4 } from "uuid";
+import { getBackendUrl } from "../../config";
 
 import GroupIcon from "@material-ui/icons/Group";
 import ContactTag from "../ContactTag";
@@ -235,6 +236,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
   const classes = useStyles();
   const theme = useTheme();
   const history = useHistory();
+  const backendUrl = getBackendUrl() || "http://localhost:8080";
   const [loading, setLoading] = useState(false);
   const [
     acceptTicketWithouSelectQueueOpen,
@@ -552,6 +554,14 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
     );
   };
 
+  const resolveImageUrl = (url) => {
+    if (!url || typeof url !== "string") return "";
+    const u = url.trim();
+    if (/^(data:|blob:|https?:\/\/)/i.test(u)) return u;
+    if (u.startsWith("/")) return `${backendUrl}${u}`;
+    return `${backendUrl}/public/${u}`;
+  };
+
   return (
     <React.Fragment key={ticket.id}>
       {openAlert && (
@@ -614,9 +624,13 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
               height: "50px",
               borderRadius: "50%",
             }}
-            src={`${ticket?.contact?.urlPicture}`}
+            src={resolveImageUrl(ticket?.contact?.urlPicture)}
             className={classes.clickableAvatar}
             onClick={handleImageClick}
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = `${backendUrl}/public/app/noimage.png`;
+            }}
           />
         </ListItemAvatar>
         <ListItemText

@@ -1005,7 +1005,7 @@ const LeadsSales = () => {
               </Paper>
             )}
             {viewMode === "board" && (
-              <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
+              <div ref={kanbanRef} className={classes.fixedContent} style={{ height: '100%' }}>
                 <LeadsKanbanBoard
                   leads={leadsState}
                   contacts={contactsList}

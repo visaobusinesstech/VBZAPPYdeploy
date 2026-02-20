@@ -9,6 +9,7 @@ import {
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { getBackendUrl } from "../../config";
 
 const useStyles = makeStyles((theme) => ({
     // Estilos para o modal da imagem
@@ -41,6 +42,14 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
     const [amount, setAmount] = useState("");
     const { user } = useContext(AuthContext);
     const [imageModalOpen, setImageModalOpen] = useState(false); // Estado para o modal da imagem
+    const backendUrl = getBackendUrl() || "http://localhost:8080";
+    const resolveImageUrl = (url) => {
+        if (!url || typeof url !== "string") return "";
+        const u = url.trim();
+        if (/^(data:|blob:|https?:\/\/)/i.test(u)) return u;
+        if (u.startsWith("/")) return `${backendUrl}${u}`;
+        return `${backendUrl}/public/${u}`;
+    };
 
     // Função para abrir modal da imagem
     const handleImageClick = (e) => {
@@ -64,10 +73,14 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
                 subheaderTypographyProps={{ noWrap: true }}
                 avatar={
                     <Avatar 
-                        src={contact?.urlPicture} 
+                        src={resolveImageUrl(contact?.urlPicture)} 
                         alt="contact_image" 
                         className={classes.clickableAvatar}
                         onClick={handleImageClick}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `${backendUrl}/public/app/noimage.png`;
+                        }}
                     />
                 }
                 title={`${(contact?.name && contact.name.length > 12) ? 
@@ -107,9 +120,13 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
             >
                 <DialogContent className={classes.imageModalContent}>
                     <img 
-                        src={contact?.urlPicture} 
+                        src={resolveImageUrl(contact?.urlPicture)} 
                         alt={contact?.name || "Foto do contato"}
                         className={classes.expandedImage}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = `${backendUrl}/public/app/noimage.png`;
+                        }}
                     />
                 </DialogContent>
             </Dialog>
