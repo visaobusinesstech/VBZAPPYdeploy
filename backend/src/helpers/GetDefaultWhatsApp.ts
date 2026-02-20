@@ -34,7 +34,7 @@ const GetDefaultWhatsApp = async (
   }
 
   if (!connection) {
-    throw new AppError(`ERR_NO_DEF_WAPP_FOUND in COMPANY ${companyId}`);
+    throw new AppError("ERR_NO_DEF_WAPP_FOUND");
   }
 
   return connection;

@@ -30,12 +30,13 @@ import qs from "query-string";
 
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import { Button, CircularProgress, Typography as MuiTypography, Popover } from "@material-ui/core";
-import api from "../../services/api";
 import { toast } from "react-toastify";
 import useEmail from "../../hooks/useEmail";
+import emailService from "../../services/emailService";
+import api from "../../services/api";
 
 // Placeholders for views
-import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ButtonGroup, Select, MenuItem, TextField, InputAdornment, Button as MuiButton, Dialog, DialogTitle, DialogContent, DialogActions, Stepper, Step, StepLabel, Chip, Avatar } from "@material-ui/core";
+import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ButtonGroup, Select, MenuItem, TextField, InputAdornment, Button as MuiButton, Dialog, DialogTitle, DialogContent, DialogActions, Stepper, Step, StepLabel, Chip, Avatar, Divider, Fab, Checkbox, FormControlLabel } from "@material-ui/core";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTitle, Tooltip, Legend, Filler);
@@ -117,10 +118,32 @@ const EmailCalendar = ({ data }) => (
   </Paper>
 );
 
-const EmailDashboard = ({ totals = { templates: 2, sent: 3, scheduled: 0, success: 90 } }) => {
+const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
+  const [totals, setTotals] = useState({ templates: 0, sent: 0, scheduled: 0, success: 0 });
   const [chartDate, setChartDate] = useState("");
   const [anchorChartDate, setAnchorChartDate] = useState(null);
-  const [period, setPeriod] = useState("week"); // week | month | year
+  const [period, setPeriod] = useState("week");
+  const [series, setSeries] = useState({ labels: [], values: [] });
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const t = await fetchTotals();
+      if (mounted) setTotals(t);
+    };
+    load();
+    return () => { mounted = false; };
+  }, [fetchTotals]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const s = await fetchSeries(period);
+      if (mounted) setSeries(s);
+    };
+    load();
+    return () => { mounted = false; };
+  }, [fetchSeries, period]);
 
   const fmtDate = (iso) => {
     if (!iso) return "";
@@ -139,18 +162,8 @@ const EmailDashboard = ({ totals = { templates: 2, sent: 3, scheduled: 0, succes
   ];
 
   const chartData = React.useMemo(() => {
-    let labels = [];
-    let data = [];
-    if (period === "week") {
-      labels = ["04/01", "05/01", "06/01", "07/01", "08/01", "09/01", "10/01"];
-      data = [0, 0, 0, 0, 0, 0, 2];
-    } else if (period === "month") {
-      labels = ["01", "05", "10", "15", "20", "25", "30"];
-      data = [0, 1, 0, 2, 0, 1, 3];
-    } else {
-      labels = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
-      data = [2, 1, 3, 0, 4, 2, 5, 1, 3, 2, 4, 6];
-    }
+    const labels = series.labels;
+    const data = series.values;
     return {
       labels,
       datasets: [
@@ -165,7 +178,7 @@ const EmailDashboard = ({ totals = { templates: 2, sent: 3, scheduled: 0, succes
         },
       ],
     };
-  }, [period]);
+  }, [series]);
 
   const chartOptions = {
     responsive: true,
@@ -173,9 +186,7 @@ const EmailDashboard = ({ totals = { templates: 2, sent: 3, scheduled: 0, succes
     scales: {
       y: {
         beginAtZero: true,
-        ticks: { stepSize: 0.5 },
-        grid: { borderDash: [4, 4], color: "#E2E8F0" },
-        max: 2,
+        grid: { borderDash: [4, 4], color: "#E2E8F0" }
       },
       x: {
         grid: { display: false },
@@ -311,6 +322,41 @@ const EmailPage = () => {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleStep, setScheduleStep] = useState(0);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templatesList, setTemplatesList] = useState([]);
+  const [contactsList, setContactsList] = useState([]);
+  const [contactsSource, setContactsSource] = useState("email"); // 'email' | 'system'
+  const [schedulesList, setSchedulesList] = useState([]);
+  const [multiSelect, setMultiSelect] = useState(true);
+  const [selectAll, setSelectAll] = useState(false);
+  const [scheduleAt, setScheduleAt] = useState("");
+  const [campaignName, setCampaignName] = useState("");
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorLoading, setEditorLoading] = useState(false);
+  const [editor, setEditor] = useState({
+    id: null,
+    name: "",
+    subject: "",
+    description: "",
+    fontSize: 16,
+    contentHtml: "",
+    contentText: "",
+    signatureImageFile: null,
+    attachmentsFiles: []
+  });
+  const variables = [
+    { token: "{nome}", label: "Nome do contato" },
+    { token: "{email}", label: "Email do contato" },
+    { token: "{telefone}", label: "Telefone do contato" },
+    { token: "{empresa}", label: "Nome da empresa" },
+    { token: "{razao_social}", label: "Razão social" },
+    { token: "{endereco}", label: "Endereço" },
+    { token: "{data}", label: "Data atual" },
+    { token: "{hora}", label: "Hora atual" },
+    { token: "{produto}", label: "Produto" },
+    { token: "{valor}", label: "Valor" },
+    { token: "{vencimento}", label: "Vencimento" },
+    { token: "{cargo}", label: "Cargo" }
+  ];
   
   const { emails, loading, count } = useEmail({
       pageNumber: 1,
@@ -338,15 +384,134 @@ const EmailPage = () => {
     }
   }, [location.search]);
 
-  const templates = [
-    { id: "tpl-1", name: "Boas-vindas", thumbnail: "https://via.placeholder.com/80x50?text=T1" },
-    { id: "tpl-2", name: "Promoção", thumbnail: "https://via.placeholder.com/80x50?text=T2" },
-  ];
+  useEffect(() => {
+    const loadTemplates = async () => {
+      const res = await emailService.templates.list({ pageNumber: 1 });
+      setTemplatesList(res?.templates || res?.records || res?.rows || []);
+    };
+    loadTemplates();
+  }, []);
+
+  useEffect(() => {
+    const loadSchedules = async () => {
+      try {
+        const res = await emailService.schedules.list({ pageNumber: 1 });
+        setSchedulesList(res?.items || []);
+      } catch {
+        setSchedulesList([]);
+      }
+    };
+    if (activeTab === "agendamento") loadSchedules();
+  }, [activeTab]);
+
+  const openEditor = (tpl = null) => {
+    if (tpl) {
+      setEditor({
+        id: tpl.id,
+        name: tpl.name || "",
+        subject: tpl.subject || "",
+        description: tpl.description || "",
+        fontSize: tpl.fontSize || 16,
+        contentHtml: tpl.contentHtml || "",
+        contentText: tpl.contentText || "",
+        signatureImageFile: null,
+        attachmentsFiles: []
+      });
+    } else {
+      setEditor({
+        id: null,
+        name: "",
+        subject: "",
+        description: "",
+        fontSize: 16,
+        contentHtml: "",
+        contentText: "",
+        signatureImageFile: null,
+        attachmentsFiles: []
+      });
+    }
+    setEditorOpen(true);
+  };
+  const closeEditor = () => setEditorOpen(false);
+  const insertVariable = (token) => {
+    setEditor(prev => ({ ...prev, contentHtml: (prev.contentHtml || "") + token }));
+  };
+  const onChangeEditor = (field, value) => {
+    setEditor(prev => ({ ...prev, [field]: value }));
+  };
+  const onFilesSelected = (files) => {
+    const arr = Array.from(files || []);
+    const filtered = arr.filter(f => f.size <= 50 * 1024 * 1024);
+    setEditor(prev => ({ ...prev, attachmentsFiles: filtered }));
+  };
+  const onSignatureSelected = (file) => {
+    if (file && file.size <= 50 * 1024 * 1024) {
+      setEditor(prev => ({ ...prev, signatureImageFile: file }));
+    } else {
+      toast.error("Arquivo muito grande");
+    }
+  };
+  const saveTemplate = async () => {
+    try {
+      setEditorLoading(true);
+      const payload = {
+        id: editor.id,
+        name: editor.name,
+        subject: editor.subject,
+        description: editor.description,
+        fontSize: Number(editor.fontSize) || 16,
+        contentHtml: editor.contentHtml,
+        contentText: editor.contentText,
+        isActive: true
+      };
+      const saved = await emailService.templates.save(payload);
+      if (editor.attachmentsFiles?.length) {
+        await emailService.templates.uploadAttachments(saved.id, editor.attachmentsFiles);
+      }
+      if (editor.signatureImageFile) {
+        await emailService.templates.uploadSignatureImage(saved.id, editor.signatureImageFile);
+      }
+      const res = await emailService.templates.list({ pageNumber: 1 });
+      setTemplatesList(res?.templates || res?.records || res?.rows || []);
+      toast.success("Template salvo");
+      setEditorLoading(false);
+      closeEditor();
+    } catch (e) {
+      setEditorLoading(false);
+      toast.error("Erro ao salvar template");
+    }
+  };
 
   const openScheduleWizard = (presetRecipients = []) => {
     if (presetRecipients.length) setRecipients(presetRecipients);
     setScheduleStep(0);
     setScheduleOpen(true);
+    (async () => {
+      try {
+        const res = await emailService.contacts.list({ pageNumber: 1 });
+        const emailContacts = res?.contacts || res?.records || res?.rows || [];
+        if (emailContacts.length > 0) {
+          setContactsList(emailContacts.map(c => ({ ...c, _source: "email" })));
+          setContactsSource("email");
+        } else {
+          // Fallback: buscar contatos gerais com e-mail preenchido
+          try {
+            const fallback = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
+            const list = (fallback.data?.contacts || fallback.data?.rows || fallback.data?.records || [])
+              .filter(c => c?.email && String(c.email).includes("@"))
+              .map(c => ({ ...c, _source: "system" }));
+            setContactsList(list);
+            setContactsSource("system");
+          } catch {
+            setContactsList([]);
+            setContactsSource("email");
+          }
+        }
+      } catch {
+        setContactsList([]);
+        setContactsSource("email");
+      }
+    })();
   };
 
   const closeScheduleWizard = () => setScheduleOpen(false);
@@ -361,56 +526,146 @@ const EmailPage = () => {
   const renderContent = () => {
     switch (activeTab) {
       case "dashboard":
-        return <EmailDashboard totals={{ templates: 2, sent: emails?.length || 0, scheduled: 0, success: 90 }} />;
+        return (
+          <EmailDashboard
+            fetchTotals={async () => {
+              const [metrics, tpl] = await Promise.all([
+                emailService.metrics(),
+                emailService.templates.list({ pageNumber: 1 })
+              ]);
+              const templates = tpl?.count || 0;
+              const sent = metrics?.totalSent || 0;
+              const scheduled = metrics?.scheduled || 0;
+              const success = sent > 0 ? Math.round(((sent - (metrics?.totalBounced || 0)) / sent) * 100) : 0;
+              return { templates, sent, scheduled, success };
+            }}
+            fetchSeries={async (period) => {
+              const data = await emailService.series({ period });
+              const labels = (data || []).map(d => d.label || d.date || "");
+              const values = (data || []).map(d => d.value || d.totalSent || 0);
+              return { labels, values };
+            }}
+          />
+        );
       case "template":
         return (
           <Paper style={{ padding: 16, borderRadius: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <Typography variant="h6" style={{ color: "#1E293B", fontWeight: 600 }}>Templates</Typography>
-              <Button
-                variant="contained"
-                disableElevation
-                startIcon={<AddIcon style={{ color: "#fff" }} />}
-                onClick={() => toast.info("Editor de Template em breve")}
-                style={{
-                  backgroundColor: "#131B2D",
-                  color: "#fff",
-                  textTransform: "none",
-                  borderRadius: 8,
-                  padding: "8px 14px"
-                }}
-              >
-                Criar Novo Template
-              </Button>
             </div>
             <Grid container spacing={2}>
-              {templates.map(tpl => (
+              {templatesList.map(tpl => (
                 <Grid item xs={12} sm={6} md={4} key={tpl.id}>
                   <Paper style={{ padding: 12, display: "flex", gap: 12, alignItems: "center", borderRadius: 12 }}>
-                    <img src={tpl.thumbnail} alt={tpl.name} style={{ width: 80, height: 50, objectFit: "cover", borderRadius: 6, border: "1px solid #E2E8F0" }} />
+                    <div style={{ width: 80, height: 50, borderRadius: 6, border: "1px solid #E2E8F0", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Typography variant="caption">{tpl.name?.slice(0, 10) || "Template"}</Typography>
+                    </div>
                     <div style={{ flex: 1 }}>
                       <Typography variant="subtitle1" style={{ color: "#1E293B", fontWeight: 500 }}>{tpl.name}</Typography>
                       <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                        <Button size="small" variant="outlined" onClick={() => { setSelectedTemplate(tpl.id); toast.info("Editar (stub)"); }}>Editar</Button>
-                        <Button size="small" variant="outlined" onClick={() => toast.success("Pré-visualização (stub)")}>Pré-visualizar</Button>
-                        <Button size="small" variant="outlined" color="secondary" onClick={() => toast.warn("Excluir (stub)")}>Excluir</Button>
+                        <Button size="small" variant="outlined" onClick={() => openEditor(tpl)}>Editar</Button>
+                        <Button size="small" variant="outlined" onClick={() => setEditor({ ...editor, ...tpl, id: tpl.id, signatureImageFile: null, attachmentsFiles: [] }) || setEditorOpen(true)}>Pré-visualizar</Button>
+                        <Button size="small" variant="outlined" color="secondary" onClick={async () => { await emailService.templates.remove(tpl.id); const res = await emailService.templates.list({ pageNumber: 1 }); setTemplatesList(res?.templates || res?.records || res?.rows || []); toast.success("Excluído"); }}>Excluir</Button>
                       </div>
                     </div>
                   </Paper>
                 </Grid>
               ))}
             </Grid>
+            
+            <Dialog open={editorOpen} onClose={closeEditor} fullWidth maxWidth="md">
+              <DialogTitle>{editor.id ? "Editar Template" : "Criar Template"}</DialogTitle>
+              <DialogContent>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={8}>
+                    <TextField label="Nome do Template" value={editor.name} onChange={(e) => onChangeEditor("name", e.target.value)} variant="outlined" fullWidth style={{ marginBottom: 12 }} />
+                    <TextField label="Descrição" value={editor.description} onChange={(e) => onChangeEditor("description", e.target.value)} variant="outlined" fullWidth style={{ marginBottom: 12 }} />
+                    <TextField label="Assunto" value={editor.subject} onChange={(e) => onChangeEditor("subject", e.target.value)} variant="outlined" fullWidth style={{ marginBottom: 12 }} />
+                    <TextField type="number" label="Tamanho da fonte (px)" value={editor.fontSize} onChange={(e) => onChangeEditor("fontSize", e.target.value)} variant="outlined" fullWidth style={{ marginBottom: 12 }} />
+                    <Paper style={{ padding: 12, borderRadius: 8, marginBottom: 12 }}>
+                      <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Variáveis Dinâmicas</Typography>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {variables.map(v => (
+                          <Chip key={v.token} label={`${v.token}`} onClick={() => insertVariable(v.token)} />
+                        ))}
+                      </div>
+                    </Paper>
+                    <TextField
+                      label="Conteúdo do Template (HTML)"
+                      value={editor.contentHtml}
+                      onChange={(e) => onChangeEditor("contentHtml", e.target.value)}
+                      variant="outlined"
+                      fullWidth
+                      multiline
+                      minRows={8}
+                    />
+                    <Typography variant="caption" style={{ display: "block", marginTop: 4 }}>Fonte ativa: {editor.fontSize}px</Typography>
+                    <Divider style={{ margin: "16px 0" }} />
+                    <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Adicionar arquivos anexos (até 50MB cada)</Typography>
+                    <input type="file" multiple onChange={(e) => onFilesSelected(e.target.files)} />
+                    <Typography variant="subtitle2" style={{ marginTop: 16 }}>Assinatura (imagem opcional)</Typography>
+                    <input type="file" accept="image/*" onChange={(e) => onSignatureSelected(e.target.files[0])} />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <Paper style={{ padding: 12, borderRadius: 8 }}>
+                      <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Preview ao Vivo</Typography>
+                      <div style={{ border: "1px solid #E5E7EB", borderRadius: 8, padding: 12 }}>
+                        <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>Tamanho da fonte: {editor.fontSize}px</div>
+                        <div style={{ minHeight: 120, fontSize: `${editor.fontSize || 16}px` }} dangerouslySetInnerHTML={{ __html: editor.contentHtml || "<i>Sem conteúdo</i>" }} />
+                        <div style={{ marginTop: 12, color: "#6B7280" }}>Assinatura:</div>
+                        {editor.signatureImageFile ? (
+                          <img alt="assinatura" style={{ maxWidth: "100%", marginTop: 8 }} src={editor.signatureImageFile ? URL.createObjectURL(editor.signatureImageFile) : undefined} />
+                        ) : (
+                          <div style={{ fontSize: 12, color: "#9CA3AF" }}>—</div>
+                        )}
+                      </div>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={closeEditor}>Cancelar</Button>
+                <Button onClick={saveTemplate} color="primary" variant="contained" disabled={editorLoading || !editor.name || !editor.subject}>Salvar</Button>
+              </DialogActions>
+            </Dialog>
           </Paper>
         );
       case "agendamento":
         return (
           <>
-            <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 12 }}>
-              <Button variant="contained" color="primary" onClick={() => openScheduleWizard(recipients)}>
-                Agendar Envio
-              </Button>
-            </div>
-            <EmailCalendar data={emails} />
+            <Paper style={{ padding: 16, borderRadius: 12, marginBottom: 16 }}>
+              <Typography variant="h6" style={{ fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>Agendamentos</Typography>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Status</TableCell>
+                      <TableCell>Contato</TableCell>
+                      <TableCell>Template/Campanha</TableCell>
+                      <TableCell>Assunto</TableCell>
+                      <TableCell>Data de Envio</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(schedulesList || []).map((s) => (
+                      <TableRow key={s.id}>
+                        <TableCell>{s.status}</TableCell>
+                        <TableCell>
+                          <div style={{ fontWeight: 600 }}>{s.contactName || s.contactEmail}</div>
+                          <div style={{ fontSize: 12, color: "#64748B" }}>{s.contactEmail}</div>
+                        </TableCell>
+                        <TableCell>{s.campaignName || "-"}</TableCell>
+                        <TableCell>{s.subject || "-"}</TableCell>
+                        <TableCell>{s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(!schedulesList || schedulesList.length === 0) && (
+                      <TableRow><TableCell colSpan={5} align="center">Nenhum agendamento encontrado</TableCell></TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
           </>
         );
       case "historico":
@@ -518,7 +773,27 @@ const EmailPage = () => {
           </div>
         );
       default:
-        return <EmailDashboard totals={{ templates: 2, sent: emails?.length || 0, scheduled: 0, success: 90 }} />;
+        return (
+          <EmailDashboard
+            fetchTotals={async () => {
+              const [metrics, tpl] = await Promise.all([
+                emailService.metrics(),
+                emailService.templates.list({ pageNumber: 1 })
+              ]);
+              const templates = tpl?.count || 0;
+              const sent = metrics?.totalSent || 0;
+              const scheduled = metrics?.scheduled || 0;
+              const success = sent > 0 ? Math.round(((sent - (metrics?.totalBounced || 0)) / sent) * 100) : 0;
+              return { templates, sent, scheduled, success };
+            }}
+            fetchSeries={async (period) => {
+              const data = await emailService.series({ period });
+              const labels = (data || []).map(d => d.label || d.date || "");
+              const values = (data || []).map(d => d.value || d.totalSent || 0);
+              return { labels, values };
+            }}
+          />
+        );
     }
   };
 
@@ -590,11 +865,21 @@ const EmailPage = () => {
           {scheduleStep === 0 && (
             <div style={{ marginTop: 16 }}>
               <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Selecione um template</Typography>
+              <TextField
+                label="Nome da Campanha"
+                value={campaignName}
+                onChange={(e) => setCampaignName(e.target.value)}
+                variant="outlined"
+                fullWidth
+                style={{ marginBottom: 12 }}
+              />
               <Grid container spacing={2}>
-                {templates.map(tpl => (
+                {templatesList.map(tpl => (
                   <Grid item xs={6} key={tpl.id}>
                     <Paper onClick={() => setSelectedTemplate(tpl.id)} style={{ padding: 12, cursor: "pointer", border: selectedTemplate === tpl.id ? "2px solid #3B82F6" : "1px solid #E2E8F0", borderRadius: 8 }}>
-                      <img src={tpl.thumbnail} alt={tpl.name} style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 6 }} />
+                      <div style={{ width: "100%", height: 80, borderRadius: 6, border: "1px solid #E5E7EB", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <Typography variant="body2">{tpl.name}</Typography>
+                      </div>
                       <Typography variant="body2" style={{ marginTop: 8, textAlign: "center" }}>{tpl.name}</Typography>
                     </Paper>
                   </Grid>
@@ -605,11 +890,84 @@ const EmailPage = () => {
           {scheduleStep === 1 && (
             <div style={{ marginTop: 16 }}>
               <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Destinatários</Typography>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {recipients.map(id => (
-                  <Chip key={id} label={`Contato #${id}`} onDelete={() => setRecipients(recipients.filter(r => r !== id))} />
-                ))}
-                <Button size="small" variant="outlined" onClick={() => history.push("/contacts")}>Escolher na lista</Button>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                <FormControlLabel
+                  control={<Checkbox checked={multiSelect} onChange={(e) => setMultiSelect(e.target.checked)} color="primary" />}
+                  label="Selecionar múltiplos contatos"
+                />
+                <Button variant="outlined" onClick={async () => {
+                  if (!contactsList.length) {
+                    const res = await emailService.contacts.list({ pageNumber: 1 });
+                    const list = res?.contacts || res?.records || res?.rows || [];
+                    setContactsList(list);
+                    setRecipients(list.map(c => String(c.id)));
+                  } else {
+                    setRecipients(contactsList.map(c => String(c.id)));
+                  }
+                }}>Selecionar todos os contatos</Button>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                {recipients.map(id => {
+                  const c = contactsList.find(x => String(x.id) === String(id));
+                  const label = c ? (c.name || c.email) : `Contato #${id}`;
+                  return <Chip key={id} label={label} onDelete={() => setRecipients(recipients.filter(r => r !== id))} />;
+                })}
+              </div>
+              <TextField
+                placeholder="Buscar contato"
+                variant="outlined"
+                fullWidth
+                onChange={async (e) => {
+                  const term = e.target.value;
+                  if (contactsSource === "email") {
+                    const res = await emailService.contacts.list({ searchParam: term, pageNumber: 1 });
+                    const arr = res?.contacts || res?.records || res?.rows || [];
+                    setContactsList(arr.map(c => ({ ...c, _source: "email" })));
+                  } else {
+                    try {
+                      const res = await api.request({ url: "/contacts", method: "GET", params: { searchParam: term, pageNumber: 1 } });
+                      const list = (res.data?.contacts || res.data?.rows || res.data?.records || [])
+                        .filter(c => c?.email && String(c.email).includes("@"))
+                        .map(c => ({ ...c, _source: "system" }));
+                      setContactsList(list);
+                    } catch {
+                      setContactsList([]);
+                    }
+                  }
+                }}
+                style={{ marginBottom: 8 }}
+              />
+              <div style={{ maxHeight: 260, overflow: "auto", border: "1px solid #E5E7EB", borderRadius: 8 }}>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Selecionar</TableCell>
+                      <TableCell>Nome</TableCell>
+                      <TableCell>Email</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {contactsList.map(c => {
+                      const selected = recipients.includes(String(c.id)) || recipients.includes(c.id);
+                      return (
+                        <TableRow key={c.id} hover onClick={() => {
+                          const id = String(c.id);
+                          setRecipients(prev => {
+                            if (multiSelect) {
+                              return selected ? prev.filter(x => String(x) !== id) : [...prev, id];
+                            } else {
+                              return selected ? [] : [id];
+                            }
+                          });
+                        }}>
+                          <TableCell>{selected ? "✓" : ""}</TableCell>
+                          <TableCell>{c.name || "-"}</TableCell>
+                          <TableCell>{c.email || "-"}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
@@ -621,6 +979,8 @@ const EmailPage = () => {
                 InputLabelProps={{ shrink: true }}
                 variant="outlined"
                 fullWidth
+                value={scheduleAt}
+                onChange={(e) => setScheduleAt(e.target.value)}
               />
             </div>
           )}
@@ -629,16 +989,129 @@ const EmailPage = () => {
           <Button onClick={closeScheduleWizard}>Cancelar</Button>
           {scheduleStep > 0 && <Button onClick={() => setScheduleStep(scheduleStep - 1)}>Voltar</Button>}
           {scheduleStep < 2 ? (
-            <Button color="primary" variant="contained" onClick={() => setScheduleStep(scheduleStep + 1)} disabled={scheduleStep === 0 && !selectedTemplate}>
+            <Button color="primary" variant="contained" onClick={() => {
+              if (scheduleStep === 0 && (!selectedTemplate || !campaignName)) return;
+              if (scheduleStep === 1 && recipients.length === 0) return;
+              setScheduleStep(scheduleStep + 1);
+            }} disabled={scheduleStep === 0 && (!selectedTemplate || !campaignName)}>
               Próximo
             </Button>
           ) : (
-            <Button color="primary" variant="contained" onClick={() => { toast.success("Agendamento criado (simulado)"); closeScheduleWizard(); }}>
-              Concluir
-            </Button>
+            <>
+              <Button onClick={async () => {
+                try {
+                  // Resolver destinatários para EmailContacts
+                  const resolveRecipientIds = async () => {
+                    if (contactsSource === "email") {
+                      return recipients.map(r => parseInt(String(r), 10)).filter(Boolean);
+                    }
+                    const ids = [];
+                    for (const rid of recipients) {
+                      const item = contactsList.find(x => String(x.id) === String(rid));
+                      if (!item || !item.email) continue;
+                      try {
+                        const created = await api.request({
+                          url: "/email/contacts",
+                          method: "POST",
+                          data: { name: item.name, email: item.email, phone: item.phone }
+                        });
+                        ids.push(created.data.id);
+                      } catch (e) {
+                        const status = e?.response?.status;
+                        if (status === 409) {
+                          // Já existe: buscar por email
+                          const lookup = await emailService.contacts.list({ searchParam: item.email, pageNumber: 1 });
+                          const found = (lookup?.contacts || []).find(c => c.email === item.email);
+                          if (found) ids.push(found.id);
+                        }
+                      }
+                    }
+                    return ids;
+                  };
+
+                  const contactIds = await resolveRecipientIds();
+                  if (!contactIds.length) {
+                    toast.error("Nenhum destinatário válido encontrado");
+                    return;
+                  }
+
+                  const campaign = await emailService.campaigns.create({
+                    templateId: selectedTemplate,
+                    name: campaignName
+                  });
+                  await emailService.campaigns.schedule(campaign.id, { contactIds });
+                  toast.success("Envio iniciado");
+                  closeScheduleWizard();
+                } catch {
+                  toast.error("Erro ao enviar agora");
+                }
+              }}>Enviar Agora</Button>
+              <Button color="primary" variant="contained" onClick={async () => {
+                try {
+                  const resolveRecipientIds = async () => {
+                    if (contactsSource === "email") {
+                      return recipients.map(r => parseInt(String(r), 10)).filter(Boolean);
+                    }
+                    const ids = [];
+                    for (const rid of recipients) {
+                      const item = contactsList.find(x => String(x.id) === String(rid));
+                      if (!item || !item.email) continue;
+                      try {
+                        const created = await api.request({
+                          url: "/email/contacts",
+                          method: "POST",
+                          data: { name: item.name, email: item.email, phone: item.phone }
+                        });
+                        ids.push(created.data.id);
+                      } catch (e) {
+                        const status = e?.response?.status;
+                        if (status === 409) {
+                          const lookup = await emailService.contacts.list({ searchParam: item.email, pageNumber: 1 });
+                          const found = (lookup?.contacts || []).find(c => c.email === item.email);
+                          if (found) ids.push(found.id);
+                        }
+                      }
+                    }
+                    return ids;
+                  };
+
+                  const contactIds = await resolveRecipientIds();
+                  if (!contactIds.length) {
+                    toast.error("Nenhum destinatário válido encontrado");
+                    return;
+                  }
+
+                  const campaign = await emailService.campaigns.create({
+                    templateId: selectedTemplate,
+                    name: campaignName,
+                    scheduledAt: scheduleAt ? new Date(scheduleAt).toISOString() : undefined
+                  });
+                  await emailService.campaigns.schedule(campaign.id, {
+                    contactIds,
+                    scheduledAt: scheduleAt ? new Date(scheduleAt).toISOString() : undefined
+                  });
+                  toast.success("Agendamento criado");
+                  closeScheduleWizard();
+                } catch (err) {
+                  toast.error("Erro ao agendar");
+                }
+              }}>
+                Criar Agendamento
+              </Button>
+            </>
           )}
         </DialogActions>
       </Dialog>
+      {activeTab === "template" && (
+        <Fab onClick={() => openEditor()} style={{ position: "fixed", right: 24, bottom: 24, backgroundColor: "#131B2D", color: "#fff" }}>
+          <AddIcon />
+        </Fab>
+      )}
+      {activeTab === "agendamento" && (
+        <Fab onClick={() => openScheduleWizard(recipients)} style={{ position: "fixed", right: 24, bottom: 24, backgroundColor: "#131B2D", color: "#fff" }}>
+          <AddIcon />
+        </Fab>
+      )}
     </ActivitiesStyleLayout>
   );
 };

@@ -11,33 +11,64 @@ import { startLidSyncJob } from "./jobs/LidSyncJob";
 import { REDIS_URI_MSG_CONN } from "./config/redis";
 import { ensureDatabase } from "./utils/ensureDatabase";
 
-const port = Number(process.env.PORT) || 8080;
+const preferredPort = Number(process.env.PORT) || 8080;
 
-const server = app.listen(port, async () => {
-  await ensureDatabase();
-  const companies = await Company.findAll({
-    where: { status: true },
-    attributes: ["id"],
+function startServer(portToUse: number) {
+  const server = app.listen(portToUse, async () => {
+    await ensureDatabase();
+    const companies = await Company.findAll({
+      where: { status: true },
+      attributes: ["id"],
+    });
+
+    const allPromises: any[] = [];
+    companies.map(async (c) => {
+      const promise = StartAllWhatsAppsSessions(c.id);
+      allPromises.push(promise);
+    });
+
+    Promise.all(allPromises).then(async () => {
+      logger.info("Fila de processamento iniciando após sessões do WhatsApp");
+      await startQueueProcess();
+    });
+
+    if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
+      BullQueue.process();
+    }
+
+    startLidSyncJob();
+    logger.info(`Servidor iniciado na porta ${portToUse}`);
+    initIO(server);
+    gracefulShutdown(server);
   });
 
-  const allPromises: any[] = [];
-  companies.map(async (c) => {
-    const promise = StartAllWhatsAppsSessions(c.id);
-    allPromises.push(promise);
+  server.on("error", (err: any) => {
+    if (err?.code === "EADDRINUSE") {
+      const fallback = 8080;
+      if (portToUse !== fallback) {
+        logger.warn(`Porta ${portToUse} em uso. Tentando porta ${fallback}...`);
+        try {
+          server.close(() => startServer(fallback));
+        } catch {
+          startServer(fallback);
+        }
+      } else {
+        const alt = 0; // aleatória
+        logger.warn(`Porta ${portToUse} em uso. Tentando porta aleatória...`);
+        try {
+          server.close(() => startServer(alt));
+        } catch {
+          startServer(alt);
+        }
+      }
+    } else {
+      logger.error({ msg: "Erro ao iniciar o servidor", error: err?.message || String(err) });
+      process.exit(1);
+    }
   });
+}
 
-  Promise.all(allPromises).then(async () => {
-    logger.info("Fila de processamento iniciando após sessões do WhatsApp");
-    await startQueueProcess();
-  });
-
-  if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
-    BullQueue.process();
-  }
-
-  startLidSyncJob();
-  logger.info(`Servidor iniciado na porta ${port}`);
-});
+startServer(preferredPort);
 
 process.on("uncaughtException", err => {
   logger.error({ msg: "uncaughtException", error: err.message, stack: err.stack?.split("\n")[0] });
@@ -48,6 +79,3 @@ process.on("unhandledRejection", (reason: any, p: any) => {
   logger.error({ msg: "unhandledRejection", reason: String(reason), promise: String(p) });
   process.exit(1);
 });
-
-initIO(server);
-gracefulShutdown(server);

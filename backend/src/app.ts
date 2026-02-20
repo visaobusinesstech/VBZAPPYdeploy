@@ -19,6 +19,7 @@ import { messageQueue, sendScheduledMessages } from "./queues";
 import BullQueue from "./libs/queue"
 import BullBoard from 'bull-board';
 import basicAuth from 'basic-auth';
+import "./emailQueues";
 
 // Função de middleware para autenticação básica
 export const isBullAuth = (req, res, next) => {

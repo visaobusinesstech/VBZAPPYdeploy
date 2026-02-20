@@ -67,6 +67,14 @@ import Activity from "../models/Activity";
 import Project from "../models/Project";
 import ConvertedLead from "../models/ConvertedLead";
 import LeadSale from "../models/LeadSale";
+import EmailTemplate from "../models/EmailTemplate";
+import EmailContact from "../models/EmailContact";
+import EmailCampaign from "../models/EmailCampaign";
+import EmailSchedule from "../models/EmailSchedule";
+import EmailLog from "../models/EmailLog";
+import SmtpConfig from "../models/SmtpConfig";
+import EmailAnalytics from "../models/EmailAnalytics";
+import EmailTemplateAttachment from "../models/EmailTemplateAttachment";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -141,7 +149,15 @@ const models = [
   Activity,
   Project,
   ConvertedLead,
-  LeadSale
+  LeadSale,
+  EmailTemplate,
+  EmailTemplateAttachment,
+  EmailContact,
+  EmailCampaign,
+  EmailSchedule,
+  EmailLog,
+  SmtpConfig,
+  EmailAnalytics
 ];
 
 sequelize.addModels(models);

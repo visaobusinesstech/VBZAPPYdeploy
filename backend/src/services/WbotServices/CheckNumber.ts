@@ -43,8 +43,15 @@ const CheckContactNumber = async (
   userId?: number,
   whatsapp?: Whatsapp | null
 ): Promise<IOnWhatsapp> => {
-  const whatsappList =
-    whatsapp || (await GetDefaultWhatsApp(companyId, userId));
+  let whatsappList: Whatsapp | null = null;
+  try {
+    whatsappList = whatsapp || (await GetDefaultWhatsApp(companyId, userId));
+  } catch (err: any) {
+    if (String(err?.message || "").startsWith("ERR_NO_DEF_WAPP_FOUND")) {
+      return { jid: toJid(number), exists: true, lid: null };
+    }
+    throw err;
+  }
 
   if (whatsappList.channel === "whatsapp_oficial") {
     return { jid: toJid(number), exists: true, lid: null };

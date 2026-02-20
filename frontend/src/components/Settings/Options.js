@@ -186,16 +186,6 @@ const [loadingCopyContactPrefix, setLoadingCopyContactPrefix] = useState(false);
   const [showNotificationPending, setShowNotificationPending] = useState(false);
   const [loadingShowNotificationPending, setLoadingShowNotificationPending] = useState(false);
 
-  const [emailHost, setEmailHost] = useState("");
-  const [loadingEmailHost, setLoadingEmailHost] = useState(false);
-  const [emailPort, setEmailPort] = useState("");
-  const [loadingEmailPort, setLoadingEmailPort] = useState(false);
-  const [emailUser, setEmailUser] = useState("");
-  const [loadingEmailUser, setLoadingEmailUser] = useState(false);
-  const [emailPassword, setEmailPassword] = useState("");
-  const [loadingEmailPassword, setLoadingEmailPassword] = useState(false);
-  const [emailEncryption, setEmailEncryption] = useState("");
-  const [loadingEmailEncryption, setLoadingEmailEncryption] = useState(false);
   const { update: updateUserCreation, getAll } = useSettings();
 
   // const { update: updatedownloadLimit } = useSettings();
@@ -293,11 +283,8 @@ const [loadingCopyContactPrefix, setLoadingCopyContactPrefix] = useState(false);
       if (key === "sendQueuePositionMessage") setSendQueuePositionMessage(value);
       if (key === "showNotificationPending") setShowNotificationPending(value);
       if (key === "copyContactPrefix") setCopyContactPrefix(value);
-      if (key === "emailHost") setEmailHost(value);
-      if (key === "emailPort") setEmailPort(value);
-      if (key === "emailUser") setEmailUser(value);
-      if (key === "emailPassword") setEmailPassword(value);
-      if (key === "emailEncryption") setEmailEncryption(value);
+      // SMTP foi movido para a aba Email; ignorar chaves legadas:
+      // emailHost, emailPort, emailUser, emailPassword, emailEncryption
     }
   }, [settings]);
 
@@ -501,48 +488,7 @@ async function handleCopyContactPrefix(value) {
     setLoadingShowNotificationPending(false);
   }
 
-  async function handleEmailHost(value) {
-    setEmailHost(value);
-    setLoadingEmailHost(true);
-    await update({ column: "emailHost", data: value });
-    setLoadingEmailHost(false);
-  }
-
-  async function handleEmailPort(value) {
-    setEmailPort(value);
-    setLoadingEmailPort(true);
-    await update({ column: "emailPort", data: value });
-    setLoadingEmailPort(false);
-  }
-
-  async function handleEmailUser(value) {
-    setEmailUser(value);
-    setLoadingEmailUser(true);
-    await update({ column: "emailUser", data: value });
-    setLoadingEmailUser(false);
-  }
-
-  async function handleEmailPassword(value) {
-    setEmailPassword(value);
-    setLoadingEmailPassword(true);
-    await update({ column: "emailPassword", data: value });
-    setLoadingEmailPassword(false);
-  }
-
-  async function handleEmailEncryption(value) {
-    setEmailEncryption(value);
-    setLoadingEmailEncryption(true);
-    await update({ column: "emailEncryption", data: value });
-    setLoadingEmailEncryption(false);
-  }
-
-  function handleTestSmtp() {
-    if (emailHost && emailPort && emailUser && emailPassword) {
-      toast.success("Conexão SMTP testada com sucesso (simulada)");
-    } else {
-      toast.error("Preencha Host, Porta, Usuário e Senha para testar");
-    }
-  }
+  // SMTP UI movido para a aba 'Email'
 
   async function handleLGPDLink(value) {
     setLGPDLink(value);
@@ -1174,96 +1120,7 @@ async function handleCopyContactPrefix(value) {
       <br></br>
 
 
-      <Grid spacing={3} container>
-        <Tabs
-          indicatorColor='primary'
-          textColor='primary'
-          scrollButtons='on'
-          variant='scrollable'
-          className={classes.tab}
-          style={{ marginBottom: 20, marginTop: 20 }}
-        >
-          <MenuItem style={{ pointerEvents: 'none', fontWeight: 600 }}>Configuração de Email (SMTP)</MenuItem>
-        </Tabs>
-
-        <Grid xs={12} sm={6} md={4} item>
-          <FormControl className={classes.selectContainer}>
-            <TextField
-              id="emailHost"
-              name="emailHost"
-              margin="dense"
-              label="Servidor (Host)"
-              variant="outlined"
-              value={emailHost}
-              onChange={(e) => handleEmailHost(e.target.value)}
-            />
-            <FormHelperText>{loadingEmailHost && "Atualizando..."}</FormHelperText>
-          </FormControl>
-        </Grid>
-        <Grid xs={12} sm={6} md={2} item>
-          <FormControl className={classes.selectContainer}>
-            <TextField
-              id="emailPort"
-              name="emailPort"
-              margin="dense"
-              label="Porta"
-              variant="outlined"
-              value={emailPort}
-              onChange={(e) => handleEmailPort(e.target.value)}
-            />
-            <FormHelperText>{loadingEmailPort && "Atualizando..."}</FormHelperText>
-          </FormControl>
-        </Grid>
-        <Grid xs={12} sm={6} md={3} item>
-          <FormControl className={classes.selectContainer}>
-            <TextField
-              id="emailUser"
-              name="emailUser"
-              margin="dense"
-              label="Usuário"
-              variant="outlined"
-              value={emailUser}
-              onChange={(e) => handleEmailUser(e.target.value)}
-            />
-            <FormHelperText>{loadingEmailUser && "Atualizando..."}</FormHelperText>
-          </FormControl>
-        </Grid>
-        <Grid xs={12} sm={6} md={3} item>
-          <FormControl className={classes.selectContainer}>
-            <TextField
-              id="emailPassword"
-              name="emailPassword"
-              type="password"
-              margin="dense"
-              label="Senha"
-              variant="outlined"
-              value={emailPassword}
-              onChange={(e) => handleEmailPassword(e.target.value)}
-            />
-            <FormHelperText>{loadingEmailPassword && "Atualizando..."}</FormHelperText>
-          </FormControl>
-        </Grid>
-        <Grid xs={12} sm={6} md={4} item>
-          <FormControl className={classes.selectContainer}>
-            <InputLabel id="emailEncryption-label">Tipo de Criptografia</InputLabel>
-            <Select
-              labelId="emailEncryption-label"
-              value={emailEncryption}
-              onChange={(e) => handleEmailEncryption(e.target.value)}
-            >
-              <MenuItem value={""}>Nenhuma</MenuItem>
-              <MenuItem value={"SSL/TLS"}>SSL/TLS</MenuItem>
-              <MenuItem value={"STARTTLS"}>STARTTLS</MenuItem>
-            </Select>
-            <FormHelperText>{loadingEmailEncryption && "Atualizando..."}</FormHelperText>
-          </FormControl>
-        </Grid>
-        <Grid xs={12} sm={6} md={4} item style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Button variant="contained" color="primary" onClick={handleTestSmtp}>
-            Testar Conexão
-          </Button>
-        </Grid>
-      </Grid>
+      
       <br></br>
 
       {/* CONFIGURAÇÃO SIGLA PARA CÓPIA DE CONTATOS */}

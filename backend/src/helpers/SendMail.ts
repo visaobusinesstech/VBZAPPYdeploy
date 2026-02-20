@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { REDIS_URI_CONNECTION } from "../config/redis";
 
 export interface MailData {
   to: string;
@@ -10,6 +11,8 @@ export interface MailData {
 export async function SendMail(mailData: MailData) {
   const options: any = {
     host: process.env.MAIL_HOST,
+    port: Number(process.env.MAIL_PORT || 587),
+    secure: String(process.env.MAIL_SECURE || "false").toLowerCase() === "true",
     auth: {
       user: process.env.MAIL_USER,
       pass: process.env.MAIL_PASS
@@ -33,4 +36,16 @@ export async function SendMail(mailData: MailData) {
   // Preview only available when sending through an Ethereal account
   console.log("Preview URL: %s", nodemailer.getTestMessageUrl(info));
   // Preview URL: https://ethereal.email/message/WaQKMgKddxQDoou...
+}
+
+// Função alternativa para ambiente local sem Redis
+// Esta função pode ser usada diretamente quando o sistema de filas não está disponível
+export async function SendMailDirect(mailData: MailData) {
+  try {
+    // Usa a mesma função principal
+    return await SendMail(mailData);
+  } catch (error) {
+    console.error("Erro no envio direto de email:", error);
+    throw error;
+  }
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useContext } from "react";
 import { parseISO, format } from "date-fns";
 import * as Yup from "yup";
 import { Formik, FieldArray, Form, Field } from "formik";
@@ -32,6 +32,7 @@ import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import { TagsContainer } from "../TagsContainer";
 // import AsyncSelect from "../AsyncSelect";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const useStyles = makeStyles(theme => ({
 	root: {
@@ -113,6 +114,7 @@ const ContactSchema = Yup.object().shape({
 const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 	const classes = useStyles();
 	const isMounted = useRef(true);
+	const { user } = useContext(AuthContext);
 
 	const initialState = {
 		name: "",
@@ -133,6 +135,23 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 	const [loading, setLoading] = useState(false);
 	const [searchParam, setSearchParam] = useState("");
 
+
+	useEffect(() => {
+		if (!open) return;
+		(async () => {
+			try {
+				const { data } = await api.get("/queue", {
+					params: user?.companyId ? { companyId: user.companyId } : undefined
+				});
+				setAllQueues(data || []);
+				// Exibe todas as filas por padrão enquanto nenhum usuário foi selecionado
+				setQueues(data || []);
+			} catch (e) {
+				setAllQueues([]);
+				setQueues([]);
+			}
+		})();
+	}, [open, user?.companyId]);
 
 	useEffect(() => {
 		return () => {
@@ -409,6 +428,7 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 													}
 													setQueues(newValue.queues);
 												} else {
+													// Sem usuário ou sem filas atreladas ao usuário: mostra todas as filas
 													setQueues(allQueues);
 													setSelectedQueue(null);
 													setSelectedUser(null);

@@ -16,6 +16,7 @@ import Invoices from "../Financeiro";
 import Tags from "../Tags";
 import BirthdaySettings from "../BirthdaySettings";
 import Announcements from "../Annoucements";
+import EmailSettings from "../../components/Settings/EmailSettings";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -147,6 +148,7 @@ const SettingsCustom = () => {
     { value: "users", label: "Usuários" },
     { value: "connections", label: "Gerenciar Conexões" },
     { value: "integrations", label: "Integrações" },
+    { value: "email", label: "Email" },
     { value: "financeiro", label: "Financeiro" },
     { value: "tags", label: "Tags" },
     { value: "birthday", label: "Config. Aniversário" },
@@ -256,6 +258,13 @@ const SettingsCustom = () => {
                 name={"integrations"}
               >
                 <QueueIntegration renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"email"}
+              >
+                <EmailSettings renderAsTab={true} />
               </TabPanel>
               <TabPanel
                 className={classes.container}

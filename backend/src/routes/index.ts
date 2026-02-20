@@ -54,6 +54,12 @@ import activityRoutes from "./activityRoutes";
 import projectRoutes from "./projectRoutes";
 import convertedLeadRoutes from "./convertedLeadRoutes";
 import leadsSalesRoutes from "./leadsSalesRoutes";
+import emailTemplateRoutes from "./emailTemplateRoutes";
+import emailContactRoutes from "./emailContactRoutes";
+import emailRoutes from "./emailRoutes";
+import smtpRoutes from "./smtpRoutes";
+import emailCampaignRoutes from "./emailCampaignRoutes";
+import emailScheduleRoutes from "./emailScheduleRoutes";
 
 import ChatController from "../controllers/ChatController";
 
@@ -115,6 +121,12 @@ routes.use(activityRoutes);
 routes.use(projectRoutes);
 routes.use(convertedLeadRoutes);
 routes.use(leadsSalesRoutes);
+routes.use(emailTemplateRoutes);
+routes.use(emailContactRoutes);
+routes.use(emailRoutes);
+routes.use(smtpRoutes);
+routes.use(emailCampaignRoutes);
+routes.use(emailScheduleRoutes);
 
 routes.post("/chats/backfill", ChatController.backfillChats);
 

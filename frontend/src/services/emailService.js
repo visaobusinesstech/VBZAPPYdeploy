@@ -2,35 +2,138 @@ import api from "./api";
 
 const emailService = {
   list: async (params) => {
-    // MOCK DATA
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({
-                emails: [
-                    { id: 1, subject: "Bem-vindo", from: "contato@empresa.com", date: "2023-10-01" },
-                    { id: 2, subject: "Fatura", from: "financeiro@empresa.com", date: "2023-10-02" },
-                    { id: 3, subject: "Suporte", from: "suporte@empresa.com", date: "2023-10-03" },
-                ],
-                hasMore: false,
-                count: 3
-            });
-        }, 500);
+    const { data } = await api.request({
+      url: "/email/recent",
+      method: "GET",
+      params,
     });
+    return data;
   },
-  send: async (data) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ id: Math.random(), ...data });
-        }, 500);
+  schedules: {
+    list: async (params) => {
+      const { data } = await api.request({
+        url: "/email/schedules",
+        method: "GET",
+        params
+      });
+      return data;
+    }
+  },
+  templates: {
+    list: async (params) => {
+      const { data } = await api.request({
+        url: "/email/templates",
+        method: "GET",
+        params
+      });
+      return data;
+    },
+    save: async (payload) => {
+      if (payload.id) {
+        const { data } = await api.request({
+          url: `/email/templates/${payload.id}`,
+          method: "PUT",
+          data: payload
+        });
+        return data;
+      }
+      const { data } = await api.request({
+        url: "/email/templates",
+        method: "POST",
+        data: payload
+      });
+      return data;
+    },
+    uploadAttachments: async (templateId, files) => {
+      const form = new FormData();
+      for (const f of files) form.append("files", f);
+      const { data } = await api.request({
+        url: `/email/templates/${templateId}/attachments`,
+        method: "POST",
+        data: form,
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return data;
+    },
+    uploadSignatureImage: async (templateId, file) => {
+      const form = new FormData();
+      form.append("file", file);
+      const { data } = await api.request({
+        url: `/email/templates/${templateId}/signature-image`,
+        method: "POST",
+        data: form,
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      return data;
+    },
+    create: async (payload) => {
+      const { data } = await api.request({
+        url: "/email/templates",
+        method: "POST",
+        data: payload
+      });
+      return data;
+    },
+    update: async (id, payload) => {
+      const { data } = await api.request({
+        url: `/email/templates/${id}`,
+        method: "PUT",
+        data: payload
+      });
+      return data;
+    },
+    remove: async (id) => {
+      const { data } = await api.request({
+        url: `/email/templates/${id}`,
+        method: "DELETE"
+      });
+      return data;
+    }
+  },
+  contacts: {
+    list: async (params) => {
+      const { data } = await api.request({
+        url: "/email/contacts",
+        method: "GET",
+        params
+      });
+      return data;
+    }
+  },
+  campaigns: {
+    create: async (payload) => {
+      const { data } = await api.request({
+        url: "/email/campaigns",
+        method: "POST",
+        data: payload
+      });
+      return data;
+    },
+    schedule: async (id, payload) => {
+      const { data } = await api.request({
+        url: `/email/campaigns/${id}/schedule`,
+        method: "POST",
+        data: payload
+      });
+      return data;
+    }
+  },
+  metrics: async () => {
+    const { data } = await api.request({
+      url: "/email/analytics/summary",
+      method: "GET",
     });
+    return data;
   },
-  delete: async (id) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            resolve({ message: "Deleted" });
-        }, 500);
+  series: async (params) => {
+    const { data } = await api.request({
+      url: "/email/analytics/series",
+      method: "GET",
+      params
     });
-  },
+    const arr = Array.isArray(data) ? data : data?.data;
+    return arr || [];
+  }
 };
 
 export default emailService;
