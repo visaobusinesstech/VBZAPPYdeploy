@@ -7,7 +7,6 @@ import Typography from "@material-ui/core/Typography";
 import { makeStyles } from "@material-ui/core/styles";
 import { useTheme } from "@material-ui/core/styles";
 import { IconButton } from "@mui/material";
-import { useHistory } from "react-router-dom";
 import { Groups, SaveAlt } from "@mui/icons-material";
 
 import CallIcon from "@material-ui/icons/Call";
@@ -101,7 +100,8 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(0.5, 1),
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-start",
+    gap: theme.spacing(1),
     marginTop: 0,
     marginBottom: theme.spacing(2),
     // Full-bleed within Container to encostar na lateral do menu
@@ -112,6 +112,12 @@ const useStyles = makeStyles((theme) => ({
       theme.palette.mode === "light"
         ? "0 2px 10px rgba(0,0,0,0.06)"
         : theme.shadows[1],
+  },
+  miniTopbarRight: {
+    marginLeft: "auto",
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing(1),
   },
   miniTopbarButton: {
     color: "#000",
@@ -710,7 +716,7 @@ const Dashboard = () => {
     }
   }
 
-  const history = useHistory();
+  // const history = useHistory();
   const [nowText, setNowText] = useState(moment().format("ddd, D MMM • HH:mm"));
   useEffect(() => {
     const id = setInterval(() => {
@@ -804,6 +810,37 @@ const Dashboard = () => {
       .slice(0, 5);
   }, [projects]);
 
+  const agendaEvents = useMemo(() => {
+    const today = moment();
+    const fromSchedules = (schedulesToday || []).map((e) => ({
+      type: "schedule",
+      time: e?.sendAt || e?.date || e?.startAt || e?.startDate || e?.createdAt || null,
+      title: e?.title || e?.contact?.name || "Evento",
+    })).filter(Boolean);
+    const fromActivities = (activities || [])
+      .filter((a) => a?.date && moment(a.date).isSame(today, "day"))
+      .map((a) => ({
+        type: "activity",
+        time: a?.date || null,
+        title: a?.title || "Atividade",
+      }));
+    const fromProjects = (projects || [])
+      .filter((p) => {
+        const key = p?.dueDate || p?.deadline || p?.date || p?.createdAt;
+        if (!key) return false;
+        return moment(key).isSame(today, "day");
+      })
+      .map((p) => ({
+        type: "project",
+        time: p?.time || p?.dueDate || p?.deadline || p?.date || p?.createdAt || null,
+        title: p?.title || p?.name || "Projeto",
+      }));
+    const norm = (val) => (val ? moment(val).format("HH:mm") : "99:99");
+    return [...fromSchedules, ...fromActivities, ...fromProjects].sort(
+      (a, b) => norm(a.time).localeCompare(norm(b.time))
+    );
+  }, [schedulesToday, activities, projects]);
+
   const renderBlockContent = (id) => {
     if (id === "pendingActivities") {
       if (loadingActivities) {
@@ -840,29 +877,7 @@ const Dashboard = () => {
       );
     }
     if (id === "agenda") {
-      if (!schedulesToday.length) {
-        return (
-          <div>
-            <div className={classes.agendaHeader}>
-              <div className={classes.agendaDate}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-                  <line x1="16" y1="2" x2="16" y2="6" />
-                  <line x1="8" y1="2" x2="8" y2="6" />
-                  <line x1="3" y1="10" x2="21" y2="10" />
-                </svg>
-                <span>{moment().format("dddd, D [de] MMM")}</span>
-              </div>
-              <div className={classes.agendaControls}>
-                <Button variant="outlined" size="small" className={classes.todayButton} onClick={loadTodaySchedules}>
-                  Hoje
-                </Button>
-              </div>
-            </div>
-            <Typography color="textSecondary">Nenhum evento para hoje.</Typography>
-          </div>
-        );
-      }
+      const items = agendaEvents;
       return (
         <div>
           <div className={classes.agendaHeader}>
@@ -876,37 +891,34 @@ const Dashboard = () => {
               <span>{moment().format("dddd, D [de] MMM")}</span>
             </div>
             <div className={classes.agendaControls}>
-              <Button
-                variant="contained"
-                size="small"
-                color="primary"
-                className={classes.todayButton}
-                onClick={() => history.push("/schedules")}
-              >
-                Ver Calendário
-              </Button>
               <Button variant="outlined" size="small" className={classes.todayButton} onClick={loadTodaySchedules}>
                 Hoje
               </Button>
             </div>
           </div>
-          {schedulesToday.map((e, idx) => {
-            const palette = ["#dbeafe", "#dcfce7", "#EDE9FE"];
-            const bg = palette[idx % palette.length];
-            return (
-              <div key={e.id} className={classes.agendaItem} style={{ backgroundColor: bg }}>
-                <span className={classes.dot} style={{ backgroundColor: "#3b82f6" }} />
-                <div className={classes.agendaTime}>
-                  {moment(e.sendAt || e.date).format("HH:mm")}
+          {items.length === 0 ? (
+            <Typography color="textSecondary">Nenhum evento para hoje.</Typography>
+          ) : (
+            items.map((e, idx) => {
+              const palette = ["#dbeafe", "#dcfce7", "#EDE9FE"];
+              const bg = palette[idx % palette.length];
+              const color =
+                e.type === "schedule" ? "#3b82f6" : e.type === "activity" ? "#10b981" : "#8b5cf6";
+              return (
+                <div key={`${e.type}-${idx}`} className={classes.agendaItem} style={{ backgroundColor: bg }}>
+                  <span className={classes.dot} style={{ backgroundColor: color }} />
+                  <div className={classes.agendaTime}>
+                    {e.time ? moment(e.time).format("HH:mm") : "--:--"}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <Typography className={classes.blockItemTitle}>
+                      {e.title}
+                    </Typography>
+                  </div>
                 </div>
-                <div style={{ flex: 1 }}>
-                  <Typography className={classes.blockItemTitle}>
-                    {e.title || e?.contact?.name || "Evento"}
-                  </Typography>
-                </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </div>
       );
     }
@@ -976,7 +988,7 @@ const Dashboard = () => {
                 <div className={classes.dotLine}>
                   <span className={classes.dot} style={{ backgroundColor: color }} />
                   <Typography className={classes.blockItemTitle}>
-                    {p.title || "Sem título"}
+                    {p.title || p.name || "Sem título"}
                   </Typography>
                 </div>
                 <Typography className={classes.blockItemMeta}>
@@ -1154,15 +1166,17 @@ const Dashboard = () => {
                     </svg>
                   </IconButton>
                 )}
-                <span className={classes.miniTopbarClock}>{nowText}</span>
-                <IconButton
-                  size="small"
-                  className={classes.miniTopbarButton}
-                  onClick={handleOpenSettings}
-                  aria-label="Opções"
-                >
-                  <MoreHorizIcon style={{ fontSize: 18, color: "#000" }} />
-                </IconButton>
+                <div className={classes.miniTopbarRight}>
+                  <span className={classes.miniTopbarClock}>{nowText}</span>
+                  <IconButton
+                    size="small"
+                    className={classes.miniTopbarButton}
+                    onClick={handleOpenSettings}
+                    aria-label="Opções"
+                  >
+                    <MoreHorizIcon style={{ fontSize: 18, color: "#000" }} />
+                  </IconButton>
+                </div>
               </div>
               <div className={classes.greetingContainer}>
                 <Typography variant="h4" className={classes.greetingTitle}>
