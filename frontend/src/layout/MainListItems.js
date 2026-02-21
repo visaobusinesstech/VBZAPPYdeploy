@@ -685,68 +685,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
           )}
 
             <ListItemLink to="/api" primary="API" icon={<CodeOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-
-            <Can
-            role={
-              (user.profile === "user" && user.showDashboard === "enabled") ||
-                user.allowRealTime === "enabled"
-                ? "admin"
-                : user.profile
-            }
-            perform={"drawer-admin-items:view"}
-            yes={() => (
-              <>
-                <ListItem
-                    button
-                    onClick={() => setOpenDashboardSubmenu((prev) => !prev)}
-                    onMouseEnter={() => setManagementHover(true)}
-                    onMouseLeave={() => setManagementHover(false)}
-                    className={classes.listItem}
-                >
-                    <ListItemIcon style={{ minWidth: 28, marginRight: collapsed ? 0 : 6, justifyContent: 'center' }}>
-                        <Avatar className={`${classes.iconHoverActive} ${isManagementActive || managementHover ? "active" : ""}`}>
-                            <DashboardOutlinedIcon />
-                        </Avatar>
-                    </ListItemIcon>
-                    {!collapsed && (
-                      <ListItemText 
-                        primary={<Typography className={classes.listItemText}>{i18n.t("mainDrawer.listItems.management")}</Typography>} 
-                        style={{ display: collapsed ? 'none' : 'block' }}
-                      />
-                    )}
-                    {!collapsed && (openDashboardSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
-                </ListItem>
-                <Collapse in={openDashboardSubmenu} timeout="auto" unmountOnExit className={classes.submenuContainer}>
-                      <Can
-                        role={
-                          user.profile === "user" && user.allowRealTime === "enabled"
-                            ? "admin"
-                            : user.profile
-                        }
-                        perform={"drawer-admin-items:view"}
-                        yes={() => (
-                          <ListItemLink
-                            to="/moments"
-                            primary={i18n.t("mainDrawer.listItems.chatsTempoReal")}
-                            icon={<GridOn />}
-                            tooltip={collapsed}
-                            collapsed={collapsed}
-                          />
-                        )}
-                      />
-                      {showWavoipCall && (
-                        <ListItemLink
-                            to="/call-historicals"
-                            primary="Histórico de Chamadas"
-                            icon={<HistoryIcon />}
-                            tooltip={collapsed}
-                            collapsed={collapsed}
-                        />
-                        )}
-                </Collapse>
-              </>
-            )}
-        />
+            
 
           </Collapse>
 

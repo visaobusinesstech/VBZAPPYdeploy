@@ -6,7 +6,10 @@ import Container from "@material-ui/core/Container";
 const useStyles = makeStyles(theme => ({
 	mainContainer: {
 		flex: 1,
-		padding: theme.spacing(2),
+		padding: 0,
+		margin: 0,
+		maxWidth: "100%",
+		width: "100%",
 		height: `calc(100% - 48px)`,
 	},
 
@@ -22,7 +25,7 @@ const MainContainer = ({ children, className }) => {
 	const classes = useStyles();
 
 	return (
-		<Container className={`${classes.mainContainer} ${className}`}>
+		<Container maxWidth={false} disableGutters className={`${classes.mainContainer} ${className || ""}`}>
 			<div className={classes.contentWrapper}>{children}</div>
 		</Container>
 	);

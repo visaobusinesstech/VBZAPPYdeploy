@@ -40,7 +40,7 @@ const useStyles = makeStyles((theme) => ({
     zIndex: 10
   },
   headerContent: {
-    padding: theme.spacing(1.0, 0),
+    padding: theme.spacing(1.0, 2),
   },
   navRow: {
     display: 'flex',

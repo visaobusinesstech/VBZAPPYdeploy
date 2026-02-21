@@ -5,6 +5,7 @@ import {
   List as ListIcon,
   CalendarToday as CalendarIcon,
   ViewWeek as KanbanIcon,
+  Dashboard as DashboardIcon,
   Close as CloseIcon,
   Fullscreen as FullscreenIcon, // Mantendo import original se precisar reverter
   FullscreenExit as FullscreenExitIcon,
@@ -313,6 +314,7 @@ const Activities = () => {
     { value: "board", label: "Quadro", icon: <KanbanIcon /> },
     { value: "list", label: "Lista", icon: <ListIcon /> },
     { value: "calendar", label: "Calendário", icon: <CalendarIcon /> },
+    { value: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
   ];
 
   // Filters placeholder
@@ -575,6 +577,33 @@ const Activities = () => {
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
       ) : (
         <>
+          {viewMode === "dashboard" && (
+            <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
+              {(() => {
+                const total = filteredActivities.length;
+                const counts = {
+                  backlog: filteredActivities.filter(a => String(a.status).toLowerCase() === 'backlog').length,
+                  pending: filteredActivities.filter(a => String(a.status).toLowerCase() === 'pending').length,
+                  in_progress: filteredActivities.filter(a => String(a.status).toLowerCase() === 'in_progress').length,
+                  completed: filteredActivities.filter(a => String(a.status).toLowerCase() === 'completed').length,
+                };
+                const cards = [
+                  { label: 'Total', value: total, color: '#2563eb' },
+                  { label: 'Pendentes', value: counts.pending, color: '#f59e0b' },
+                  { label: 'Em progresso', value: counts.in_progress, color: '#3b82f6' },
+                  { label: 'Concluídas', value: counts.completed, color: '#10b981' },
+                ];
+                return cards.map((c) => (
+                  <Grid item xs={12} sm={6} md={3} key={c.label}>
+                    <Paper className={classes.dashboardCard} elevation={1}>
+                      <div className={classes.cardValue} style={{ color: c.color }}>{c.value}</div>
+                      <div className={classes.cardLabel}>{c.label}</div>
+                    </Paper>
+                  </Grid>
+                ));
+              })()}
+            </Grid>
+          )}
           {viewMode === "list" && <ActivitiesList activities={filteredActivities} />}
           {viewMode === "calendar" && <ActivitiesCalendar activities={filteredActivities} />}
           {viewMode === "board" && (

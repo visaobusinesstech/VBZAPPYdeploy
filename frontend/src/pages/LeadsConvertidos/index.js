@@ -38,8 +38,9 @@ const useStyles = makeStyles((theme) => ({
     overflow: "hidden",
   },
   container: {
-    maxWidth: 1200,
-    margin: "16px auto",
+    maxWidth: "100%",
+    margin: 0,
+    padding: theme.spacing(1),
   },
 }));
 

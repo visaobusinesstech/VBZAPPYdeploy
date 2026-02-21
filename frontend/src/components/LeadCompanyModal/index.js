@@ -73,6 +73,7 @@ export default function LeadCompanyModal({ open, initialValues, onClose, onSave 
     name: "",
     description: "",
     email: "",
+    phone: "",
     address: "",
     sector: "",
     contactId: null,
@@ -172,9 +173,9 @@ export default function LeadCompanyModal({ open, initialValues, onClose, onSave 
           </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
-              label="Endereço"
-              name="address"
-              value={form.address}
+              label="Telefone"
+              name="phone"
+              value={form.phone}
               onChange={handleChange}
               variant="outlined"
               fullWidth
@@ -184,6 +185,17 @@ export default function LeadCompanyModal({ open, initialValues, onClose, onSave 
         </Grid>
 
         <Grid container spacing={2}>
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Endereço"
+              name="address"
+              value={form.address}
+              onChange={handleChange}
+              variant="outlined"
+              fullWidth
+              size="small"
+            />
+          </Grid>
           <Grid item xs={12} sm={6}>
             <TextField
               label="Setor"

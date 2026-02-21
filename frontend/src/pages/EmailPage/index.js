@@ -34,6 +34,7 @@ import { toast } from "react-toastify";
 import useEmail from "../../hooks/useEmail";
 import emailService from "../../services/emailService";
 import api from "../../services/api";
+import convertedLeadsService from "../../services/convertedLeadsService";
 
 // Placeholders for views
 import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ButtonGroup, Select, MenuItem, TextField, InputAdornment, Button as MuiButton, Dialog, DialogTitle, DialogContent, DialogActions, Stepper, Step, StepLabel, Chip, Avatar, Divider, Fab, Checkbox, FormControlLabel } from "@material-ui/core";
@@ -293,18 +294,18 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: theme.spacing(3),
+    padding: theme.spacing(1.5),
     backgroundColor: "#F8FAFC",
   },
   content: {
     flex: 1,
     marginTop: theme.spacing(2),
     overflowY: "visible",
-    maxWidth: 1120,
-    marginLeft: "auto",
-    marginRight: "auto",
-    paddingLeft: 16,
-    paddingRight: 16,
+    maxWidth: "100%",
+    marginLeft: 0,
+    marginRight: 0,
+    paddingLeft: theme.spacing(1),
+    paddingRight: theme.spacing(1),
   },
 }));
 
@@ -488,13 +489,34 @@ const EmailPage = () => {
     setScheduleOpen(true);
     (async () => {
       try {
-        // Preferir contatos do sistema (atualizados) e, se vazio, cair para contatos do módulo de e-mail
-        const systemRes = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
-        const systemList = (systemRes.data?.contacts || systemRes.data?.rows || systemRes.data?.records || [])
+        // Carregar contatos do sistema e empresas de /leads-convertidos
+        const [systemRes, convRes] = await Promise.all([
+          api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } }),
+          convertedLeadsService.list({ pageNumber: 1 })
+        ]);
+        const baseContacts = (systemRes.data?.contacts || systemRes.data?.rows || systemRes.data?.records || [])
           .filter(c => c?.email && String(c.email).includes("@"))
           .map(c => ({ ...c, _source: "system" }));
-        if (systemList.length > 0) {
-          setContactsList(systemList);
+        const companies = (convRes?.leads || [])
+          .filter(l => l?.email && String(l.email).includes("@"))
+          .map(l => ({
+            id: `lead-${l.id}`,
+            name: l.name,
+            email: l.email,
+            phone: l.phone || l.contact?.number || "",
+            _source: "converted-lead"
+          }));
+        // Deduplicar por email (prioriza contato do sistema)
+        const byEmail = new Map();
+        [...baseContacts, ...companies].forEach(item => {
+          const key = String(item.email).toLowerCase();
+          if (!byEmail.has(key) || byEmail.get(key)?._source !== "system") {
+            byEmail.set(key, item);
+          }
+        });
+        const merged = Array.from(byEmail.values());
+        if (merged.length > 0) {
+          setContactsList(merged);
           setContactsSource("system");
         } else {
           const res = await emailService.contacts.list({ pageNumber: 1 });
@@ -916,12 +938,26 @@ const EmailPage = () => {
                   if (!contactsList.length) {
                     if (contactsSource === "system") {
                       try {
-                        const res = await api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } });
-                        const list = (res.data?.contacts || res.data?.rows || res.data?.records || [])
+                        const [res, conv] = await Promise.all([
+                          api.request({ url: "/contacts", method: "GET", params: { pageNumber: 1 } }),
+                          convertedLeadsService.list({ pageNumber: 1 })
+                        ]);
+                        const base = (res.data?.contacts || res.data?.rows || res.data?.records || [])
                           .filter(c => c?.email && String(c.email).includes("@"))
                           .map(c => ({ ...c, _source: "system" }));
-                        setContactsList(list);
-                        setRecipients(list.map(c => String(c.id)));
+                        const companies = (conv?.leads || [])
+                          .filter(l => l?.email && String(l.email).includes("@"))
+                          .map(l => ({ id: `lead-${l.id}`, name: l.name, email: l.email, phone: l.phone || l.contact?.number || "", _source: "converted-lead" }));
+                        const byEmail = new Map();
+                        [...base, ...companies].forEach(item => {
+                          const key = String(item.email).toLowerCase();
+                          if (!byEmail.has(key) || byEmail.get(key)?._source !== "system") {
+                            byEmail.set(key, item);
+                          }
+                        });
+                        const merged = Array.from(byEmail.values());
+                        setContactsList(merged);
+                        setRecipients(merged.map(c => String(c.id)));
                       } catch {
                         setContactsList([]);
                         setRecipients([]);
@@ -956,11 +992,24 @@ const EmailPage = () => {
                     setContactsList(arr.map(c => ({ ...c, _source: "email" })));
                   } else {
                     try {
-                      const res = await api.request({ url: "/contacts", method: "GET", params: { searchParam: term, pageNumber: 1 } });
-                      const list = (res.data?.contacts || res.data?.rows || res.data?.records || [])
+                      const [res, conv] = await Promise.all([
+                        api.request({ url: "/contacts", method: "GET", params: { searchParam: term, pageNumber: 1 } }),
+                        convertedLeadsService.list({ pageNumber: 1, searchParam: term })
+                      ]);
+                      const base = (res.data?.contacts || res.data?.rows || res.data?.records || [])
                         .filter(c => c?.email && String(c.email).includes("@"))
                         .map(c => ({ ...c, _source: "system" }));
-                      setContactsList(list);
+                      const companies = (conv?.leads || [])
+                        .filter(l => l?.email && String(l.email).includes("@"))
+                        .map(l => ({ id: `lead-${l.id}`, name: l.name, email: l.email, phone: l.phone || l.contact?.number || "", _source: "converted-lead" }));
+                      const byEmail = new Map();
+                      [...base, ...companies].forEach(item => {
+                        const key = String(item.email).toLowerCase();
+                        if (!byEmail.has(key) || byEmail.get(key)?._source !== "system") {
+                          byEmail.set(key, item);
+                        }
+                      });
+                      setContactsList(Array.from(byEmail.values()));
                     } catch {
                       setContactsList([]);
                     }

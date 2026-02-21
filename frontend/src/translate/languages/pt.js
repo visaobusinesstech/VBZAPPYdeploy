@@ -982,7 +982,6 @@ const messages = {
           prompts: "Talk.Ai",
           allConnections: "Gerenciar conexões",
           reports: "Relatórios",
-          management: "Gerência",
           callHistorical: "Histórico de Chamadas",
         },
         appBar: {

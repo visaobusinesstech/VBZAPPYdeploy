@@ -4,6 +4,7 @@ import {
   List as ListIcon,
   CalendarToday as CalendarIcon,
   ViewWeek as KanbanIcon,
+  Dashboard as DashboardIcon,
   Fullscreen as FullscreenIcon,
   FullscreenExit as FullscreenExitIcon,
   Settings as SettingsIcon,
@@ -195,6 +196,7 @@ const Projects = () => {
     { value: "board", label: "Quadro", icon: <KanbanIcon /> },
     { value: "list", label: "Lista", icon: <ListIcon /> },
     { value: "calendar", label: "Calendário", icon: <CalendarIcon /> },
+    { value: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
   ];
 
   const filters = [
@@ -457,6 +459,30 @@ const Projects = () => {
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
       ) : (
         <>
+          {viewMode === "dashboard" && (
+            <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
+              {(() => {
+                const total = projectsState.length;
+                const completed = projectsState.filter(p => String(p.status).toLowerCase() === 'completed').length;
+                const active = projectsState.filter(p => String(p.status).toLowerCase() === 'active').length;
+                const archived = projectsState.filter(p => String(p.status).toLowerCase() === 'archived').length;
+                const cards = [
+                  { label: 'Total', value: total, color: '#2563eb' },
+                  { label: 'Ativos', value: active, color: '#3b82f6' },
+                  { label: 'Concluídos', value: completed, color: '#10b981' },
+                  { label: 'Arquivados', value: archived, color: '#6b7280' },
+                ];
+                return cards.map((c) => (
+                  <Grid item xs={12} sm={6} md={3} key={c.label}>
+                    <Paper style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: c.color }}>{c.value}</div>
+                      <div style={{ color: '#6b7280' }}>{c.label}</div>
+                    </Paper>
+                  </Grid>
+                ));
+              })()}
+            </Grid>
+          )}
           {viewMode === "list" && <ProjectsList projects={filteredProjects} />}
           {viewMode === "calendar" && <ProjectsCalendar projects={filteredProjects} />}
           {viewMode === "board" && (

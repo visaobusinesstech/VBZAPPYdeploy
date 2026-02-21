@@ -6,10 +6,6 @@ import {
   IconButton,
   Button,
   TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   CircularProgress
 } from '@material-ui/core';
 import Autocomplete from '@material-ui/lab/Autocomplete';
@@ -66,6 +62,30 @@ const useStyles = makeStyles((theme) => ({
     justifyContent: 'flex-end',
     gap: theme.spacing(1),
     marginTop: theme.spacing(3)
+  },
+  colorSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(1)
+  },
+  colorDots: {
+    display: 'flex',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: theme.spacing(1)
+  },
+  colorDot: {
+    width: 24,
+    height: 24,
+    borderRadius: '50%',
+    border: '2px solid transparent',
+    cursor: 'pointer',
+    outline: 'none',
+    padding: 0,
+    backgroundColor: 'transparent'
+  },
+  colorDotSelected: {
+    boxShadow: '0 0 0 2px rgba(0,0,0,0.08)'
   }
 }));
 
@@ -121,6 +141,13 @@ const CreateEventDrawer = ({ open, onClose, onSave, initialDate }) => {
     }));
   };
 
+  const handleSelectColor = (color) => {
+    setFormValues((prev) => ({
+      ...prev,
+      color
+    }));
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!formValues.title || !formValues.datetime) {
@@ -129,16 +156,10 @@ const CreateEventDrawer = ({ open, onClose, onSave, initialDate }) => {
     }
     try {
       setLoading(true);
-      const mapTypeByColor = (color) => {
-        if (color === "#EDE9FE") return "activity";
-        if (color === "#FEF3C7") return "project";
-        if (color === "#FEE2E2") return "lead";
-        return "event";
-      };
       const payload = {
         title: formValues.title,
         description: formValues.description,
-        type: mapTypeByColor(formValues.color),
+        type: "event",
         date: new Date(formValues.datetime).toISOString(),
         status: "pending",
         owner: formValues.responsible,
@@ -205,19 +226,24 @@ const CreateEventDrawer = ({ open, onClose, onSave, initialDate }) => {
           required
           size="small"
         />
-        <FormControl variant="outlined" fullWidth size="small">
-          <InputLabel>Cor do evento</InputLabel>
-          <Select
-            value={formValues.color}
-            onChange={handleChange("color")}
-            label="Cor do evento"
-          >
-            <MenuItem value="#D1FAE5">Verde (evento)</MenuItem>
-            <MenuItem value="#EDE9FE">Roxo (atividade)</MenuItem>
-            <MenuItem value="#FEF3C7">Amarelo (projeto)</MenuItem>
-            <MenuItem value="#FEE2E2">Vermelho (lead)</MenuItem>
-          </Select>
-        </FormControl>
+        <div className={classes.colorSection}>
+          <Typography variant="subtitle2">Cor do evento</Typography>
+          <div className={classes.colorDots}>
+            {["#D1FAE5", "#EDE9FE", "#FEF3C7", "#FEE2E2", "#DBEAFE", "#F3F4F6"].map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Cor ${c}`}
+                onClick={() => handleSelectColor(c)}
+                className={classes.colorDot + (formValues.color === c ? ` ${classes.colorDotSelected}` : "")}
+                style={{
+                  backgroundColor: c,
+                  borderColor: formValues.color === c ? "#111" : "transparent"
+                }}
+              />
+            ))}
+          </div>
+        </div>
         <Autocomplete
           options={users}
           getOptionLabel={(opt) => opt?.name || ""}

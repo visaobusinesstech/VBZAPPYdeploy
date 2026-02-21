@@ -5,6 +5,7 @@ import {
   CalendarToday as CalendarIcon,
   ViewWeek as KanbanIcon
 } from "@material-ui/icons";
+import DashboardIcon from "@material-ui/icons/Dashboard";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import {
   Paper,
@@ -53,28 +54,38 @@ const useStyles = makeStyles((theme) => ({
   },
   fixedContent: {
     width: "100%",
-    maxWidth: 1200,
-    margin: "0 auto",
-    padding: theme.spacing(0, 2),
+    maxWidth: "100%",
+    margin: 0,
+    padding: 0,
     boxSizing: "border-box",
   },
   board: {
-    display: "grid",
-    gridTemplateColumns: "repeat(5, 1fr)",
-    gridAutoFlow: "column",
+    display: "flex",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     overflowX: "hidden",
     padding: 12,
-    columnGap: 24,
-    rowGap: 0,
+    gap: 16,
     ...theme.scrollbarStyles,
   },
   column: {
-    width: "100%",
-    minWidth: 0,
+    flex: "1 1 240px",
+    maxWidth: "20%", // 5 colunas lado a lado em telas largas
+    minWidth: 220,
     display: "flex",
     flexDirection: "column",
     height: "100%",
     maxHeight: "100%",
+    [theme.breakpoints.down("lg")]: {
+      maxWidth: "25%",
+    },
+    [theme.breakpoints.down("md")]: {
+      maxWidth: "33.33%",
+    },
+    [theme.breakpoints.down("sm")]: {
+      maxWidth: "100%",
+    },
   },
   columnHeader: {
     background: "#fff",
@@ -86,6 +97,10 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     justifyContent: "space-between",
     boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+    [theme.breakpoints.down("sm")]: {
+      padding: 10,
+      minHeight: 50,
+    },
   },
   columnLabel: {
     fontWeight: 600,
@@ -129,22 +144,25 @@ const useStyles = makeStyles((theme) => ({
     marginRight: 12,
   },
   cardsWrapper: {
-    marginTop: 12,
-    padding: "4px 0 12px",
+    marginTop: 10,
+    padding: "4px 0 8px",
     width: "100%",
-    flex: 0,
+    flex: 1,
     alignSelf: "flex-start",
     backgroundColor: "#F3F4F6",
     border: "1px solid #E5E7EB",
-    borderRadius: 8,
+    borderRadius: 10,
     ...theme.scrollbarStyles,
+    [theme.breakpoints.down("sm")]: {
+      marginTop: 8,
+    },
   },
   card: {
     background: "#FFFFFF",
     border: "1px solid #E5E7EB",
-    borderRadius: 12,
-    padding: "10px 18px 14px 56px",
-    marginBottom: 12,
+    borderRadius: 10,
+    padding: "8px 12px 10px 44px",
+    marginBottom: 10,
     width: "100%",
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
     cursor: "pointer",
@@ -153,10 +171,15 @@ const useStyles = makeStyles((theme) => ({
     overflow: "hidden",
     display: "flex",
     flexDirection: "column",
-    aspectRatio: "1 / 0.72",
+    aspectRatio: "auto",
     "&:hover": {
-      boxShadow: "0 6px 14px rgba(0,0,0,0.08)",
+      boxShadow: "0 5px 12px rgba(0,0,0,0.08)",
       transform: "translateY(-1px)",
+    },
+    [theme.breakpoints.down("sm")]: {
+      marginBottom: 8,
+      padding: "8px 12px 10px 42px",
+      aspectRatio: "auto",
     },
   },
   cardTopBar: {
@@ -222,9 +245,9 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 0
   },
   avatar: {
-    width: 32,
-    height: 32,
-    fontSize: 14,
+    width: 26,
+    height: 26,
+    fontSize: 12,
     background: "#F3F4F6",
     color: "#374151",
   },
@@ -232,9 +255,9 @@ const useStyles = makeStyles((theme) => ({
     position: "absolute",
     top: 8,
     right: 8,
-    width: 28,
-    height: 28,
-    fontSize: 12,
+    width: 24,
+    height: 24,
+    fontSize: 11,
     background: "#F3F4F6",
     color: "#374151",
     border: "1px solid #E5E7EB",
@@ -243,9 +266,9 @@ const useStyles = makeStyles((theme) => ({
     position: "absolute",
     top: 8,
     left: 8,
-    width: 32,
-    height: 32,
-    fontSize: 14,
+    width: 26,
+    height: 26,
+    fontSize: 12,
     background: "#F3F4F6",
     color: "#374151",
     border: "1px solid #E5E7EB",
@@ -262,7 +285,7 @@ const useStyles = makeStyles((theme) => ({
   },
   cardTitle: {
     fontWeight: 600,
-    fontSize: 12,
+    fontSize: 11,
     color: "#111827",
     lineHeight: 1.25,
     whiteSpace: "normal",
@@ -273,7 +296,7 @@ const useStyles = makeStyles((theme) => ({
     WebkitBoxOrient: "vertical",
   },
   cardSub: {
-    fontSize: 10.5,
+    fontSize: 9.5,
     fontWeight: 400,
     color: "#9CA3AF",
     marginTop: 2,
@@ -282,7 +305,7 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
   },
   tagChip: {
-    fontSize: 9,
+    fontSize: 8.5,
     color: "#6B7280",
     backgroundColor: "rgba(0,0,0,0.03)",
     border: "1px solid #E5E7EB",
@@ -291,19 +314,19 @@ const useStyles = makeStyles((theme) => ({
     lineHeight: "14px"
   },
   cardValue: {
-    marginTop: 6,
+    marginTop: 4,
     fontWeight: 700,
     color: "#059669",
-    fontSize: 9,
+    fontSize: 8.5,
     textAlign: "left"
   },
   cardRow: {
     display: "flex",
     alignItems: "center",
-    gap: 3,
-    marginTop: 4,
+    gap: 2,
+    marginTop: 3,
     color: "#6B7280",
-    fontSize: 9,
+    fontSize: 8.5,
   },
   cardEdgeLeft: {
     marginLeft: -48
@@ -312,12 +335,12 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: 8,
+    marginTop: 6,
   },
   cardTagRow: {
     display: "flex",
     alignItems: "center",
-    gap: 3,
+    gap: 2,
     marginTop: 2
   },
   cardResponsible: {
@@ -762,6 +785,7 @@ const LeadsSales = () => {
     { value: "board", label: "Quadro", icon: <KanbanIcon /> },
     { value: "list", label: "Lista", icon: <ListIcon /> },
     { value: "calendar", label: "Calendário", icon: <CalendarIcon /> },
+    { value: "dashboard", label: "Dashboard", icon: <DashboardIcon /> },
   ];
 
   const handleSearch = (value) => setSearchParam(value);
@@ -995,6 +1019,28 @@ const LeadsSales = () => {
           <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
         ) : (
           <>
+            {viewMode === "dashboard" && (
+              <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
+                {(() => {
+                  const total = leadsState.length;
+                  const byStatus = (s) => leadsState.filter(l => String(l.status || l.stage || '').toLowerCase() === s).length;
+                  const cards = [
+                    { label: 'Total', value: total, color: '#2563eb' },
+                    { label: 'Novos', value: byStatus('new') || byStatus('novo') || 0, color: '#3b82f6' },
+                    { label: 'Em andamento', value: byStatus('in_progress') || byStatus('em_andamento') || 0, color: '#8b5cf6' },
+                    { label: 'Convertidos', value: byStatus('won') || byStatus('converted') || 0, color: '#10b981' },
+                  ];
+                  return cards.map((c) => (
+                    <Grid item xs={12} sm={6} md={3} key={c.label}>
+                      <Paper style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
+                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: c.color }}>{c.value}</div>
+                        <div style={{ color: '#6b7280' }}>{c.label}</div>
+                      </Paper>
+                    </Grid>
+                  ));
+                })()}
+              </Grid>
+            )}
             {viewMode === "list" && <LeadsList leads={leadsState} />}
             {viewMode === "calendar" && (
               <Paper style={{ padding: 16, height: '100%' }}>

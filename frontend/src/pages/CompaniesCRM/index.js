@@ -138,12 +138,14 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     height: "100%",
-    padding: theme.spacing(2),
+    padding: theme.spacing(0.5),
   },
   content: {
     flex: 1,
-    marginTop: theme.spacing(2),
-    overflowY: "auto",
+    marginTop: theme.spacing(1),
+    overflowY: "visible",
+    width: "100%",
+    maxWidth: "100%",
   },
 }));
 

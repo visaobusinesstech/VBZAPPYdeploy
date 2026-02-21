@@ -43,6 +43,7 @@ import useActivities from "../../hooks/useActivities";
 import useProjects from "../../hooks/useProjects";
 import { isEmpty } from "lodash";
 import moment from "moment";
+import "moment/locale/pt-br";
 import { ChartsDate } from "./ChartsDate";
 import {
   Avatar,
@@ -84,7 +85,12 @@ const useStyles = makeStyles((theme) => ({
   },
   greetingContainer: {
     marginBottom: theme.spacing(2),
-    marginLeft: theme.spacing(1),
+    marginLeft: theme.spacing(2.5),
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: theme.spacing(3),
+    paddingRight: theme.spacing(10),
   },
   greetingTitle: {
     fontWeight: 700,
@@ -97,21 +103,16 @@ const useStyles = makeStyles((theme) => ({
   miniTopbar: {
     backgroundColor: "#ffffff",
     borderRadius: 0,
-    padding: theme.spacing(0.5, 1),
+    padding: theme.spacing(0.5, 1.5),
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-start",
     gap: theme.spacing(1),
     marginTop: 0,
     marginBottom: theme.spacing(2),
-    // Full-bleed within Container to encostar na lateral do menu
-    marginLeft: -16,
-    marginRight: -16,
-    width: "calc(100% + 32px)",
-    boxShadow:
-      theme.palette.mode === "light"
-        ? "0 2px 10px rgba(0,0,0,0.06)"
-        : theme.shadows[1],
+    width: "100%",
+    boxShadow: "none",
+    borderBottom: "none",
   },
   miniTopbarRight: {
     marginLeft: "auto",
@@ -124,6 +125,10 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: "transparent",
     opacity: 1,
     padding: 4,
+    marginRight: 96,
+    [theme.breakpoints.down("sm")]: {
+      marginRight: 28,
+    },
   },
   miniTopbarIconSmall: {
     width: 16,
@@ -136,18 +141,21 @@ const useStyles = makeStyles((theme) => ({
   },
   blocksWrapper: {
     width: "100%",
-    maxWidth: 1100,
+    maxWidth: "100%",
     margin: "0 auto",
   },
   blockPaper: {
-    padding: theme.spacing(2.5),
+    padding: theme.spacing(2),
     borderRadius: 18,
     backgroundColor: theme.palette.background.paper,
     boxShadow:
       theme.palette.mode === "light"
         ? "0 10px 30px rgba(2, 6, 23, 0.08)"
         : theme.shadows[4],
-    height: 320, // tamanho padrao mais quadrado
+    aspectRatio: "1 / 1",
+    minHeight: 200,
+    width: "88%",
+    margin: "0 auto",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -162,9 +170,7 @@ const useStyles = makeStyles((theme) => ({
     "&:hover $dragHandleBtn": {
       visibility: "visible",
     },
-    [theme.breakpoints.down("sm")]: {
-      height: 280,
-    },
+    [theme.breakpoints.down("sm")]: {},
   },
   blockHeader: {
     display: "flex",
@@ -259,6 +265,17 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     borderRadius: 10,
     marginBottom: theme.spacing(1),
+    transition: "background-color 0.15s ease, box-shadow 0.15s ease",
+    "&:hover": {
+      backgroundColor:
+        theme.palette.mode === "light"
+          ? "#e5e7eb"
+          : "rgba(255,255,255,0.08)",
+      boxShadow:
+        theme.palette.mode === "light"
+          ? "inset 0 0 0 1px rgba(0,0,0,0.04)"
+          : "inset 0 0 0 1px rgba(255,255,255,0.06)",
+    },
   },
   agendaTime: {
     fontSize: "0.8rem",
@@ -449,6 +466,19 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.primary.main,
     marginBottom: theme.spacing(1),
   },
+  settingsDialogPaper: {
+    borderRadius: 16,
+    padding: theme.spacing(1),
+  },
+  settingsDialogTitle: {
+    fontWeight: 700,
+    fontSize: "1.1rem",
+  },
+  dialogButton: {
+    borderRadius: 10,
+    textTransform: "none",
+    fontWeight: 600,
+  },
 }));
 
 const defaultBlocks = [
@@ -461,6 +491,7 @@ const defaultBlocks = [
 const Dashboard = () => {
   const theme = useTheme();
   const classes = useStyles();
+  moment.locale("pt-br");
   const [counters, setCounters] = useState({});
   const [attendants, setAttendants] = useState([]);
   const [filterType, setFilterType] = useState(1);
@@ -859,6 +890,17 @@ const Dashboard = () => {
         <ul className={classes.blockList}>
           {pendingActivities.map((a) => {
             const color = "#f59e0b"; // laranja
+            const hasDate = !!a.date;
+            const d = hasDate ? moment(a.date) : null;
+            const isFuture = d ? d.isAfter(moment()) : false;
+            const when = d ? d.fromNow(true) : "-";
+            const metaText = hasDate
+              ? (isFuture
+                  ? `Atividade a vencer em ${when}`
+                  : d.isSame(moment(), "day")
+                    ? `Atividade vence hoje às ${d.format("HH:mm")}`
+                    : `Atividade vencida há ${when}`)
+              : "-";
             return (
               <li key={a.id} className={classes.blockListItem}>
                 <div className={classes.dotLine}>
@@ -867,8 +909,8 @@ const Dashboard = () => {
                     {a.title || "Sem título"}
                   </Typography>
                 </div>
-                <Typography className={classes.blockItemMeta}>
-                  Pendente • {a.date || "-"}
+                <Typography className={classes.blockItemMeta} title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}>
+                  {metaText}
                 </Typography>
               </li>
             );
@@ -946,6 +988,17 @@ const Dashboard = () => {
             } else if (status.includes("pend")) {
               color = "#f59e0b"; label = "Pendente";
             }
+            const hasDate = !!a.date;
+            const d = hasDate ? moment(a.date) : null;
+            const isFuture = d ? d.isAfter(moment()) : false;
+            const when = d ? d.fromNow(true) : "-";
+            const metaText = hasDate
+              ? (isFuture
+                  ? `Atividade a vencer em ${when}`
+                  : d.isSame(moment(), "day")
+                    ? `Atividade vence hoje às ${d.format("HH:mm")}`
+                    : `Atividade vencida há ${when}`)
+              : "-";
             return (
               <li key={a.id} className={classes.blockListItem}>
                 <div className={classes.dotLine}>
@@ -954,8 +1007,8 @@ const Dashboard = () => {
                     {a.title || "Sem título"}
                   </Typography>
                 </div>
-                <Typography className={classes.blockItemMeta}>
-                  {label} • {a.date || "-"}
+                <Typography className={classes.blockItemMeta} title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}>
+                  {metaText}
                 </Typography>
               </li>
             );
@@ -1146,42 +1199,25 @@ const Dashboard = () => {
               maxWidth={false}
               className={classes.container}
               style={{
-                padding: "16px",
-                paddingTop: 0,
+                padding: 0,
                 maxWidth: "100%",
                 overflowX: "hidden",
                 marginTop: 0,
               }}
             >
-              <div className={classes.miniTopbar}>
-                {!drawerOpen && (
-                  <IconButton
-                    size="small"
-                    className={classes.miniTopbarButton}
-                    onClick={toggleDrawer}
-                    aria-label="Menu"
-                  >
-                    <svg className={classes.miniTopbarIconSmall} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M3 6h18M3 12h18M3 18h18"/>
-                    </svg>
-                  </IconButton>
-                )}
-                <div className={classes.miniTopbarRight}>
-                  <span className={classes.miniTopbarClock}>{nowText}</span>
-                  <IconButton
-                    size="small"
-                    className={classes.miniTopbarButton}
-                    onClick={handleOpenSettings}
-                    aria-label="Opções"
-                  >
-                    <MoreHorizIcon style={{ fontSize: 18, color: "#000" }} />
-                  </IconButton>
-                </div>
-              </div>
               <div className={classes.greetingContainer}>
                 <Typography variant="h4" className={classes.greetingTitle}>
                   {greetingText}
                 </Typography>
+                <IconButton
+                  size="small"
+                  className={classes.miniTopbarButton}
+                  onClick={handleOpenSettings}
+                  aria-label="Opções"
+                  title="Opções do painel"
+                >
+                  <MoreHorizIcon style={{ fontSize: 20, color: "#000" }} />
+                </IconButton>
               </div>
               <div className={classes.blocksWrapper}>
                 <DragDropContext onDragEnd={handleDragEnd}>
@@ -1211,6 +1247,7 @@ const Dashboard = () => {
                                   <Grid2
                                     item
                                     xs={12}
+                                    sm={6}
                                     md={6}
                                     ref={dragProvided.innerRef}
                                     {...dragProvided.draggableProps}
@@ -1257,8 +1294,8 @@ const Dashboard = () => {
               </div>
             </Container>
           </Paper>
-          <Dialog open={settingsOpen} onClose={handleCloseSettings}>
-            <DialogTitle>Adicionar blocos</DialogTitle>
+          <Dialog open={settingsOpen} onClose={handleCloseSettings} classes={{ paper: classes.settingsDialogPaper }}>
+            <DialogTitle className={classes.settingsDialogTitle}>Adicionar blocos</DialogTitle>
             <DialogContent>
               <FormGroup>
                 <FormControlLabel
@@ -1282,8 +1319,10 @@ const Dashboard = () => {
               </FormGroup>
             </DialogContent>
             <DialogActions>
-              <Button onClick={handleCloseSettings}>Cancelar</Button>
-              <Button variant="contained" color="primary" onClick={handleApplySettings}>
+              <Button variant="outlined" color="primary" onClick={handleCloseSettings} className={classes.dialogButton}>
+                Cancelar
+              </Button>
+              <Button variant="contained" color="primary" onClick={handleApplySettings} className={classes.dialogButton}>
                 Adicionar
               </Button>
             </DialogActions>
