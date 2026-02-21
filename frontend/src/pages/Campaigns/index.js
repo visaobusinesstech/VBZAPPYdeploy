@@ -30,9 +30,7 @@ import StopIcon from "@material-ui/icons/Stop";
 import ScheduleIcon from "@material-ui/icons/Schedule";
 import AddIcon from "@material-ui/icons/Add";
 
-import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
@@ -238,8 +236,9 @@ const Campaigns = () => {
     setCampaignModalOpen(false);
   };
 
-  const handleSearch = (event) => {
-    setSearchParam(event.target.value.toLowerCase());
+  const handleSearch = (vOrEvent) => {
+    const v = typeof vOrEvent === "string" ? vOrEvent : vOrEvent.target.value;
+    setSearchParam(v.toLowerCase());
   };
 
   const handleStatusFilterChange = (event) => {
@@ -367,7 +366,22 @@ const Campaigns = () => {
   };
 
   return (
-    <MainContainer>
+    <ActivitiesStyleLayout
+      viewModes={[{ value: "list", label: i18n.t("campaigns.title") }]}
+      currentViewMode="list"
+      searchPlaceholder={i18n.t("campaigns.searchPlaceholder")}
+      searchValue={searchParam}
+      onSearchChange={handleSearch}
+      navActions={
+        <>
+          <Grid spacing={2} container style={{ width: 420 }}>
+            <Grid xs={12} item>
+            </Grid>
+          </Grid>
+        </>
+      }
+      onCreateClick={handleOpenCampaignModal}
+    >
       <ConfirmationModal
         title={
           deletingCampaign &&
@@ -407,34 +421,6 @@ const Campaigns = () => {
           <ForbiddenPage />
           :
           <>
-            <MainHeader>
-              <Grid style={{ width: "99.6%" }} container>
-                <Grid xs={12} sm={8} item>
-                  <Title>{i18n.t("campaigns.title")}</Title>
-                </Grid>
-                <Grid xs={12} sm={4} item>
-                  <Grid spacing={2} container>
-                    <Grid xs={6} sm={6} item>
-                      <TextField
-                        fullWidth
-                        placeholder={i18n.t("campaigns.searchPlaceholder")}
-                        type="search"
-                        value={searchParam}
-                        onChange={handleSearch}
-                        InputProps={{
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <SearchIcon style={{ color: "gray" }} />
-                            </InputAdornment>
-                          ),
-                        }}
-                      />
-                    </Grid>
-                    <Grid xs={6} sm={6} item></Grid>
-                  </Grid>
-                </Grid>
-              </Grid>
-            </MainHeader>
 
             {/* Filtros */}
             <Paper className={classes.filterContainer} style={{ padding: 16, marginBottom: 16 }}>
@@ -691,15 +677,8 @@ const Campaigns = () => {
                 />
               </Box>
             </Paper>
-            <IconButton
-              className={classes.fab}
-              onClick={handleOpenCampaignModal}
-              aria-label="Adicionar campanha"
-            >
-              <AddIcon />
-            </IconButton>
           </>}
-    </MainContainer>
+    </ActivitiesStyleLayout>
   );
 };
 

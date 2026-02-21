@@ -37,6 +37,7 @@ import { AuthContext } from "../../context/Auth/AuthContext";
 import { i18n } from "../../translate/i18n";
 import { toast } from "react-hot-toast";
 import ArrowBackIcon from "@material-ui/icons/ArrowBack";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 // FIXME checkout https://mui.com/components/use-media-query/#migrating-from-withwidth
 const withWidth = () => (WrappedComponent) => (props) =>
@@ -896,6 +897,9 @@ function Chat(props) {
               setShowDialog(true);
             }}
             findChats={findChats}
+            searchTerm={chatSearch}
+            onSearchTermChange={setChatSearch}
+            hideHeaderSearch
           />
         </Grid>
         <Grid className={classes.gridItem} md={9} item>
@@ -983,6 +987,9 @@ function Chat(props) {
                   handleSelectChat={(chat) => selectChat(chat)}
                   handleDeleteChat={(chat) => deleteChat(chat)}
                   findChats={findChats}
+                  searchTerm={chatSearch}
+                  onSearchTermChange={setChatSearch}
+                  hideHeaderSearch
                 />
               </Grid>
             )}
@@ -1003,6 +1010,9 @@ function Chat(props) {
                     setShowDialog(true);
                   }}
                   findChats={findChats}
+                  searchTerm={chatSearch}
+                  onSearchTermChange={setChatSearch}
+                  hideHeaderSearch
                 />
               </Grid>
             )}
@@ -1151,8 +1161,16 @@ function Chat(props) {
     setMessages((prev) => [...prev, msg]);
   };
 
+  const [chatSearch, setChatSearch] = useState("");
   return (
-    <>
+    <ActivitiesStyleLayout
+      title="Chat Interno"
+      viewModes={[{ value: "chats", label: "Chat Interno" }]}
+      currentViewMode="chats"
+      searchPlaceholder={i18n.t("chatList.searchChat")}
+      searchValue={chatSearch}
+      onSearchChange={setChatSearch}
+    >
       <ChatModal
         type={dialogType}
         open={showDialog}
@@ -1259,7 +1277,7 @@ function Chat(props) {
           </Button>
         </DialogActions>
       </Dialog>
-    </>
+    </ActivitiesStyleLayout>
   );
 }
 

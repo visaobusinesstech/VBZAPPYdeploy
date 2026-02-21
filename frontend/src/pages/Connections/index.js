@@ -48,10 +48,7 @@ import {
 import WebhookIcon from '@mui/icons-material/Webhook';
 import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props";
 
-import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import Title from "../../components/Title";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 
 import api from "../../services/api";
@@ -163,7 +160,10 @@ const Connections = () => {
   const classes = useStyles();
 
   const { whatsApps, loading } = useContext(WhatsAppsContext);
+  const [searchParam, setSearchParam] = useState("");
   const [whatsAppModalOpen, setWhatsAppModalOpen] = useState(false);
+  const [newConnMenuOpen, setNewConnMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState(null);
   const [statusImport, setStatusImport] = useState([]);
   const [qrModalOpen, setQrModalOpen] = useState(false);
   const [selectedWhatsApp, setSelectedWhatsApp] = useState(null);
@@ -202,6 +202,17 @@ const Connections = () => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleOpenNewConnectionMenu = () => {
+    const pos = { top: window.innerHeight - 80, left: window.innerWidth - 80 };
+    setMenuPosition(pos);
+    setNewConnMenuOpen(true);
+  };
+
+  const handleCloseNewConnectionMenu = () => {
+    setNewConnMenuOpen(false);
+    setMenuPosition(null);
+  };
 
   const responseFacebook = (response) => {
     if (response.status !== "unknown") {
@@ -636,7 +647,7 @@ const Connections = () => {
   };
 
   return (
-    <MainContainer>
+    <>
       <ConfirmationModal
         title={confirmModalInfo.title}
         open={confirmModalOpen}
@@ -789,143 +800,130 @@ const Connections = () => {
         <ForbiddenPage />
         :
         <>
-          <MainHeader>
-            <Title>{i18n.t("connections.title")} ({whatsApps.length})</Title>
-            <MainHeaderButtonsWrapper>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleOpenTransferModal}
-              >
-                Transferir Tickets
-              </Button>
+      <ActivitiesStyleLayout
+        viewModes={[{ value: "list", label: `${i18n.t("connections.title")} (${whatsApps.length})` }]}
+        currentViewMode="list"
+        searchPlaceholder={"Buscar..."}
+        searchValue={searchParam}
+        onSearchChange={setSearchParam}
+        navActions={
+          <>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleOpenTransferModal}
+            >
+              Transferir Tickets
+            </Button>
 
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={restartWhatsapps}
-              >
-                {i18n.t("connections.restartConnections")}
-              </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={restartWhatsapps}
+            >
+              {i18n.t("connections.restartConnections")}
+            </Button>
 
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => openInNewTab(`https://wa.me/${process.env.REACT_APP_NUMBER_SUPPORT}`)}
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => openInNewTab(`https://wa.me/${process.env.REACT_APP_NUMBER_SUPPORT}`)}
+            >
+              {i18n.t("connections.callSupport")}
+            </Button>
+          </>
+        }
+        onCreateClick={handleOpenNewConnectionMenu}
+      >
+        <Menu
+          anchorReference="anchorPosition"
+          anchorPosition={menuPosition}
+          open={newConnMenuOpen}
+          onClose={handleCloseNewConnectionMenu}
+        >
+          <MenuItem
+            disabled={planConfig?.plan?.useWhatsapp ? false : true}
+            onClick={() => {
+              handleOpenWhatsAppModal();
+              handleCloseNewConnectionMenu();
+            }}
+          >
+            <WhatsApp
+              fontSize="small"
+              style={{
+                marginRight: "10px",
+                color: "#25D366",
+              }}
+            />
+            WhatsApp
+          </MenuItem>
+          <MenuItem
+            disabled={planConfig?.plan?.useWhatsappOfficial ? false : true}
+            onClick={() => {
+              handleOpenWhatsAppModal("whatsapp_oficial");
+              handleCloseNewConnectionMenu();
+            }}
+          >
+            <WhatsApp
+              fontSize="small"
+              style={{
+                marginRight: "10px",
+                color: "#25D366",
+              }}
+            />
+            WhatsApp Oficial
+          </MenuItem>
+          <FacebookLogin
+            appId={process.env.REACT_APP_FACEBOOK_APP_ID}
+            autoLoad={false}
+            fields="name,email,picture"
+            version="9.0"
+            scope={process.env.REACT_APP_REQUIRE_BUSINESS_MANAGEMENT?.toUpperCase() === "TRUE" ?
+              "public_profile,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management"
+              : "public_profile,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement"}
+            callback={responseFacebook}
+            render={(renderProps) => (
+              <MenuItem
+                disabled={planConfig?.plan?.useFacebook ? false : true}
+                onClick={renderProps.onClick}
               >
-                {i18n.t("connections.callSupport")}
-              </Button>
-              <PopupState variant="popover" popupId="demo-popup-menu">
-                {(popupState) => (
-                  <React.Fragment>
-                    <Can
-                      role={user.profile}
-                      perform="connections-page:addConnection"
-                      yes={() => (
-                        <>
-                          <Button
-                            variant="contained"
-                            color="primary"
-                            {...bindTrigger(popupState)}
-                          >
-                            {i18n.t("connections.newConnection")}
-                          </Button>
-                          <Menu {...bindMenu(popupState)}>
-                            {/* WHATSAPP */}
-                            <MenuItem
-                              disabled={planConfig?.plan?.useWhatsapp ? false : true}
-                              onClick={() => {
-                                handleOpenWhatsAppModal();
-                                popupState.close();
-                              }}
-                            >
-                              <WhatsApp
-                                fontSize="small"
-                                style={{
-                                  marginRight: "10px",
-                                  color: "#25D366",
-                                }}
-                              />
-                              WhatsApp
-                            </MenuItem>
-                            {/* WHATSAPP OFICIAL */}
-                            <MenuItem
-                              disabled={planConfig?.plan?.useWhatsappOfficial ? false : true}
-                              onClick={() => {
-                                handleOpenWhatsAppModal("whatsapp_oficial");
-                                popupState.close();
-                              }}
-                            >
-                              <WhatsApp
-                                fontSize="small"
-                                style={{
-                                  marginRight: "10px",
-                                  color: "#25D366",
-                                }}
-                              />
-                              WhatsApp Oficial
-                            </MenuItem>
-                            {/* FACEBOOK */}
-                            <FacebookLogin
-                              appId={process.env.REACT_APP_FACEBOOK_APP_ID}
-                              autoLoad={false}
-                              fields="name,email,picture"
-                              version="9.0"
-                              scope={process.env.REACT_APP_REQUIRE_BUSINESS_MANAGEMENT?.toUpperCase() === "TRUE" ?
-                                "public_profile,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management"
-                                : "public_profile,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement"}
-                              callback={responseFacebook}
-                              render={(renderProps) => (
-                                <MenuItem
-                                  disabled={planConfig?.plan?.useFacebook ? false : true}
-                                  onClick={renderProps.onClick}
-                                >
-                                  <Facebook
-                                    fontSize="small"
-                                    style={{
-                                      marginRight: "10px",
-                                      color: "#3b5998",
-                                    }}
-                                  />
-                                  Facebook
-                                </MenuItem>
-                              )}
-                            />
-                            {/* INSTAGRAM */}
-                            <FacebookLogin
-                              appId={process.env.REACT_APP_FACEBOOK_APP_ID}
-                              autoLoad={false}
-                              fields="name,email,picture"
-                              version="9.0"
-                              scope={process.env.REACT_APP_REQUIRE_BUSINESS_MANAGEMENT?.toUpperCase() === "TRUE" ?
-                                "public_profile,instagram_basic,instagram_manage_messages,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management"
-                                : "public_profile,instagram_basic,instagram_manage_messages,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement"}
-                              callback={responseInstagram}
-                              render={(renderProps) => (
-                                <MenuItem
-                                  disabled={planConfig?.plan?.useInstagram ? false : true}
-                                  onClick={renderProps.onClick}
-                                >
-                                  <Instagram
-                                    fontSize="small"
-                                    style={{
-                                      marginRight: "10px",
-                                      color: "#e1306c",
-                                    }}
-                                  />
-                                  Instagram
-                                </MenuItem>
-                              )}
-                            />
-                          </Menu>
-                        </>
-                      )}
-                    />
-                  </React.Fragment>
-                )}
-              </PopupState>
-            </MainHeaderButtonsWrapper>
-          </MainHeader>
+                <Facebook
+                  fontSize="small"
+                  style={{
+                    marginRight: "10px",
+                    color: "#3b5998",
+                  }}
+                />
+                Facebook
+              </MenuItem>
+            )}
+          />
+          <FacebookLogin
+            appId={process.env.REACT_APP_FACEBOOK_APP_ID}
+            autoLoad={false}
+            fields="name,email,picture"
+            version="9.0"
+            scope={process.env.REACT_APP_REQUIRE_BUSINESS_MANAGEMENT?.toUpperCase() === "TRUE" ?
+              "public_profile,instagram_basic,instagram_manage_messages,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement,business_management"
+              : "public_profile,instagram_basic,instagram_manage_messages,pages_messaging,pages_show_list,pages_manage_metadata,pages_read_engagement"}
+            callback={responseInstagram}
+            render={(renderProps) => (
+              <MenuItem
+                disabled={planConfig?.plan?.useInstagram ? false : true}
+                onClick={renderProps.onClick}
+              >
+                <Instagram
+                  fontSize="small"
+                  style={{
+                    marginRight: "10px",
+                    color: "#e1306c",
+                  }}
+                />
+                Instagram
+              </MenuItem>
+            )}
+          />
+        </Menu>
 
           {
             statusImport?.all ? (
@@ -1082,10 +1080,10 @@ const Connections = () => {
               </TableBody>
             </Table>
           </Paper>
+        </ActivitiesStyleLayout>
         </>
       }
-    </MainContainer >
-
+    </>
   );
 };
 

@@ -35,6 +35,9 @@ import ZoomOutMapIcon from "@material-ui/icons/ZoomOutMap";
 import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
 import SettingsIcon from "@material-ui/icons/Settings";
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import useLeadsSales from "../../hooks/useLeadsSales";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
@@ -45,6 +48,8 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import leadsSalesService from "../../services/leadsSalesService";
 import { toast } from "react-toastify";
 import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
+
+const localizer = momentLocalizer(moment);
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -60,32 +65,21 @@ const useStyles = makeStyles((theme) => ({
     boxSizing: "border-box",
   },
   board: {
-    display: "flex",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    display: "grid",
+    gridAutoRows: "1fr",
+    width: "100%",
     overflowX: "hidden",
     padding: 12,
     gap: 16,
     ...theme.scrollbarStyles,
   },
   column: {
-    flex: "1 1 240px",
-    maxWidth: "20%", // 5 colunas lado a lado em telas largas
-    minWidth: 220,
+    minWidth: 0,
+    width: "100%",
     display: "flex",
     flexDirection: "column",
     height: "100%",
     maxHeight: "100%",
-    [theme.breakpoints.down("lg")]: {
-      maxWidth: "25%",
-    },
-    [theme.breakpoints.down("md")]: {
-      maxWidth: "33.33%",
-    },
-    [theme.breakpoints.down("sm")]: {
-      maxWidth: "100%",
-    },
   },
   columnHeader: {
     background: "#fff",
@@ -161,7 +155,7 @@ const useStyles = makeStyles((theme) => ({
     background: "#FFFFFF",
     border: "1px solid #E5E7EB",
     borderRadius: 10,
-    padding: "8px 12px 10px 44px",
+    padding: "8px 10px 10px 40px",
     marginBottom: 10,
     width: "100%",
     boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
@@ -178,7 +172,7 @@ const useStyles = makeStyles((theme) => ({
     },
     [theme.breakpoints.down("sm")]: {
       marginBottom: 8,
-      padding: "8px 12px 10px 42px",
+      padding: "8px 8px 10px 38px",
       aspectRatio: "auto",
     },
   },
@@ -191,7 +185,7 @@ const useStyles = makeStyles((theme) => ({
   },
   cardDeleteBtn: {
     position: "absolute",
-    bottom: 6,
+    bottom: 2,
     right: 6,
     width: 20,
     height: 20,
@@ -210,7 +204,7 @@ const useStyles = makeStyles((theme) => ({
   },
   cardApproveBtn: {
     position: "absolute",
-    bottom: 6,
+    bottom: 2,
     left: 6,
     width: 20,
     height: 20,
@@ -279,13 +273,14 @@ const useStyles = makeStyles((theme) => ({
     height: 8,
     borderRadius: 9999,
     backgroundColor: "#10B981",
-    top: 32,
-    left: 32,
-    zIndex: 2
+    top: 28,
+    left: 28,
+    zIndex: 2,
+    border: "2px solid #FFFFFF"
   },
   cardTitle: {
     fontWeight: 600,
-    fontSize: 11,
+    fontSize: "clamp(9px, 1.1vw, 12px)",
     color: "#111827",
     lineHeight: 1.25,
     whiteSpace: "normal",
@@ -296,7 +291,7 @@ const useStyles = makeStyles((theme) => ({
     WebkitBoxOrient: "vertical",
   },
   cardSub: {
-    fontSize: 9.5,
+    fontSize: "clamp(8px, 1vw, 11px)",
     fontWeight: 400,
     color: "#9CA3AF",
     marginTop: 2,
@@ -317,7 +312,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 4,
     fontWeight: 700,
     color: "#059669",
-    fontSize: 8.5,
+    fontSize: "clamp(7.5px, 0.95vw, 10px)",
     textAlign: "left"
   },
   cardRow: {
@@ -326,10 +321,10 @@ const useStyles = makeStyles((theme) => ({
     gap: 2,
     marginTop: 3,
     color: "#6B7280",
-    fontSize: 8.5,
+    fontSize: "clamp(7.5px, 0.85vw, 9.5px)",
   },
   cardEdgeLeft: {
-    marginLeft: -48
+    marginLeft: -36
   },
   cardFooter: {
     display: "flex",
@@ -468,7 +463,10 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
 
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className={classes.board}>
+      <div
+        className={classes.board}
+        style={{ gridTemplateColumns: `repeat(${COLUMN_DEFS.length}, minmax(0, 1fr))` }}
+      >
         {COLUMN_DEFS.map((col) => {
           const list = leadsByStatus[col.key] || [];
           const total = getTotalValue(list);
@@ -564,7 +562,7 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
                                   </div>
                                   {(l.phone || contact?.number) && (
                                     <div className={`${classes.cardRow} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
-                                      <PhoneIcon style={{ fontSize: 11, color: "#9CA3AF" }} />
+                                      <PhoneIcon style={{ fontSize: 10, color: "#9CA3AF" }} />
                                       <span>{l.phone || contact?.number}</span>
                                     </div>
                                   )}
@@ -1042,14 +1040,51 @@ const LeadsSales = () => {
               </Grid>
             )}
             {viewMode === "list" && <LeadsList leads={leadsState} />}
-            {viewMode === "calendar" && (
-              <Paper style={{ padding: 16, height: '100%' }}>
-                <Typography variant="h6">Calendário</Typography>
-                <div style={{ marginTop: 20, textAlign: 'center', color: '#666' }}>
-                  Em breve: integração com calendário
+            {viewMode === "calendar" && (() => {
+              const events = (leadsState || []).map(l => {
+                const when = l.date || l.createdAt || l.updatedAt || Date.now();
+                return {
+                  title: l.name || l.companyName || `Lead ${l.id}`,
+                  start: new Date(when),
+                  end: new Date(when),
+                  allDay: true,
+                  resource: l
+                };
+              });
+              const eventPropGetter = (evt) => {
+                const st = String(evt?.resource?.status || "").toLowerCase();
+                let backgroundColor = "#2563eb";
+                if (st.includes("won") || st.includes("converted") || st.includes("fechado")) backgroundColor = "#10B981";
+                if (st.includes("lost") || st.includes("perdido")) backgroundColor = "#EF4444";
+                return { style: { backgroundColor, color: "#fff", borderRadius: 6, border: 0 } };
+              };
+              return (
+                <div style={{ height: 'calc(100vh - 200px)', backgroundColor: '#fff', padding: 16 }}>
+                  <Calendar
+                    localizer={localizer}
+                    events={events}
+                    startAccessor="start"
+                    endAccessor="end"
+                    views={["day","week","month"]}
+                    eventPropGetter={eventPropGetter}
+                    style={{ height: '100%' }}
+                    messages={{
+                      next: "Próximo",
+                      previous: "Anterior",
+                      today: "Hoje",
+                      month: "Mês",
+                      week: "Semana",
+                      day: "Dia",
+                      agenda: "Agenda",
+                      date: "Data",
+                      time: "Hora",
+                      event: "Evento",
+                      noEventsInRange: "Não há eventos neste período."
+                    }}
+                  />
                 </div>
-              </Paper>
-            )}
+              );
+            })()}
             {viewMode === "board" && (
               <div ref={kanbanRef} className={classes.fixedContent} style={{ height: '100%' }}>
                 <LeadsKanbanBoard

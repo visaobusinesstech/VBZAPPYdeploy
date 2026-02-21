@@ -125,6 +125,8 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
   const [anchorChartDate, setAnchorChartDate] = useState(null);
   const [period, setPeriod] = useState("week");
   const [series, setSeries] = useState({ labels: [], values: [] });
+  const [recentEmails, setRecentEmails] = useState([]);
+  const [pendingSchedules, setPendingSchedules] = useState([]);
 
   useEffect(() => {
     let mounted = true;
@@ -145,6 +147,33 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
     load();
     return () => { mounted = false; };
   }, [fetchSeries, period]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const [recent, sched] = await Promise.all([
+          emailService.list({ pageNumber: 1 }),
+          emailService.schedules.list({ pageNumber: 1 })
+        ]);
+        if (!mounted) return;
+        setRecentEmails(recent?.emails || recent?.items || recent?.rows || []);
+        const rawSched = sched?.items || sched?.schedules || [];
+        // Somente pendentes/futuros
+        const now = Date.now();
+        const pend = rawSched.filter(s => {
+          const when = new Date(s.scheduledAt || s.sendAt || s.date).getTime();
+          return isFinite(when) && when >= now && !String(s.status || "").toLowerCase().includes("sent");
+        });
+        setPendingSchedules(pend);
+      } catch {
+        if (!mounted) return;
+        setRecentEmails([]);
+        setPendingSchedules([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   const fmtDate = (iso) => {
     if (!iso) return "";
@@ -283,6 +312,101 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
             </div>
           </div>
           <Line data={chartData} options={chartOptions} height={88} />
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
+          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
+            Status dos Envios Recentes
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Data/Hora</TableCell>
+                  <TableCell>Destinatário</TableCell>
+                  <TableCell>Assunto</TableCell>
+                  <TableCell>Status</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(recentEmails || []).slice(0, 6).map((e) => {
+                  const when = e.sentAt || e.createdAt || e.date;
+                  const to = e.to || e.recipient || e.recipientEmail || e.email;
+                  const subject = e.subject || e.title || "-";
+                  const status = String(e.status || (e.error ? "erro" : "enviado")).toLowerCase();
+                  const isOk = /(sent|enviado|delivered|sucesso)/i.test(status);
+                  const isError = /(erro|error|fail|bounce|bounced)/i.test(status);
+                  const chipStyle = isOk
+                    ? { background: "#ECFDF5", color: "#059669" }
+                    : isError
+                    ? { background: "#FEF2F2", color: "#DC2626" }
+                    : { background: "#EFF6FF", color: "#2563EB" };
+                  const label =
+                    isOk ? "Enviado" : isError ? "Erro" : "Pendente";
+                  return (
+                    <TableRow key={e.id || `${to}-${when}-${subject}`}>
+                      <TableCell>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
+                      <TableCell>{to || "-"}</TableCell>
+                      <TableCell>{subject}</TableCell>
+                      <TableCell>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, fontWeight: 600, fontSize: 12, ...chipStyle }}>
+                          {label}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+                {(!recentEmails || recentEmails.length === 0) && (
+                  <TableRow><TableCell colSpan={4} align="center">Sem registros</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+      </Grid>
+
+      <Grid item xs={12} md={6}>
+        <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
+          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
+            Agendamentos Pendentes
+          </Typography>
+          <TableContainer>
+            <Table size="small">
+              <TableHead>
+                <TableRow>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Destinatário</TableCell>
+                  <TableCell>Campanha</TableCell>
+                  <TableCell>Assunto</TableCell>
+                  <TableCell>Agendado para</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {(pendingSchedules || []).slice(0, 6).map((s) => {
+                  const when = s.scheduledAt || s.sendAt || s.date;
+                  const to = s.contactEmail || s.to || s.recipient;
+                  const statusPt = "Agendado";
+                  return (
+                    <TableRow key={s.id || `${to}-${when}`}>
+                      <TableCell>{statusPt}</TableCell>
+                      <TableCell>
+                        <div style={{ fontWeight: 600 }}>{s.contactName || to || "-"}</div>
+                        <div style={{ fontSize: 12, color: "#64748B" }}>{to || "-"}</div>
+                      </TableCell>
+                      <TableCell>{s.campaignName || "-"}</TableCell>
+                      <TableCell>{s.subject || "-"}</TableCell>
+                      <TableCell>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
+                    </TableRow>
+                  );
+                })}
+                {(!pendingSchedules || pendingSchedules.length === 0) && (
+                  <TableRow><TableCell colSpan={5} align="center">Nenhum agendamento</TableCell></TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Paper>
       </Grid>
     </Grid>
@@ -715,6 +839,18 @@ const EmailPage = () => {
               <span style={{ color: "#10B981", fontSize: 14 }}>Atualizações em tempo real ativadas</span>
             </div>
 
+            {(() => {
+              const arr = Array.isArray(emails) ? emails : [];
+              const total = arr.length;
+              const sent = arr.filter(e => {
+                const status = String(e.status || (e.error ? "erro" : "enviado")).toLowerCase();
+                return /(sent|enviado|delivered|sucesso)/.test(status) && !/(erro|error|fail|bounce|bounced)/.test(status);
+              }).length;
+              const errors = arr.filter(e => {
+                const status = String(e.status || (e.error ? "erro" : "")).toLowerCase();
+                return /(erro|error|fail|bounce|bounced)/.test(status);
+              }).length;
+              return (
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Paper style={{ padding: 16, borderRadius: 12, border: "1px solid #E5E7EB", background: "#FFFFFF" }}>
@@ -724,7 +860,7 @@ const EmailPage = () => {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontSize: 12, color: "#6B7280" }}>Total</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>2</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{total}</span>
                     </div>
                   </div>
                 </Paper>
@@ -737,7 +873,7 @@ const EmailPage = () => {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontSize: 12, color: "#6B7280" }}>Enviados</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>2</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{sent}</span>
                     </div>
                   </div>
                 </Paper>
@@ -750,12 +886,14 @@ const EmailPage = () => {
                     </div>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                       <span style={{ fontSize: 12, color: "#6B7280" }}>Erros</span>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>0</span>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: "#111827", lineHeight: 1 }}>{errors}</span>
                     </div>
                   </div>
                 </Paper>
               </Grid>
             </Grid>
+              );
+            })()}
 
             <Paper style={{ padding: 16, borderRadius: 12, border: "1px solid #E5E7EB", background: "#FFFFFF" }}>
               <Typography variant="h6" style={{ fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>Histórico de Envios</Typography>
@@ -771,40 +909,43 @@ const EmailPage = () => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    <TableRow>
-                      <TableCell style={{ color: "#111827" }}>10/01/2026 15:41</TableCell>
-                      <TableCell>
-                        <div style={{ color: "#111827", fontWeight: 600 }}>PLAN AUTOMAÇÃO</div>
-                        <div style={{ color: "#6B7280", fontSize: 12 }}>daviresende3322@gmail.com</div>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ color: "#111827", fontWeight: 600 }}>VISÃO BUSINESS</div>
-                        <div style={{ color: "#6B7280", fontSize: 12 }}>daviresende3322@gmail.com</div>
-                      </TableCell>
-                      <TableCell>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, background: "#ECFDF5", color: "#059669", fontWeight: 600, fontSize: 12 }}>
-                          <CheckCircleOutlineIcon style={{ fontSize: 16 }} /> Enviado
-                        </span>
-                      </TableCell>
-                      <TableCell style={{ color: "#6B7280" }}>—</TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell style={{ color: "#111827" }}>27/10/2025 22:41</TableCell>
-                      <TableCell>
-                        <div style={{ color: "#111827", fontWeight: 600 }}>S</div>
-                        <div style={{ color: "#6B7280", fontSize: 12 }}>visaobusinesstech@gmail.com</div>
-                      </TableCell>
-                      <TableCell>
-                        <div style={{ color: "#111827", fontWeight: 600 }}>VISÃO BUSINESS</div>
-                        <div style={{ color: "#6B7280", fontSize: 12 }}>daviresende3322@gmail.com</div>
-                      </TableCell>
-                      <TableCell>
-                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, background: "#ECFDF5", color: "#059669", fontWeight: 600, fontSize: 12 }}>
-                          <CheckCircleOutlineIcon style={{ fontSize: 16 }} /> Enviado
-                        </span>
-                      </TableCell>
-                      <TableCell style={{ color: "#6B7280" }}>—</TableCell>
-                    </TableRow>
+                    {(Array.isArray(emails) ? emails : []).map((e) => {
+                      const when = e.sentAt || e.createdAt || e.date;
+                      const to = e.to || e.recipient || e.recipientEmail || e.email;
+                      const from = e.from || e.sender || e.remetente || "-";
+                      const status = String(e.status || (e.error ? "erro" : "enviado")).toLowerCase();
+                      const isOk = /(sent|enviado|delivered|sucesso)/.test(status) && !/(erro|error|fail|bounce|bounced)/.test(status);
+                      const isError = /(erro|error|fail|bounce|bounced)/.test(status);
+                      const chipStyle = isOk
+                        ? { background: "#ECFDF5", color: "#059669" }
+                        : isError
+                        ? { background: "#FEF2F2", color: "#DC2626" }
+                        : { background: "#EFF6FF", color: "#2563EB" };
+                      const label = isOk ? "Enviado" : isError ? "Erro" : "Pendente";
+                      const tipo = e.type || e.kind || "—";
+                      return (
+                        <TableRow key={e.id || `${to}-${when}-${from}`}>
+                          <TableCell style={{ color: "#111827" }}>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
+                          <TableCell>
+                            <div style={{ color: "#111827", fontWeight: 600 }}>{e.recipientName || to || "-"}</div>
+                            <div style={{ color: "#6B7280", fontSize: 12 }}>{to || "-"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div style={{ color: "#111827", fontWeight: 600 }}>{e.senderName || from || "-"}</div>
+                            <div style={{ color: "#6B7280", fontSize: 12 }}>{from || "-"}</div>
+                          </TableCell>
+                          <TableCell>
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, fontWeight: 600, fontSize: 12, ...chipStyle }}>
+                              {label}
+                            </span>
+                          </TableCell>
+                          <TableCell style={{ color: "#6B7280" }}>{tipo}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                    {(!emails || emails.length === 0) && (
+                      <TableRow><TableCell colSpan={5} align="center">Nenhum registro encontrado</TableCell></TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>

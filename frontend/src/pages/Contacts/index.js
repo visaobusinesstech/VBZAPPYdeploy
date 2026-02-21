@@ -50,6 +50,7 @@ import Title from "../../components/Title";
 import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
 import MainContainer from "../../components/MainContainer";
 import toastError from "../../errors/toastError";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
@@ -651,113 +652,15 @@ const Contacts = () => {
   const checkboxStatus = selectAllCheckboxStatus();
 
   return (
-    <MainContainer className={classes.mainContainer}>
-      <NewTicketModal
-        modalOpen={newTicketModalOpen}
-        initialContact={contactTicket}
-        onClose={(ticket) => {
-          handleCloseOrOpenTicket(ticket);
-        }}
-      />
-      <ContactModal
-        open={contactModalOpen}
-        onClose={handleCloseContactModal}
-        aria-labelledby="form-dialog-title"
-        contactId={selectedContactId}
-      ></ContactModal>
-      
-      {/* Modal de confirmação tipada para exclusão */}
-      <ContactDeleteConfirmModal
-        open={deleteConfirmModalOpen}
-        onClose={() => setDeleteConfirmModalOpen(false)}
-        onConfirm={handleBulkDeleteConfirm}
-        deleteType={deleteType}
-        selectedCount={selectedContacts.size}
-        totalCount={totalContactsCount}
-      />
-      
-      {/* Modal para visualizar imagem de perfil */}
-      <Dialog
-        open={imageModalOpen}
-        onClose={handleCloseImageModal}
-        className={classes.imageDialog}
-        maxWidth="md"
-      >
-        <DialogTitle className={classes.dialogTitle}>
-          <span>Foto de Perfil - {selectedContactName}</span>
-          <IconButton onClick={handleCloseImageModal} size="small">
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {selectedImage ? (
-            <img
-              src={selectedImage}
-              alt={`Foto de perfil de ${selectedContactName}`}
-              className={classes.profileImage}
-              onError={(e) => {
-                e.target.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: '200px',
-              color: '#666'
-            }}>
-              Imagem não disponível
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de confirmação simples para outras ações */}
-      <ConfirmationModal
-        title={getConfirmTitle()}
-        open={confirmOpen}
-        onClose={setConfirmOpen}
-        onConfirm={getConfirmAction()}
-      >
-        {getConfirmMessage()}
-      </ConfirmationModal>
-      
-      <ConfirmationModal
-        title={i18n.t("contacts.confirmationModal.importChat")}
-        open={confirmChatsOpen}
-        onClose={setConfirmChatsOpen}
-        onConfirm={(e) => handleimportChats()}
-      >
-        {i18n.t("contacts.confirmationModal.wantImport")}
-      </ConfirmationModal>
-
-      <MainHeader>
-        <Title>
-          {i18n.t("contacts.title")} ({totalContactsCount})
-          {isAnyContactSelected && (
-            <span style={{ color: '#f50057', marginLeft: 8 }}>
-              - {selectedCount} selecionado(s) {selectAllMode && '(TODOS)'}
-            </span>
-          )}
-        </Title>
-        <MainHeaderButtonsWrapper>
-          <TagsFilter onFiltered={handleSelectedTags} />
-          <TextField
-            placeholder={i18n.t("contacts.searchPlaceholder")}
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="secondary" />
-                </InputAdornment>
-              ),
-            }}
-          />
-          
-          {/* Botões de ação em lote */}
+    <ActivitiesStyleLayout
+      viewModes={[{ value: "list", label: `${i18n.t("contacts.title")} (${totalContactsCount})` }]}
+      currentViewMode="list"
+      searchPlaceholder={i18n.t("contacts.searchPlaceholder")}
+      searchValue={searchParam}
+      onSearchChange={(v) => handleSearch({ target: { value: v } })}
+      rightFilters={<></>}
+      navActions={
+        <>
           {isAnyContactSelected && (
             <div className={classes.bulkActions}>
               <Tooltip title="Enviar Email para selecionados">
@@ -785,10 +688,9 @@ const Contacts = () => {
               </Tooltip>
             </div>
           )}
-
-          <PopupState variant="popover" popupId="demo-popup-menu">
+          <PopupState variant="popover" popupId="contacts-import-export">
             {(popupState) => (
-              <React.Fragment>
+              <>
                 <Button
                   variant="contained"
                   color="primary"
@@ -844,11 +746,85 @@ const Contacts = () => {
                     )}
                   />
                 </Menu>
-              </React.Fragment>
+              </>
             )}
           </PopupState>
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
+        </>
+      }
+      onCreateClick={handleOpenContactModal}
+    >
+      <NewTicketModal
+        modalOpen={newTicketModalOpen}
+        initialContact={contactTicket}
+        onClose={(ticket) => {
+          handleCloseOrOpenTicket(ticket);
+        }}
+      />
+      <ContactModal
+        open={contactModalOpen}
+        onClose={handleCloseContactModal}
+        aria-labelledby="form-dialog-title"
+        contactId={selectedContactId}
+      ></ContactModal>
+      <ContactDeleteConfirmModal
+        open={deleteConfirmModalOpen}
+        onClose={() => setDeleteConfirmModalOpen(false)}
+        onConfirm={handleBulkDeleteConfirm}
+        deleteType={deleteType}
+        selectedCount={selectedContacts.size}
+        totalCount={totalContactsCount}
+      />
+      <Dialog
+        open={imageModalOpen}
+        onClose={handleCloseImageModal}
+        className={classes.imageDialog}
+        maxWidth="md"
+      >
+        <DialogTitle className={classes.dialogTitle}>
+          <span>Foto de Perfil - {selectedContactName}</span>
+          <IconButton onClick={handleCloseImageModal} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {selectedImage ? (
+            <img
+              src={selectedImage}
+              alt={`Foto de perfil de ${selectedContactName}`}
+              className={classes.profileImage}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '200px',
+              color: '#666'
+            }}>
+              Imagem não disponível
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <ConfirmationModal
+        title={getConfirmTitle()}
+        open={confirmOpen}
+        onClose={setConfirmOpen}
+        onConfirm={getConfirmAction()}
+      >
+        {getConfirmMessage()}
+      </ConfirmationModal>
+      <ConfirmationModal
+        title={i18n.t("contacts.confirmationModal.importChat")}
+        open={confirmChatsOpen}
+        onClose={setConfirmChatsOpen}
+        onConfirm={(e) => handleimportChats()}
+      >
+        {i18n.t("contacts.confirmationModal.wantImport")}
+      </ConfirmationModal>
 
       {importContactModalOpen && (
         <ContactImportWpModal
@@ -1097,14 +1073,7 @@ const Contacts = () => {
           </TableBody>
         </Table>
       </Paper>
-      <IconButton
-        className={classes.fab}
-        onClick={handleOpenContactModal}
-        aria-label="Adicionar contato"
-      >
-        <AddIcon />
-      </IconButton>
-    </MainContainer>
+    </ActivitiesStyleLayout>
   );
 };
 

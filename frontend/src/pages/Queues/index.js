@@ -14,9 +14,7 @@ import {
 } from "@material-ui/core";
 import AddIcon from "@material-ui/icons/Add";
 
-import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 import Title from "../../components/Title";
 import { i18n } from "../../translate/i18n";
@@ -103,6 +101,7 @@ const Queues = ({ renderAsTab }) => {
 
   const [queues, dispatch] = useReducer(reducer, []);
   const [loading, setLoading] = useState(false);
+  const [searchParam, setSearchParam] = useState("");
 
   const [queueModalOpen, setQueueModalOpen] = useState(false);
   const [selectedQueue, setSelectedQueue] = useState(null);
@@ -111,7 +110,7 @@ const Queues = ({ renderAsTab }) => {
   const { user, socket } = useContext(AuthContext);
   const companyId = user.companyId;
 
-  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
+  const Container = renderAsTab ? ({ children }) => <>{children}</> : ActivitiesStyleLayout;
 
 
   useEffect(() => {
@@ -177,8 +176,8 @@ const Queues = ({ renderAsTab }) => {
     setSelectedQueue(null);
   };
 
-  return (
-    <Container>
+  const content = (
+    <>
       <ConfirmationModal
         title={
           selectedQueue &&
@@ -207,13 +206,6 @@ const Queues = ({ renderAsTab }) => {
         <ForbiddenPage />
         :
         <>
-          {!renderAsTab && (
-            <MainHeader>
-              <Title>{i18n.t("queues.title")} ({queues.length})</Title>
-              <MainHeaderButtonsWrapper>
-              </MainHeaderButtonsWrapper>
-            </MainHeader>
-          )}
           <Paper className={classes.mainPaper} variant="outlined">
             <Table size="small">
               <TableHead>
@@ -303,16 +295,24 @@ const Queues = ({ renderAsTab }) => {
               </TableBody>
             </Table>
       </Paper>
-      {!renderAsTab && (
-        <IconButton
-          className={classes.fab}
-          onClick={handleOpenQueueModal}
-          aria-label="Adicionar fila"
-        >
-          <AddIcon />
-        </IconButton>
-      )}
         </>}
+    </>
+  );
+
+  if (renderAsTab) {
+    return <Container>{content}</Container>;
+  }
+
+  return (
+    <Container
+      viewModes={[{ value: "list", label: `${i18n.t("queues.title")} (${queues.length})` }]}
+      currentViewMode="list"
+      searchPlaceholder={"Buscar..."}
+      searchValue={searchParam}
+      onSearchChange={setSearchParam}
+      onCreateClick={handleOpenQueueModal}
+    >
+      {content}
     </Container>
   );
 };

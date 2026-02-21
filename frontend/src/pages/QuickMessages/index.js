@@ -21,9 +21,7 @@ import Box from '@material-ui/core/Box';
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
 
-import MainContainer from "../../components/MainContainer";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 import api from "../../services/api";
 import { i18n } from "../../translate/i18n";
@@ -253,7 +251,18 @@ const Quickemessages = () => {
   };
 
   return (
-    <MainContainer>
+    <ActivitiesStyleLayout
+      viewModes={[{ value: "list", label: i18n.t("quickMessages.title") }]}
+      currentViewMode="list"
+      searchPlaceholder={i18n.t("quickMessages.searchPlaceholder")}
+      searchValue={searchParam}
+      onSearchChange={(v) => handleSearch({ target: { value: v } })}
+      navActions={
+        <>
+        </>
+      }
+      onCreateClick={handleOpenQuickMessageDialog}
+    >
       <ConfirmationModal
         title={deletingQuickemessage && `${i18n.t("quickMessages.confirmationModal.deleteTitle")} ${deletingQuickemessage.shortcode}?`}
         open={confirmModalOpen}
@@ -272,35 +281,6 @@ const Quickemessages = () => {
         aria-labelledby="form-dialog-title"
         quickemessageId={selectedQuickemessage && selectedQuickemessage.id}
       />
-      <MainHeader>
-        <Grid style={{ width: "99.6%" }} container>
-          <Grid xs={12} sm={8} item>
-            <Title>{i18n.t("quickMessages.title")}</Title>
-          </Grid>
-          <Grid xs={12} sm={4} item>
-            <Grid spacing={2} container>
-              <Grid xs={6} sm={6} item>
-                <TextField
-                  fullWidth
-                  placeholder={i18n.t("quickMessages.searchPlaceholder")}
-                  type="search"
-                  value={searchParam}
-                  onChange={handleSearch}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon style={{ color: "gray" }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid xs={6} sm={6} item>
-              </Grid>
-            </Grid>
-          </Grid>
-        </Grid>
-      </MainHeader>
       <Paper
         className={classes.mainPaper}
         variant="outlined"
@@ -363,14 +343,7 @@ const Quickemessages = () => {
           </TableBody>
         </Table>
       </Paper>
-      <IconButton
-        className={classes.fab}
-        onClick={handleOpenQuickMessageDialog}
-        aria-label="Adicionar disparo"
-      >
-        <AddIcon />
-      </IconButton>
-    </MainContainer>
+    </ActivitiesStyleLayout>
   );
 };
 

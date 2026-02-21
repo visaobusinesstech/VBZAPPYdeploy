@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { useHistory } from "react-router-dom";
 import { makeStyles } from "@material-ui/core/styles";
 import Paper from "@material-ui/core/Paper";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 import { i18n } from "../../translate/i18n";
 import {
@@ -64,6 +65,7 @@ const MessagesAPI = ({ renderAsTab }) => {
   const { user, socket } = useContext(AuthContext);
 
   const { getPlanCompany } = usePlans();
+  const [searchParam, setSearchParam] = useState("");
 
   useEffect(() => {
     async function fetchData() {
@@ -347,9 +349,8 @@ const MessagesAPI = ({ renderAsTab }) => {
     );
   };
 
-  return (
+  const content = (
     <Paper className={classes.mainPaper} elevation={0}>
-      {!renderAsTab && <Typography variant="h5">{i18n.t("messagesAPI.API.title")}</Typography>}
       <Typography
         variant="h6"
         color="primary"
@@ -471,6 +472,22 @@ const MessagesAPI = ({ renderAsTab }) => {
         </Grid>
       </Grid>
     </Paper>
+  );
+
+  if (renderAsTab) {
+    return content;
+  }
+
+  return (
+    <ActivitiesStyleLayout
+      viewModes={[{ value: "api", label: i18n.t("messagesAPI.API.title") }]}
+      currentViewMode="api"
+      searchPlaceholder={"Buscar..."}
+      searchValue={searchParam}
+      onSearchChange={setSearchParam}
+    >
+      {content}
+    </ActivitiesStyleLayout>
   );
 };
 

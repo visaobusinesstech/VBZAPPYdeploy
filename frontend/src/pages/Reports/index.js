@@ -18,10 +18,7 @@ import api from "../../services/api";
 import TableRowSkeleton from "../../components/TableRowSkeleton";
 
 import { i18n } from "../../translate/i18n";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import MainContainer from "../../components/MainContainer";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
@@ -126,13 +123,7 @@ const Reports = ({ renderAsTab }) => {
   const [selectedStatus, setSelectedStatus] = useState([]);
   const [selectedContact, setSelectedContact] = useState(null);
 
-  const Container = renderAsTab ? ({ children }) => <>{children}</> : MainContainer;
-
-  const FilterWrapper = renderAsTab ? ({ children }) => <>{children}</> : ({ children }) => (
-    <MainHeader className={classes.mainHeaderFilter} style={{ display: "flex" }}>
-      {children}
-    </MainHeader>
-  );
+  const Container = ({ children }) => <>{children}</>;
 
   // const [tagIds, setTagIds] = useState([]);
   const [queueIds, setQueueIds] = useState([]);
@@ -625,8 +616,8 @@ const Reports = ({ renderAsTab }) => {
     );
   };
 
-  return (
-    <Container className={classes.mainContainer}>
+  const content = (
+    <>
       {openTicketMessageDialog && (
         <ShowTicketLogModal
           isOpen={openTicketMessageDialog}
@@ -634,100 +625,6 @@ const Reports = ({ renderAsTab }) => {
           ticketId={ticketOpen.id}
         />
       )}
-      <Title>{i18n.t("reports.title")}</Title>
-
-      <MainHeader
-        className={classes.mainHeaderFilter}
-        style={{ display: "flex" }}
-      >
-        <Paper className={classes.mainPaperFilter}>
-          <div style={{ paddingTop: "15px" }} />
-          <Grid container spacing={1}>
-            <Grid item xs={12} md={3} xl={3}>
-              {renderContactAutocomplete()}
-            </Grid>
-            <Grid item xs={12} md={3} xl={3}>
-              <WhatsappsFilter onFiltered={handleSelectedWhatsapps} />
-            </Grid>
-            <Grid item xs={12} md={3} xl={3}>
-              <StatusFilter onFiltered={handleSelectedStatus} />
-            </Grid>
-            <Grid item xs={12} md={3} xl={3}>
-              <UsersFilter onFiltered={handleSelectedUsers} />
-            </Grid>
-            {/* <Grid item xs={12} md={4} xl={4}>
-              <TagsFilter onFiltered={handleSelectedTags} />
-            </Grid> */}
-            <Grid item xs={12} md={3} xl={3} style={{ marginTop: "-13px" }}>
-              <QueueSelectCustom
-                selectedQueueIds={queueIds}
-                onChange={(values) => setQueueIds(values)}
-              />
-            </Grid>
-
-            <Grid item xs={12} sm={3} md={3}>
-              <TextField
-                label={i18n.t("reports.startDate")}
-                type="date"
-                value={dateFrom}
-                variant="outlined"
-                fullWidth
-                size="small"
-                onChange={(e) => setDateFrom(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3} md={3}>
-              <TextField
-                label={i18n.t("reports.endDate")}
-                type="date"
-                value={dateTo}
-                variant="outlined"
-                fullWidth
-                size="small"
-                onChange={(e) => setDateTo(e.target.value)}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-              />
-            </Grid>
-            <Grid
-              item
-              xs={12}
-              sm={3}
-              md={3}
-              style={{ display: "flex", justifyContent: "center" }}
-            >
-              <FormControlLabel
-                control={
-                  <Switch
-                    color="primary"
-                    checked={onlyRated}
-                    onChange={() => setOnlyRated(!onlyRated)}
-                  />
-                }
-                label={i18n.t("reports.buttons.onlyRated")}
-              />
-              <IconButton
-                onClick={exportarGridParaExcel}
-                aria-label="Exportar para Excel"
-              >
-                <SaveAlt />
-              </IconButton>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={() => handleFilter(pageNumber)}
-                size="small"
-              >
-                {i18n.t("reports.buttons.filter")}
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
-      </MainHeader>
       <Paper className={classes.mainPaperTable} variant="outlined">
         <Table size="small" id="grid-attendants">
           <TableHead>
@@ -894,7 +791,23 @@ const Reports = ({ renderAsTab }) => {
           </Grid>
         </Grid>
       </div>
-    </Container>
+    </>
+  );
+
+  if (renderAsTab) {
+    return <Container>{content}</Container>;
+  }
+
+  return (
+    <ActivitiesStyleLayout
+      viewModes={[{ value: "list", label: i18n.t("reports.title") }]}
+      currentViewMode="list"
+      searchPlaceholder={i18n.t("chatIndex.search") || "Buscar..."}
+      searchValue={searchParam}
+      onSearchChange={(v) => setSearchParam(v)}
+    >
+      {content}
+    </ActivitiesStyleLayout>
   );
 };
 

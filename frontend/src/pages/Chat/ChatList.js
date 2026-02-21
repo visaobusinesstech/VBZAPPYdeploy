@@ -143,6 +143,9 @@ export default function ChatList({
   pageInfo,
   loading,
   findChats,
+  searchTerm: externalSearchTerm,
+  onSearchTermChange,
+  hideHeaderSearch,
 }) {
   const classes = useStyles();
   const history = useHistory();
@@ -166,13 +169,17 @@ export default function ChatList({
     (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
   );
 
+  const effectiveSearchTerm =
+    typeof externalSearchTerm === "string" ? externalSearchTerm : searchTerm;
   const filteredChats = orderedChats.filter((chat) => {
     const isGroup = chat.isGroup;
     const usersArr = Array.isArray(chat.users) ? chat.users : [];
     const otherUser =
       !isGroup && usersArr.find((u) => u.userId !== loggedInUser.id);
     const name = (isGroup ? chat.title : otherUser?.user?.name) || "";
-    const matchesSearch = name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = name
+      .toLowerCase()
+      .includes(effectiveSearchTerm.toLowerCase());
     return matchesSearch;
   });
 
@@ -453,7 +460,7 @@ export default function ChatList({
         </div>
       </ConfirmationModal>
       <div className={classes.mainContainer}>
-        <div
+        {!hideHeaderSearch && (<div
           style={{
             padding: "10px",
             display: "flex",
@@ -464,8 +471,12 @@ export default function ChatList({
           <input
             type="text"
             placeholder={i18n.t("chatList.searchChat")}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={effectiveSearchTerm}
+            onChange={(e) =>
+              onSearchTermChange
+                ? onSearchTermChange(e.target.value)
+                : setSearchTerm(e.target.value)
+            }
             style={{
               flex: 1,
               padding: "8px 12px",
@@ -488,7 +499,7 @@ export default function ChatList({
               <AddIcon />
             </IconButton>
           )}
-        </div>
+        </div>)}
 
         <div className={classes.chatList}>
           <List>
