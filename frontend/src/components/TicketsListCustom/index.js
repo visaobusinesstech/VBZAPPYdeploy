@@ -299,6 +299,15 @@ const TicketsListCustom = (props) => {
                     sortDir: sortTickets
                 });
             }
+            if (data.action === "create" &&
+                shouldUpdateTicket(data.ticket) && data.ticket.status === status) {
+                dispatch({
+                    type: "UPDATE_TICKET",
+                    payload: data.ticket,
+                    status: status,
+                    sortDir: sortTickets
+                });
+            }
 
             // else if (data.action === "update" && shouldUpdateTicketUser(data.ticket) && data.ticket.status === status) {
             //     dispatch({

@@ -61,6 +61,7 @@ import InfoIcon from '@material-ui/icons/Info';
 import MessageIcon from '@material-ui/icons/Message';
 
 import { AuthContext } from "../../context/Auth/AuthContext";
+import { getBackendUrl } from "../../config";
 import useCompanySettings from "../../hooks/useSettings/companySettings";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
@@ -1146,11 +1147,12 @@ const ContactDrawer = ({ open, handleDrawerClose, contact, ticket, loading }) =>
 					<div className={classes.profileSection}>
 						<Paper square variant="outlined" className={classes.contactHeader}>
 							{/* Avatar redondo e menor - CLICÁVEL */}
-							<Avatar
-								src={contact?.urlPicture}
+					<Avatar
+								src={(function(){const u=(contact?.urlPicture||contact?.profilePicUrl)||"";const b=(getBackendUrl&&getBackendUrl())||"http://localhost:8080";if(!u)return "";if(/^(data:|blob:|https?:\/\/)/i.test(u))return u;return u.startsWith("/")?`${b}${u}`:`${b}/public/${u}`;})()}
 								alt={contact.name}
 								className={classes.contactAvatar}
 								onClick={handleImageClick}
+								onError={(e)=>{e.target.onerror=null;e.target.src=((getBackendUrl&&getBackendUrl())||"http://localhost:8080")+"/public/app/noimage.png";}}
 							>
 								{contact.name?.charAt(0)?.toUpperCase()}
 							</Avatar>
@@ -1602,9 +1604,10 @@ const ContactDrawer = ({ open, handleDrawerClose, contact, ticket, loading }) =>
 			>
 				<DialogContent className={classes.imageModalContent}>
 					<img
-						src={contact?.urlPicture}
+						src={(function(){const u=(contact?.urlPicture||contact?.profilePicUrl)||"";const b=(getBackendUrl&&getBackendUrl())||"http://localhost:8080";if(!u)return "";if(/^(data:|blob:|https?:\/\/)/i.test(u))return u;return u.startsWith("/")?`${b}${u}`:`${b}/public/${u}`;})()}
 						alt={contact?.name || "Foto do contato"}
 						className={classes.expandedImage}
+						onError={(e)=>{e.target.onerror=null;e.target.src=((getBackendUrl&&getBackendUrl())||"http://localhost:8080")+"/public/app/noimage.png";}}
 					/>
 				</DialogContent>
 			</Dialog>

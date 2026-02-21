@@ -130,6 +130,7 @@ const ListContactsService = async ({
       "birthDate",
       "isGroup",
       "urlPicture",
+      "profilePicUrl",
       "active",
       "companyId",
       "channel"

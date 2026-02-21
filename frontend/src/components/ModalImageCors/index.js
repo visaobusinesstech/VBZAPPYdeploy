@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { makeStyles } from "@material-ui/core/styles";
 import ModalImage from "react-modal-image";
 import api from "../../services/api";
 import { getBackendUrl } from "../../config";
+import { AuthContext } from "../../context/Auth/AuthContext";
 
 const useStyles = makeStyles(theme => ({
 	messageMedia: {
@@ -16,11 +17,13 @@ const useStyles = makeStyles(theme => ({
 	}
 }));
 
-const ModalImageCors = ({ imageUrl }) => {
+const ModalImageCors = ({ imageUrl, candidates: inputCandidates = [] }) => {
 	const classes = useStyles();
 	const [fetching, setFetching] = useState(true);
 	const [blobUrl, setBlobUrl] = useState("");
 	const backendUrl = getBackendUrl() || "http://localhost:8080";
+	const { user } = useContext(AuthContext) || {};
+	const companyId = user?.companyId;
 
 	const resolveUrl = (url) => {
 		if (!url || typeof url !== "string") return "";
@@ -33,35 +36,58 @@ const ModalImageCors = ({ imageUrl }) => {
 		return `${backendUrl}/public/${u}`;
 	};
 
-	useEffect(() => {
-		if (!imageUrl) {
-			setFetching(false);
-			return;
-		}
-		const finalUrl = resolveUrl(imageUrl);
-		// Se já é data/blob, usar diretamente
-		if (/^(data:|blob:)/i.test(finalUrl)) {
-			setBlobUrl(finalUrl);
-			setFetching(false);
-			return;
-		}
-		const fetchImage = async () => {
-			try {
-				const { data, headers } = await api.get(finalUrl, {
-					responseType: "blob",
-				});
-				const url = window.URL.createObjectURL(
-					new Blob([data], { type: headers["content-type"] || "image/*" })
-				);
-				setBlobUrl(url);
-			} catch (e) {
-				// Fallback: usar URL direto, evitando quebrar com "Invalid URL"
-				setBlobUrl(finalUrl);
-			} finally {
-				setFetching(false);
+	const buildCandidates = (url) => {
+		const primary = resolveUrl(url);
+		const list = [...(Array.isArray(inputCandidates) ? inputCandidates : []), primary];
+		try {
+			const noSlash = typeof url === "string" && !url.includes("/");
+			const basename = typeof url === "string" ? url.split("/").pop() : "";
+			if (noSlash && basename) {
+				if (companyId) {
+					list.push(`${backendUrl}/public/company${companyId}/media/${basename}`);
+					list.push(`${backendUrl}/public/company${companyId}/message/${basename}`);
+				}
+				list.push(`${backendUrl}/public/${basename}`);
 			}
+		} catch { /* ignore */ }
+		return [...new Set(list)];
+	};
+
+	useEffect(() => {
+		const list = imageUrl ? buildCandidates(imageUrl) : (Array.isArray(inputCandidates) ? inputCandidates : []);
+		// Se já é data/blob, usar diretamente
+		if (list.length && /^(data:|blob:)/i.test(list[0])) {
+			setBlobUrl(list[0]);
+			setFetching(false);
+			return;
+		}
+		const fetchSequential = async () => {
+			for (let i = 0; i < list.length; i++) {
+				const urlTry = list[i];
+				try {
+					// Para http(s) de terceiros, evitar buscar via API (CORS). Usar direto.
+					if (/^https?:\/\//i.test(urlTry) && !urlTry.startsWith(backendUrl)) {
+						setBlobUrl(urlTry);
+						return;
+					}
+					const { data, headers } = await api.get(urlTry, { responseType: "blob" });
+					const url = window.URL.createObjectURL(
+						new Blob([data], { type: headers["content-type"] || "image/*" })
+					);
+					setBlobUrl(url);
+					return;
+				} catch (e) {
+					// tenta próximo
+				}
+			}
+			// Fallback final: usar primeira candidata diretamente
+			setBlobUrl(list[0] || "");
 		};
-		fetchImage();
+		if (list.length === 0) {
+			setFetching(false);
+			return;
+		}
+		fetchSequential().finally(() => setFetching(false));
 	}, [imageUrl]);
 
 	return (

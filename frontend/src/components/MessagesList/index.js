@@ -489,7 +489,17 @@ const MessagesList = ({
   };
   const pickMediaUrl = (obj) => {
     if (!obj) return "";
-    return obj.mediaUrl || obj.mediaPath || obj.url || "";
+    const u = obj.mediaUrl || obj.mediaPath || obj.url;
+    if (u) return u;
+    // Fallback: nome de arquivo presente na mensagem
+    const nameCandidate = obj.mediaName || obj.body;
+    if (typeof nameCandidate === "string") {
+      const trimmed = nameCandidate.trim();
+      if (/\.(jpe?g|png|gif|webp|bmp|svg)$/i.test(trimmed)) {
+        return trimmed;
+      }
+    }
+    return "";
   };
 
   useEffect(() => {
@@ -687,6 +697,16 @@ const MessagesList = ({
       return false;
     };
 
+    const isImageMessage = (m) => {
+      try {
+        const t = (m.mediaType || "").toLowerCase();
+        if (t.includes("image")) return true;
+        const any = (m.mediaUrl || m.mediaPath || m.url || m.mediaName || m.body || "").toLowerCase();
+        if (/\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(any)) return true;
+      } catch {}
+      return false;
+    };
+
     // Templates
     if (message.mediaType === "template") {
       return <Template message={message} />;
@@ -792,9 +812,19 @@ const MessagesList = ({
     }
 
     // Imagens
-    else if (message.mediaType === "image") {
+    else if (isImageMessage(message)) {
       console.log("🖼️ Renderizando como imagem");
-      return <ModalImageCors imageUrl={pickMediaUrl(message)} />;
+      const src = pickMediaUrl(message);
+      if (!src) {
+        const fallbackCandidates = [];
+        if (companyId && message?.id) {
+          const base = `${backendUrl}/public/company${companyId}/message/${message.id}`;
+          fallbackCandidates.push(`${base}.jpg`, `${base}.jpeg`, `${base}.png`, `${base}.webp`);
+        }
+        fallbackCandidates.push(`${backendUrl}/messages/${message.id}/media`);
+        return <ModalImageCors imageUrl={src} candidates={fallbackCandidates} />;
+      }
+      return <ModalImageCors imageUrl={src} />;
     }
 
     // Vídeos
@@ -1112,10 +1142,35 @@ const MessagesList = ({
             )
           }
 
-          {message.quotedMsg.mediaType === "image"
-            && (
-              <ModalImageCors imageUrl={pickMediaUrl(message.quotedMsg)} />)
-            || message.quotedMsg?.body}
+          {(
+            (message.quotedMsg.mediaType && message.quotedMsg.mediaType.toLowerCase().includes("image")) ||
+            /\.(jpe?g|png|gif|webp|bmp|svg)(\?|$)/i.test(
+              String(
+                message.quotedMsg?.mediaUrl ||
+                message.quotedMsg?.mediaPath ||
+                message.quotedMsg?.url ||
+                message.quotedMsg?.mediaName ||
+                message.quotedMsg?.body ||
+                ""
+              )
+            )
+          ) && (
+            (() => {
+              const src = pickMediaUrl(message.quotedMsg);
+              if (!src) {
+                const fallbackCandidates = [];
+                if (companyId && message?.quotedMsg?.id) {
+                  const base = `${backendUrl}/public/company${companyId}/message/${message.quotedMsg.id}`;
+                  fallbackCandidates.push(`${base}.jpg`, `${base}.jpeg`, `${base}.png`, `${base}.webp`);
+                }
+                if (message?.quotedMsg?.id) {
+                  fallbackCandidates.push(`${backendUrl}/messages/${message.quotedMsg.id}/media`);
+                }
+                return <ModalImageCors imageUrl={src} candidates={fallbackCandidates} />;
+              }
+              return <ModalImageCors imageUrl={src} />;
+            })()
+          )}
 
           {!message.quotedMsg.mediaType === "image" && message.quotedMsg?.body}
 

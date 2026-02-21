@@ -73,7 +73,7 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
                 subheaderTypographyProps={{ noWrap: true }}
                 avatar={
                     <Avatar 
-                        src={resolveImageUrl(contact?.urlPicture)} 
+                        src={resolveImageUrl(contact?.urlPicture || contact?.profilePicUrl)} 
                         alt="contact_image" 
                         className={classes.clickableAvatar}
                         onClick={handleImageClick}
@@ -120,7 +120,7 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
             >
                 <DialogContent className={classes.imageModalContent}>
                     <img 
-                        src={resolveImageUrl(contact?.urlPicture)} 
+                        src={resolveImageUrl(contact?.urlPicture || contact?.profilePicUrl)} 
                         alt={contact?.name || "Foto do contato"}
                         className={classes.expandedImage}
                         onError={(e) => {

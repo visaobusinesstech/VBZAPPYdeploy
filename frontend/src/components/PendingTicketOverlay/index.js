@@ -200,7 +200,7 @@ const PendingTicketOverlay = ({
           {/* Informações do Contato */}
           <div className={classes.contactInfo}>
             <Avatar
-              src={contact?.urlPicture}
+              src={contact?.urlPicture || contact?.profilePicUrl}
               alt={contact?.name}
               className={classes.contactAvatar}
             >

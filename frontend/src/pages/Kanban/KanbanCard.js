@@ -220,7 +220,7 @@ const KanbanCard = ({ ticket, index, updateTicket }) => {
         >
           <div className={classes.header}>
             <div className={classes.leftHeader}>
-              <Avatar src={ticket.contact.urlPicture} className={classes.avatar} />
+              <Avatar src={ticket.contact.urlPicture || ticket.contact.profilePicUrl} className={classes.avatar} />
               <Tooltip title={ticket.contact.name}>
                 <Typography className={classes.cardTitle}>
                   {ticket.contact.name?.substring(0, 10) || ' '}

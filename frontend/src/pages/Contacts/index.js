@@ -65,6 +65,7 @@ import { Menu, MenuItem } from "@material-ui/core";
 import ContactImportWpModal from "../../components/ContactImportWpModal";
 import useCompanySettings from "../../hooks/useSettings/companySettings";
 import { TicketsContext } from "../../context/Tickets/TicketsContext";
+import { getBackendUrl } from "../../config";
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_CONTACTS") {
@@ -243,6 +244,43 @@ const Contacts = () => {
   const { getAll: getAllSettings } = useCompanySettings();
   const [hideNum, setHideNum] = useState(false);
   const [enableLGPD, setEnableLGPD] = useState(false);
+
+  const backendUrl = (api?.defaults?.baseURL) || (getBackendUrl && getBackendUrl()) || "http://localhost:8080";
+  const resolveImageUrl = (url) => {
+    if (!url || typeof url !== "string") return "";
+    const u = url.trim();
+    if (/^(data:|blob:|https?:\/\/)/i.test(u)) return u;
+    if (u.startsWith("/")) return `${backendUrl}${u}`;
+    return `${backendUrl}/public/${u}`;
+  };
+
+  useEffect(() => {
+    (async () => {
+      const toFetch = contacts.filter(c => (!c?.urlPicture || c.urlPicture === "") && !!c?.number);
+      if (toFetch.length === 0) return;
+      for (const c of toFetch) {
+        try {
+          const num = String(c.number).replace(/\D/g, "");
+          // 1ª tentativa: com channel informado (ou 'whatsapp' por padrão)
+          let resp = await api.get(`/contacts/profile/${num}`, { params: { channel: c.channel || "whatsapp" } });
+          let pic = resp?.data?.urlPicture || resp?.data?.profilePicUrl || resp?.data?.profilePicture;
+          // 2ª tentativa: sem channel (backend pode assumir padrão)
+          if (!pic) {
+            resp = await api.get(`/contacts/profile/${num}`);
+            pic = resp?.data?.urlPicture || resp?.data?.profilePicUrl || resp?.data?.profilePicture;
+          }
+          if (pic) {
+            dispatch({
+              type: "UPDATE_CONTACTS",
+              payload: { ...c, urlPicture: resolveImageUrl(pic) }
+            });
+          }
+        } catch (e) {
+          // ignore individual failures
+        }
+      }
+    })();
+  }, [contacts]);
   
   useEffect(() => {
     async function fetchData() {
@@ -932,9 +970,29 @@ const Contacts = () => {
                     <TableCell className={classes.idCell}>{contact.id}</TableCell>
                     <TableCell className={classes.avatarCell} align="center">
                       <Avatar 
-                        src={`${contact?.urlPicture}`}
+                        src={resolveImageUrl(contact?.urlPicture || contact?.profilePicUrl)}
                         className={classes.clickableAvatar}
-                        onClick={() => handleOpenImageModal(contact?.urlPicture, contact.name)}
+                        onClick={() => handleOpenImageModal(contact?.urlPicture || contact?.profilePicUrl, contact.name)}
+                        onError={async (e) => {
+                          e.target.onerror = null;
+                          try {
+                            if (contact?.number) {
+                              const num = String(contact.number).replace(/\D/g, "");
+                              const { data } = await api.get(`/contacts/profile/${num}`, { params: { channel: contact.channel } });
+                              if (data?.urlPicture || data?.profilePicUrl) {
+                                const candidate = data?.urlPicture || data?.profilePicUrl;
+                                const finalUrl = resolveImageUrl(candidate);
+                                dispatch({
+                                  type: "UPDATE_CONTACTS",
+                                  payload: { ...contact, urlPicture: finalUrl, profilePicUrl: candidate }
+                                });
+                                e.target.src = finalUrl;
+                                return;
+                              }
+                            }
+                          } catch (_) {}
+                          e.target.src = `${backendUrl}/public/app/noimage.png`;
+                        }}
                       />
                     </TableCell>
                     <TableCell>{contact.name}</TableCell>

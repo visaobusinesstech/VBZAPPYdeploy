@@ -237,6 +237,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
   const theme = useTheme();
   const history = useHistory();
   const backendUrl = getBackendUrl() || "http://localhost:8080";
+  const [avatarSrc, setAvatarSrc] = useState("");
   const [loading, setLoading] = useState(false);
   const [
     acceptTicketWithouSelectQueueOpen,
@@ -273,7 +274,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
   // Função para abrir modal da imagem
   const handleImageClick = (e) => {
     e.stopPropagation(); // Prevenir que o clique no avatar selecione o ticket
-    if (ticket?.contact?.urlPicture) {
+    if (ticket?.contact?.urlPicture || ticket?.contact?.profilePicUrl) {
       setImageModalOpen(true);
     }
   };
@@ -562,6 +563,22 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
     return `${backendUrl}/public/${u}`;
   };
 
+  useEffect(() => {
+    const initial = resolveImageUrl(ticket?.contact?.urlPicture || ticket?.contact?.profilePicUrl);
+    setAvatarSrc(initial);
+    if ((!(ticket?.contact?.urlPicture || ticket?.contact?.profilePicUrl) || ticket?.contact?.urlPicture === "") && ticket?.contact?.number) {
+      api.get(`/contacts/profile/${String(ticket.contact.number).replace(/\D/g, "")}`, {
+        params: { channel: ticket.channel }
+      }).then(({ data }) => {
+        if (data?.urlPicture || data?.profilePicUrl) {
+          const candidate = data?.urlPicture || data?.profilePicUrl;
+          setAvatarSrc(resolveImageUrl(candidate));
+        }
+      }).catch(() => {});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.contact?.urlPicture, ticket?.contact?.profilePicUrl, ticket?.contact?.number, ticket?.channel]);
+
   return (
     <React.Fragment key={ticket.id}>
       {openAlert && (
@@ -624,11 +641,24 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
               height: "50px",
               borderRadius: "50%",
             }}
-            src={resolveImageUrl(ticket?.contact?.urlPicture)}
+            src={avatarSrc || resolveImageUrl(ticket?.contact?.urlPicture || ticket?.contact?.profilePicUrl)}
             className={classes.clickableAvatar}
             onClick={handleImageClick}
-            onError={(e) => {
+            onError={async (e) => {
               e.target.onerror = null;
+              try {
+                if (ticket?.contact?.number) {
+                  const num = String(ticket.contact.number).replace(/\D/g, "");
+                  const resp = await api.get(`/contacts/profile/${num}`, { params: { channel: ticket.channel } });
+                  const url = resp?.data?.urlPicture || resp?.data?.profilePicUrl;
+                  if (url) {
+                    const finalUrl = resolveImageUrl(url);
+                    setAvatarSrc(finalUrl);
+                    e.target.src = finalUrl;
+                    return;
+                  }
+                }
+              } catch (_) {}
               e.target.src = `${backendUrl}/public/app/noimage.png`;
             }}
           />

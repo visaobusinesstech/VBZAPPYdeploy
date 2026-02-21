@@ -245,9 +245,9 @@ const onCompanyAppMessageNotificationsPopover = (data) => {
 	const handleNotifications = data => {
 		const { message, contact, ticket } = data;
 
-		const options = {
+        const options = {
 			body: `${message.body} - ${format(new Date(), "HH:mm")}`,
-			icon: contact.urlPicture,
+            icon: contact.urlPicture || contact.profilePicUrl,
 			tag: ticket.id,
 			renotify: true,
 		};
