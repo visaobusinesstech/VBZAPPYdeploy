@@ -20,6 +20,11 @@ import useInventory from "../../hooks/useInventory";
 
 // Placeholders for views
 import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+const localizer = momentLocalizer(moment);
 
 const InventoryBoard = ({ data, loading }) => {
   if (loading) return <CircularProgress />;
@@ -88,15 +93,52 @@ const InventoryList = ({ data, loading }) => {
     );
 };
 
-const InventoryCalendar = ({ data }) => (
-  <Paper style={{ padding: 16, height: '100%' }}>
-    <Typography variant="h6">Previsão de Estoque</Typography>
-    <div style={{ marginTop: 20, textAlign: 'center', color: '#666' }}>
-      Componente de calendário será integrado aqui.
-      {data && data.length > 0 && <div>{data.length} itens carregados.</div>}
+const InventoryCalendar = ({ data }) => {
+  const events = (Array.isArray(data) ? data : []).map((item) => {
+    const when = item.nextRestockAt || item.updatedAt || item.createdAt || item.date || Date.now();
+    return {
+      title: item.name || "Item",
+      start: new Date(when),
+      end: new Date(when),
+      allDay: true,
+      resource: item,
+    };
+  });
+  const eventPropGetter = (evt) => {
+    const status = String(evt?.resource?.status || "").toLowerCase();
+    let backgroundColor = "#2563eb";
+    if (status.includes("sem estoque") || status.includes("no stock") || status.includes("out")) backgroundColor = "#ef4444";
+    if (status.includes("baixo") || status.includes("low")) backgroundColor = "#f59e0b";
+    if (status.includes("em estoque") || status.includes("in stock") || status.includes("ok")) backgroundColor = "#10b981";
+    return { style: { backgroundColor, color: "#fff", borderRadius: 6, border: 0 } };
+  };
+  return (
+    <div style={{ height: "calc(100vh - 200px)", backgroundColor: "#fff", padding: 16 }}>
+      <Calendar
+        localizer={localizer}
+        events={events}
+        startAccessor="start"
+        endAccessor="end"
+        views={["day", "week", "month"]}
+        eventPropGetter={eventPropGetter}
+        style={{ height: "100%" }}
+        messages={{
+          next: "Próximo",
+          previous: "Anterior",
+          today: "Hoje",
+          month: "Mês",
+          week: "Semana",
+          day: "Dia",
+          agenda: "Agenda",
+          date: "Data",
+          time: "Hora",
+          event: "Evento",
+          noEventsInRange: "Não há eventos neste período.",
+        }}
+      />
     </div>
-  </Paper>
-);
+  );
+};
 
 const InventoryDashboard = ({ count }) => (
   <Grid container spacing={3}>

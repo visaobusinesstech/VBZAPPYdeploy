@@ -21,6 +21,11 @@ import useFiles from "../../hooks/useFiles";
 
 // Placeholders for views
 import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@material-ui/core";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
+
+const localizer = momentLocalizer(moment);
 
 const FilesBoard = ({ data, loading }) => {
   if (loading) return <CircularProgress />;
@@ -99,15 +104,51 @@ const FilesList = ({ data, loading }) => {
     );
 };
 
-const FilesCalendar = ({ data }) => (
-  <Paper style={{ padding: 16, height: '100%' }}>
-    <Typography variant="h6">Histórico de Arquivos</Typography>
-    <div style={{ marginTop: 20, textAlign: 'center', color: '#666' }}>
-      Componente de calendário será integrado aqui.
-      {data && data.length > 0 && <div>{data.length} arquivos carregados.</div>}
+const FilesCalendar = ({ data }) => {
+  const events = (Array.isArray(data) ? data : []).map((f) => {
+    const when = f.updatedAt || f.modifiedAt || f.createdAt || f.date || Date.now();
+    return {
+      title: f.name || "Arquivo",
+      start: new Date(when),
+      end: new Date(when),
+      allDay: true,
+      resource: f,
+    };
+  });
+  const eventPropGetter = (evt) => {
+    const type = String(evt?.resource?.type || "").toLowerCase();
+    let backgroundColor = "#2563eb";
+    if (type.includes("pdf")) backgroundColor = "#ef4444";
+    if (type.includes("image") || type.includes("img") || type.includes("png") || type.includes("jpg")) backgroundColor = "#10b981";
+    return { style: { backgroundColor, color: "#fff", borderRadius: 6, border: 0 } };
+  };
+  return (
+    <div style={{ height: "calc(100vh - 200px)", backgroundColor: "#fff", padding: 16 }}>
+      <Calendar
+        localizer={localizer}
+        events={events}
+        startAccessor="start"
+        endAccessor="end"
+        views={["day", "week", "month"]}
+        eventPropGetter={eventPropGetter}
+        style={{ height: "100%" }}
+        messages={{
+          next: "Próximo",
+          previous: "Anterior",
+          today: "Hoje",
+          month: "Mês",
+          week: "Semana",
+          day: "Dia",
+          agenda: "Agenda",
+          date: "Data",
+          time: "Hora",
+          event: "Evento",
+          noEventsInRange: "Não há eventos neste período.",
+        }}
+      />
     </div>
-  </Paper>
-);
+  );
+};
 
 const FilesDashboard = ({ count }) => (
   <Grid container spacing={3}>

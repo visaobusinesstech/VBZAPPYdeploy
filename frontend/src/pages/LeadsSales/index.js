@@ -25,6 +25,7 @@ import {
   IconButton
 } from "@material-ui/core";
 import MoreHorizIcon from "@material-ui/icons/MoreHoriz";
+import BusinessCenterIcon from "@material-ui/icons/BusinessCenter";
 import AddIcon from "@material-ui/icons/Add";
 import PhoneIcon from "@material-ui/icons/Phone";
 import PersonOutlineIcon from "@material-ui/icons/PersonOutline";
@@ -38,6 +39,8 @@ import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import "../Schedules/Schedules.css";
+import "moment/locale/pt-br";
 import useLeadsSales from "../../hooks/useLeadsSales";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
@@ -677,6 +680,7 @@ const LeadsSales = () => {
   const [usersList, setUsersList] = useState([]);
   const { user, socket } = useContext(AuthContext);
   const kanbanRef = useRef(null);
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
   const [anchorResp, setAnchorResp] = useState(null);
   const [anchorContact, setAnchorContact] = useState(null);
@@ -1041,8 +1045,57 @@ const LeadsSales = () => {
             )}
             {viewMode === "list" && <LeadsList leads={leadsState} />}
             {viewMode === "calendar" && (() => {
-              const events = (leadsState || []).map(l => {
-                const when = l.date || l.createdAt || l.updatedAt || Date.now();
+              const MiniMonth = ({ value, onChange }) => {
+                const m = moment(value);
+                const start = m.clone().startOf("month").startOf("week");
+                const end = m.clone().endOf("month").endOf("week");
+                const day = start.clone().subtract(1, "day");
+                const days = [];
+                while (day.isBefore(end, "day")) days.push(day.add(1, "day").clone());
+                const weeks = [];
+                for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+                return (
+                  <div className="mini-cal">
+                    <div className="mini-cal-grid">
+                      {["D","S","T","Q","Q","S","S"].map((d,i) => <div key={i} className="mini-cal-header">{d}</div>)}
+                      {weeks.flat().map((d, idx) => {
+                        const isCurrentMonth = d.month() === m.month();
+                        const isToday = d.isSame(moment(), "day");
+                        const isSelected = d.isSame(m, "day");
+                        const cls = ["mini-cal-day", !isCurrentMonth ? "mini-cal-off" : "", isToday ? "mini-cal-today" : "", isSelected ? "mini-cal-selected" : ""].join(" ");
+                        return <button key={idx} type="button" className={cls} onClick={() => onChange(d.toDate())}>{d.date()}</button>;
+                      })}
+                    </div>
+                  </div>
+                );
+              };
+              const CustomToolbar = (toolbarProps) => {
+                const setView = (v) => toolbarProps.onView(v);
+                const goToday = () => toolbarProps.onNavigate("TODAY");
+                const goPrev = () => toolbarProps.onNavigate("PREV");
+                const goNext = () => toolbarProps.onNavigate("NEXT");
+                const monthRaw = moment(toolbarProps.date).format("MMMM, YYYY");
+                const label = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
+                return (
+                  <div className="rbc-toolbar">
+                    <span className="rbc-btn-group">
+                      <button type="button" className="btn-naked" onClick={goToday}>Hoje</button>
+                    </span>
+                    <span className="rbc-toolbar-label">
+                      <button type="button" className="btn-naked chevron" onClick={goPrev}>‹</button>
+                      <span className="month-label">{label}</span>
+                      <button type="button" className="btn-naked chevron" onClick={goNext}>›</button>
+                    </span>
+                    <span className="rbc-btn-group">
+                      <button type="button" className={`btn-naked ${toolbarProps.view === "day" ? "active" : ""}`} onClick={() => setView("day")}>Dia</button>
+                      <button type="button" className={`btn-naked ${toolbarProps.view === "week" ? "active" : ""}`} onClick={() => setView("week")}>Semana</button>
+                      <button type="button" className={`btn-naked ${toolbarProps.view === "month" ? "active" : ""}`} onClick={() => setView("month")}>Mês</button>
+                    </span>
+                  </div>
+                );
+              };
+              const events = (leadsState || []).map((l) => {
+                const when = l.nextFollowUpAt || l.date || l.createdAt || l.updatedAt || Date.now();
                 return {
                   title: l.name || l.companyName || `Lead ${l.id}`,
                   start: new Date(when),
@@ -1056,32 +1109,77 @@ const LeadsSales = () => {
                 let backgroundColor = "#2563eb";
                 if (st.includes("won") || st.includes("converted") || st.includes("fechado")) backgroundColor = "#10B981";
                 if (st.includes("lost") || st.includes("perdido")) backgroundColor = "#EF4444";
-                return { style: { backgroundColor, color: "#fff", borderRadius: 6, border: 0 } };
+                return { style: { backgroundColor, color: "#0f172a", borderRadius: 10, border: `1px solid ${backgroundColor}`, padding: "6px 8px", fontSize: 12 } };
               };
+              const total = leadsState.length;
+              const ganho = leadsState.filter(l => /(won|converted|fechado)/i.test(String(l.status || ""))).length;
               return (
-                <div style={{ height: 'calc(100vh - 200px)', backgroundColor: '#fff', padding: 16 }}>
-                  <Calendar
-                    localizer={localizer}
-                    events={events}
-                    startAccessor="start"
-                    endAccessor="end"
-                    views={["day","week","month"]}
-                    eventPropGetter={eventPropGetter}
-                    style={{ height: '100%' }}
-                    messages={{
-                      next: "Próximo",
-                      previous: "Anterior",
-                      today: "Hoje",
-                      month: "Mês",
-                      week: "Semana",
-                      day: "Dia",
-                      agenda: "Agenda",
-                      date: "Data",
-                      time: "Hora",
-                      event: "Evento",
-                      noEventsInRange: "Não há eventos neste período."
-                    }}
-                  />
+                <div className="schedules-page" style={{ paddingTop: 8 }}>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={9} lg={9}>
+                      <Paper style={{ padding: 8 }}>
+                        <Calendar
+                          localizer={localizer}
+                          views={["day","week","month"]}
+                          components={{ toolbar: CustomToolbar }}
+                          events={events}
+                          startAccessor="start"
+                          endAccessor="end"
+                          eventPropGetter={eventPropGetter}
+                          selectable
+                          onSelectSlot={(slot) => {
+                            const d = slot.start;
+                            setSelectedDate(d);
+                            setEditing({ date: d.toISOString().slice(0,10) });
+                            setDrawerOpen(true);
+                          }}
+                          style={{ height: "calc(100vh - 220px)" }}
+                        />
+                      </Paper>
+                    </Grid>
+                    <Grid item xs={12} md={3} lg={3}>
+                      <div className="right-aside">
+                        <div className="aside-top-actions">
+                          <button className="aside-action" onClick={() => { setEditing(null); setDrawerOpen(true); }}>
+                            Novo Lead
+                          </button>
+                        </div>
+                        <Paper className="aside-card mini-calendar-card" variant="outlined">
+                          <div className="aside-header">
+                            <Typography className="aside-month" variant="body2">
+                              {moment(selectedDate).format("MMMM, YYYY")}
+                            </Typography>
+                          </div>
+                          <div className="aside-body">
+                            <MiniMonth value={selectedDate} onChange={setSelectedDate} />
+                          </div>
+                        </Paper>
+                        <Paper className="aside-card activity-card" variant="outlined">
+                          <div className="aside-header">
+                            <Typography className="aside-title" variant="body2">Lead</Typography>
+                          </div>
+                          {(() => {
+                            const recent = [...leadsState].sort((a,b) => new Date(b.updatedAt||b.createdAt||b.date||0) - new Date(a.updatedAt||a.createdAt||a.date||0))[0];
+                            return (
+                          <div className="activity-item">
+                                <div className="activity-icon"><BusinessCenterIcon style={{ fontSize: 18 }} /></div>
+                                <div className="activity-info">
+                                  <div className="activity-title">{recent?.name || "—"}</div>
+                                  <div className="activity-sub">{recent?.companyName || recent?.contact?.name || "Sem empresa"}</div>
+                                </div>
+                                <div className="activity-time">{recent ? moment(recent.updatedAt || recent.createdAt || recent.date).format("HH:mm") : "—"}</div>
+                              </div>
+                            );
+                          })()}
+                          <div className="donut-center" style={{ position: "static", transform: "none", textAlign: "left" }}>
+                            <div className="donut-total" style={{ fontSize: 24 }}>{total}</div>
+                            <div className="donut-label">Total</div>
+                            <div className="donut-label">Convertidos: {ganho}</div>
+                          </div>
+                        </Paper>
+                      </div>
+                    </Grid>
+                  </Grid>
                 </div>
               );
             })()}
@@ -1124,6 +1222,78 @@ const LeadsSales = () => {
           </>
         )}
       </ActivitiesStyleLayout>
+      {/* calendário renderizado dentro do ActivitiesStyleLayout para evitar espaçamento extra */}
+      {false && (() => {
+        const MiniMonth = ({ value, onChange }) => {
+          const m = moment(value);
+          const start = m.clone().startOf("month").startOf("week");
+          const end = m.clone().endOf("month").endOf("week");
+          const day = start.clone().subtract(1, "day");
+          const days = [];
+          while (day.isBefore(end, "day")) days.push(day.add(1, "day").clone());
+          const weeks = [];
+          for (let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+          return (
+            <div className="mini-cal">
+              <div className="mini-cal-grid">
+                {["D","S","T","Q","Q","S","S"].map((d,i) => <div key={i} className="mini-cal-header">{d}</div>)}
+                {weeks.flat().map((d, idx) => {
+                  const isCurrentMonth = d.month() === m.month();
+                  const isToday = d.isSame(moment(), "day");
+                  const isSelected = d.isSame(m, "day");
+                  const cls = ["mini-cal-day", !isCurrentMonth ? "mini-cal-off" : "", isToday ? "mini-cal-today" : "", isSelected ? "mini-cal-selected" : ""].join(" ");
+                  return <button key={idx} type="button" className={cls} onClick={() => onChange(d.toDate())}>{d.date()}</button>;
+                })}
+              </div>
+            </div>
+          );
+        };
+        const CustomToolbar = (toolbarProps) => {
+          const setView = (v) => toolbarProps.onView(v);
+          const goToday = () => toolbarProps.onNavigate("TODAY");
+          const goPrev = () => toolbarProps.onNavigate("PREV");
+          const goNext = () => toolbarProps.onNavigate("NEXT");
+          const monthRaw = moment(toolbarProps.date).format("MMMM, YYYY");
+          const label = monthRaw.charAt(0).toUpperCase() + monthRaw.slice(1);
+          return (
+            <div className="rbc-toolbar">
+              <span className="rbc-btn-group">
+                <button type="button" className="btn-naked" onClick={goToday}>Hoje</button>
+              </span>
+              <span className="rbc-toolbar-label">
+                <button type="button" className="btn-naked chevron" onClick={goPrev}>‹</button>
+                <span className="month-label">{label}</span>
+                <button type="button" className="btn-naked chevron" onClick={goNext}>›</button>
+              </span>
+              <span className="rbc-btn-group">
+                <button type="button" className={`btn-naked ${toolbarProps.view === "day" ? "active" : ""}`} onClick={() => setView("day")}>Dia</button>
+                <button type="button" className={`btn-naked ${toolbarProps.view === "week" ? "active" : ""}`} onClick={() => setView("week")}>Semana</button>
+                <button type="button" className={`btn-naked ${toolbarProps.view === "month" ? "active" : ""}`} onClick={() => setView("month")}>Mês</button>
+              </span>
+            </div>
+          );
+        };
+        const events = (leadsState || []).map((l) => {
+          const when = l.nextFollowUpAt || l.date || l.createdAt || l.updatedAt || Date.now();
+          return {
+            title: l.name || l.companyName || `Lead ${l.id}`,
+            start: new Date(when),
+            end: new Date(when),
+            allDay: true,
+            resource: l
+          };
+        });
+        const eventPropGetter = (evt) => {
+          const st = String(evt?.resource?.status || "").toLowerCase();
+          let backgroundColor = "#2563eb";
+          if (st.includes("won") || st.includes("converted") || st.includes("fechado")) backgroundColor = "#10B981";
+          if (st.includes("lost") || st.includes("perdido")) backgroundColor = "#EF4444";
+          return { style: { backgroundColor, color: "#0f172a", borderRadius: 10, border: `1px solid ${backgroundColor}`, padding: "6px 8px", fontSize: 12 } };
+        };
+        const total = leadsState.length;
+        const ganho = leadsState.filter(l => /(won|converted|fechado)/i.test(String(l.status || ""))).length;
+        return null;
+      })()}
       <Popover
         open={Boolean(tagAnchor)}
         anchorEl={tagAnchor}
