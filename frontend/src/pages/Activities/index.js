@@ -413,10 +413,11 @@ const Activities = () => {
     }
   ];
 
-  // Calculate quick stats for the header
+  // Calculate quick stats for the header (exclui eventos)
   const headerStats = useMemo(() => {
-    const total = activitiesState.length;
-    const completed = activitiesState.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
+    const base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
+    const total = base.length;
+    const completed = base.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
     return [
       { label: "Total", value: total, color: "#2563eb" },
       { label: "Concluídas", value: completed, color: "#22c55e" }
@@ -424,11 +425,9 @@ const Activities = () => {
   }, [activitiesState]);
 
   const filteredActivities = useMemo(() => {
-    if (!statusFilter) {
-      return activitiesState;
-    }
-
-    return activitiesState.filter((activity) => activity.status === statusFilter);
+    const base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
+    if (!statusFilter) return base;
+    return base.filter((activity) => activity.status === statusFilter);
   }, [activitiesState, statusFilter]);
 
   useEffect(() => {

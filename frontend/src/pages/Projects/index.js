@@ -34,6 +34,7 @@ import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import "../Schedules/Schedules.css";
 import "moment/locale/pt-br";
+import FolderOpenIcon from "@material-ui/icons/FolderOpen";
 
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import ProjectKanbanBoard from "../../components/ProjectKanbanBoard"; // Novo componente
@@ -215,7 +216,7 @@ const ProjectsCalendar = ({ projects, onCreate }) => {
                 const recent = [...projects].sort((a,b) => new Date(b.updatedAt||b.createdAt) - new Date(a.updatedAt||a.createdAt))[0];
                 return (
                   <div className="activity-item">
-                    <div className="activity-icon">📁</div>
+                    <div className="activity-icon"><FolderOpenIcon style={{ fontSize: 18 }} /></div>
                     <div className="activity-info">
                       <div className="activity-title">{recent?.name || "—"}</div>
                       <div className="activity-sub">{recent?.company?.name || recent?.companyId || "Sem empresa"}</div>

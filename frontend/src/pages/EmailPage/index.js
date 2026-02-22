@@ -225,8 +225,10 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
     elements: { point: { radius: 4 } },
   };
 
+  const cardStyle = { padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", height: "100%", display: "flex", flexDirection: "column" };
+  const tableWrapStyle = { flex: 1, minHeight: 280 };
   return (
-    <Grid container spacing={3}>
+    <Grid container spacing={3} alignItems="stretch">
       {kpis.map(({ title, value, subtitle, Icon, circle, color }) => (
         <Grid item xs={12} sm={6} md={3} key={title}>
           <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
@@ -316,11 +318,11 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
       </Grid>
 
       <Grid item xs={12} md={6}>
-        <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
+        <Paper style={cardStyle}>
           <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
             Status dos Envios Recentes
           </Typography>
-          <TableContainer>
+          <TableContainer style={tableWrapStyle}>
             <Table size="small">
               <TableHead>
                 <TableRow>
@@ -368,11 +370,11 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
       </Grid>
 
       <Grid item xs={12} md={6}>
-        <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
+        <Paper style={cardStyle}>
           <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
             Agendamentos Pendentes
           </Typography>
-          <TableContainer>
+          <TableContainer style={tableWrapStyle}>
             <Table size="small">
               <TableHead>
                 <TableRow>
