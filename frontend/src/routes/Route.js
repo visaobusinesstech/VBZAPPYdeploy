@@ -33,6 +33,7 @@ const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 
 		const dueDate = user.company.dueDate;
 		if (!dueDate) return false;
+		if (!moment(dueDate).isValid()) return false;
 
 		// Comparar apenas as datas (sem horas) para permitir acesso até 23h59 do dia do vencimento
 		const hojeInicio = moment().startOf('day');

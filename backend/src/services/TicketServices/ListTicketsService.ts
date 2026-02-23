@@ -78,7 +78,10 @@ const ListTicketsService = async ({
   const showTicketWithoutQueue = user.allTicket === "enable";
   const showGroups = user.allowGroup === true;
   const showPendingNotification = await FindCompanySettingOneService({ companyId, column: "showNotificationPending" });
-  const showNotificationPendingValue = showPendingNotification[0].showNotificationPending;
+  const showNotificationPendingValue =
+    Array.isArray(showPendingNotification) && showPendingNotification.length > 0
+      ? Boolean((showPendingNotification as any)[0]?.showNotificationPending)
+      : false;
     let whereCondition: Filterable["where"];
 
   whereCondition = {

@@ -65,7 +65,12 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function Options(props) {
-  const { oldSettings, settings, scheduleTypeChanged, user } = props;
+  const {
+    oldSettings = {},
+    settings = {},
+    scheduleTypeChanged,
+    user
+  } = props;
 
   const classes = useStyles();
   const [userRating, setUserRating] = useState("disabled");
@@ -255,7 +260,8 @@ const [loadingCopyContactPrefix, setLoadingCopyContactPrefix] = useState(false);
 
 
   useEffect(() => {
-    for (const [key, value] of Object.entries(settings)) {
+    const entries = Object.entries(settings || {});
+    for (const [key, value] of entries) {
       if (key === "userRating") setUserRating(value);
       if (key === "scheduleType") setScheduleType(value);
       if (key === "chatBotType") setChatBotType(value);

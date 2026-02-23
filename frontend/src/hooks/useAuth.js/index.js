@@ -211,7 +211,13 @@ const useAuth = () => {
       if (data.user.company.id === 1) {
         dueDate = "2999-12-31T00:00:00.000Z";
       } else {
-        dueDate = data.user.company.dueDate;
+        const rawDue = data?.user?.company?.dueDate;
+        // Tratar datas ausentes/invalidas como não vencidas para evitar bloqueio indevido
+        if (!rawDue || !moment(rawDue).isValid()) {
+          dueDate = "2999-12-31T00:00:00.000Z";
+        } else {
+          dueDate = rawDue;
+        }
       }
       
       const hoje = moment(moment()).format("DD/MM/yyyy");
@@ -246,9 +252,11 @@ const useAuth = () => {
       } else {
         api.defaults.headers.Authorization = `Bearer ${data.token}`;
         setIsAuth(true);
+        // Mostrar aviso sem bloquear acesso imediato
         toastError(`Opss! Sua assinatura venceu ${vencimento}.
 Entre em contato com o Suporte para mais informações! `);
-        history.push("/financeiro-aberto");
+        // Em vez de redirecionar forçado, manter usuário no fluxo padrão e permitir navegação
+        history.push("/tickets");
         setLoading(false);
       }
     } catch (err) {
