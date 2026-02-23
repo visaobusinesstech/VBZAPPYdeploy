@@ -15,8 +15,12 @@ const DeleteUserService = async (
     requestUser = await User.findByPk(requestUserId);
   }
 
+  const isRoot =
+    requestUser?.super === true ||
+    requestUser?.email === "admin@admin.com";
+
   const whereCondition: any = { id };
-  if (!requestUser?.super) {
+  if (!isRoot) {
     whereCondition.companyId = companyId;
   }
 

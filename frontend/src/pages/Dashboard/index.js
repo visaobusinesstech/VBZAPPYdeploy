@@ -799,14 +799,21 @@ const Dashboard = () => {
 
   const pendingActivities = useMemo(() => {
     return activities
-      .filter(
-        (a) => a.status === "pending" || a.status === "A Fazer"
-      )
+      .filter((a) => {
+        const statusOk = a.status === "pending" || a.status === "A Fazer";
+        const t = String(a.type || "").toLowerCase();
+        const isEvent = t === "event";
+        return statusOk && !isEvent;
+      })
       .slice(0, 5);
   }, [activities]);
 
   const recentActivities = useMemo(() => {
     return [...activities]
+      .filter((a) => {
+        const t = String(a.type || "").toLowerCase();
+        return t !== "event";
+      })
       .sort((a, b) => {
         if (!a.date || !b.date) return 0;
         return new Date(b.date) - new Date(a.date);
@@ -822,6 +829,8 @@ const Dashboard = () => {
     const limit = moment().add(7, "days");
     return activities
       .filter((a) => {
+        const t = String(a.type || "").toLowerCase();
+        if (t === "event") return false;
         if (!a?.date) return false;
         const d = moment(a.date);
         return d.isSameOrAfter(moment(), "day") && d.isSameOrBefore(limit, "day");

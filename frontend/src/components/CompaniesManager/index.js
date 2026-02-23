@@ -33,6 +33,7 @@ import ColorModeContext from "../../layout/themeContext";
 import moment from "moment";
 import { i18n } from "../../translate/i18n";
 import { useTheme } from "@material-ui/core/styles";
+import { Delete as DeleteIcon, PersonAdd as PersonAddIcon } from "@material-ui/icons";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -593,6 +594,9 @@ export default function CompaniesManager() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [records, setRecords] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [userModalOpen, setUserModalOpen] = useState(false);
+  const [editingUserId, setEditingUserId] = useState(undefined);
   const [record, setRecord] = useState({
     name: "",
     email: "",
@@ -613,6 +617,15 @@ export default function CompaniesManager() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (record?.id) {
+      loadCompanyUsers(record.id);
+    } else {
+      setUsers([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [record.id]);
+
   const loadPlans = async () => {
     setLoading(true);
     try {
@@ -623,6 +636,15 @@ export default function CompaniesManager() {
       toast.error("Não foi possível carregar a lista de registros");
     }
     setLoading(false);
+  };
+
+  const loadCompanyUsers = async (companyId) => {
+    try {
+      const { data } = await api.get("/users/list", { params: { companyId } });
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setUsers([]);
+    }
   };
 
   const handleSubmit = async (data) => {
@@ -711,6 +733,16 @@ export default function CompaniesManager() {
 
   return (
     <Paper className={classes.mainPaper} elevation={0}>
+      <ModalUsers
+        open={userModalOpen}
+        onClose={() => {
+          setUserModalOpen(false);
+          setEditingUserId(undefined);
+          if (record?.id) loadCompanyUsers(record.id);
+        }}
+        userId={editingUserId}
+        companyId={record?.id}
+      />
       <Grid spacing={2} container>
         <Grid xs={12} item>
           <CompanyForm
@@ -721,6 +753,83 @@ export default function CompaniesManager() {
             loading={loading}
           />
         </Grid>
+        {record?.id && (
+          <Grid xs={12} item>
+            <Paper className={classes.tableContainer}>
+              <Grid container alignItems="center" justifyContent="space-between" style={{ padding: 8 }}>
+                <Grid item>
+                  <strong>Usuários da empresa selecionada</strong>
+                </Grid>
+                <Grid item>
+                  <ButtonWithSpinner
+                    onClick={() => {
+                      setEditingUserId(undefined);
+                      setUserModalOpen(true);
+                    }}
+                    variant="contained"
+                    color="primary"
+                    startIcon={<PersonAddIcon />}
+                  >
+                    Adicionar usuário
+                  </ButtonWithSpinner>
+                </Grid>
+              </Grid>
+              <Table className={classes.fullWidth} padding="none" aria-label="users-table">
+                <TableHead>
+                  <TableRow>
+                    <TableCell align="center" style={{ width: "1%" }}>#</TableCell>
+                    <TableCell align="left">Nome</TableCell>
+                    <TableCell align="left">Email</TableCell>
+                    <TableCell align="center">Perfil</TableCell>
+                    <TableCell align="center" style={{ width: 160 }}>Ações</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {users.map((u) => (
+                    <TableRow key={u.id}>
+                      <TableCell align="center">{u.id}</TableCell>
+                      <TableCell align="left">{u.name}</TableCell>
+                      <TableCell align="left">{u.email}</TableCell>
+                      <TableCell align="center">{u.profile}</TableCell>
+                      <TableCell align="center">
+                        <IconButton
+                          title="Editar"
+                          onClick={() => {
+                            setEditingUserId(u.id);
+                            setUserModalOpen(true);
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton
+                          title="Excluir"
+                          onClick={async () => {
+                            try {
+                              await api.delete(`/users/${u.id}`);
+                              loadCompanyUsers(record.id);
+                              toast.success("Usuário removido");
+                            } catch (e) {
+                              toast.error("Não foi possível remover o usuário");
+                            }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {users.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        Nenhum usuário encontrado para esta empresa.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Paper>
+          </Grid>
+        )}
         <Grid xs={12} item>
           <CompaniesManagerGrid records={records} onSelect={handleSelect} />
         </Grid>

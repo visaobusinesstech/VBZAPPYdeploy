@@ -58,9 +58,13 @@ const UpdateUserService = async ({
   requestUserId
 }: Request): Promise<Response | undefined> => {
   const requestUser = await User.findByPk(requestUserId);
-  const user = await ShowUserService(userId, companyId, requestUser.super);
+  const isRoot =
+    requestUser?.super === true ||
+    requestUser?.email === "admin@admin.com";
 
-  if (requestUser.super === false && userData.companyId !== companyId) {
+  const user = await ShowUserService(userId, companyId, isRoot);
+
+  if (!isRoot && userData.companyId !== companyId) {
     throw new AppError("O usuário não pertence à esta empresa");
   }
 

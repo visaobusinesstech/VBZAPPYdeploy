@@ -697,6 +697,15 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               tooltip={collapsed}
             />
           )}
+          {user?.email?.toLowerCase() === "admin@admin.com" && (
+            <ListItemLink
+              to="/settings?tab=companies"
+              primary="Assinaturas"
+              icon={<MonetizationOnIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+          )}
         </>
       )}
 

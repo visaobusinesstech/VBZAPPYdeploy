@@ -12,6 +12,8 @@
     "db:migrate": "node node_modules/sequelize-cli/lib/sequelize db:migrate",
     "db:seed": "node node_modules/sequelize-cli/lib/sequelize db:seed:all",
     "fix:birthday-settings": "ts-node src/scripts/fix-birthday-settings.ts",
+    "seed:fabricio": "ts-node src/scripts/create-admin-user-fabricio.ts",
+    "admin:fabricio-company": "ts-node src/scripts/create-company-fabricio-and-move-user.ts",
     "pretest": "NODE_ENV=test sequelize db:migrate && NODE_ENV=test sequelize db:seed:all",
     "test": "NODE_ENV=test jest",
     "posttest": "NODE_ENV=test sequelize db:migrate:undo:all",

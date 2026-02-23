@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useLocation } from "react-router-dom";
 import MainContainer from "../../components/MainContainer";
 import MainHeader from "../../components/MainHeader";
 import Title from "../../components/Title";
@@ -75,6 +76,17 @@ const SettingsCustom = () => {
   const { getAll: getAllSettings } = useCompanySettings();
   const { getAll: getAllSettingsOld } = useSettings();
   const { user, socket } = useContext(AuthContext);
+
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const initialTab = params.get("tab");
+    if (initialTab) {
+      setTab(initialTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     async function findData() {

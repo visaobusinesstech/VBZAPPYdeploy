@@ -715,6 +715,7 @@ const messages = {
         tabs: {
           general: "Geral",
           permissions: "Permissões",
+          // companies label is used on Settings tab. Keep same key to avoid code changes.
         },
         buttons: {
           okAdd: "Adicionar",

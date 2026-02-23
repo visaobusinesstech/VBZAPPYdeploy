@@ -24,14 +24,12 @@ import * as XLSX from 'xlsx';
 import { grey, blue } from "@material-ui/core/colors";
 import { toast } from "react-toastify";
 
-import TabPanel from "../../components/TabPanel"
 import TableAttendantsStatus from "../../components/Dashboard/TableAttendantsStatus";
 import { isArray } from "lodash";
 
 import { AuthContext } from "../../context/Auth/AuthContext";
 
 import useDashboard from "../../hooks/useDashboard";
-import useContacts from "../../hooks/useContacts";
 import useMessages from "../../hooks/useMessages";
 import { ChatsUser } from "../Dashboard/ChartsUser";
 import ChartDonut from "../Dashboard/ChartDonut";
@@ -40,17 +38,18 @@ import Filters from "../Dashboard/Filters";
 import { isEmpty } from "lodash";
 import moment from "moment";
 import { ChartsDate } from "../Dashboard/ChartsDate";
-import { Avatar, Button, Card, CardContent, Container, Stack, SvgIcon, Tab, Tabs } from "@mui/material";
+import { Avatar, Card, CardContent, Container, Stack, SvgIcon } from "@mui/material";
 import { i18n } from "../../translate/i18n";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import { ArrowDownward, ArrowUpward } from "@material-ui/icons";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 const useStyles = makeStyles((theme) => ({
   overline: {
     fontSize: '0.9rem',
     fontWeight: 700,
-    color: "grey",
+    color: theme.palette.text.secondary,
     letterSpacing: '0.5px',
     lineHeight: 2.5,
     textTransform: 'uppercase',
@@ -61,7 +60,7 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: 500,
     fontSize: '2rem',
     lineHeight: 1,
-    color: "grey",
+    color: theme.palette.text.primary,
   },
   tab: {
     minWidth: "auto",
@@ -103,7 +102,7 @@ const useStyles = makeStyles((theme) => ({
   },
   container: {
     paddingTop: theme.spacing(1),
-    paddingBottom: theme.padding,
+    paddingBottom: theme.spacing(2),
     maxWidth: "1150px",
     minWidth: "xs",
   },
@@ -150,8 +149,8 @@ const useStyles = makeStyles((theme) => ({
     border: "none",
   },
   container: {
-    paddingTop: theme.spacing(4),
-    paddingBottom: theme.spacing(4),
+    paddingTop: theme.spacing(1),
+    paddingBottom: theme.spacing(2),
   },
   fixedHeightPaper: {
     padding: theme.spacing(2),
@@ -216,6 +215,24 @@ const WhatsappDashboard = () => {
   const [fetchDataFilter, setFetchDataFilter] = useState(false);
 
   const { user } = useContext(AuthContext);
+
+  // Contadores de mensagens (hooks no topo, ordem estável)
+  const { count: receivedRange } = useMessages({
+    fromMe: false,
+    dateStart: dateStartTicket,
+    dateEnd: dateEndTicket
+  });
+  const { count: receivedTotal } = useMessages({
+    fromMe: false
+  });
+  const { count: sentRange } = useMessages({
+    fromMe: true,
+    dateStart: dateStartTicket,
+    dateEnd: dateEndTicket
+  });
+  const { count: sentTotal } = useMessages({
+    fromMe: true
+  });
 
 
   const exportarGridParaExcel = () => {
@@ -315,50 +332,7 @@ const WhatsappDashboard = () => {
     return count;
   };
 
-  const GetContacts = (all) => {
-    let props = {};
-    if (all) {
-      props = {};
-    } else {
-      props = {
-        dateStart: dateStartTicket,
-        dateEnd: dateEndTicket,
-      };
-    }
-    const { count } = useContacts(props);
-    return count;
-  };
-
-  const GetMessages = (all, fromMe) => {
-    let props = {};
-    if (all) {
-      if (fromMe) {
-        props = {
-          fromMe: true
-        };
-      } else {
-        props = {
-          fromMe: false
-        };
-      }
-    } else {
-      if (fromMe) {
-        props = {
-          fromMe: true,
-          dateStart: dateStartTicket,
-          dateEnd: dateEndTicket,
-        };
-      } else {
-        props = {
-          fromMe: false,
-          dateStart: dateStartTicket,
-          dateEnd: dateEndTicket,
-        };
-      }
-    }
-    const { count } = useMessages(props);
-    return count;
-  };
+  // removido: chamada de hook dentro de função auxiliar (violava Regras de Hooks)
 
   function toggleShowFilter() {
     setShowFilter(!showFilter);
@@ -372,76 +346,37 @@ const WhatsappDashboard = () => {
           :
           <>
             <div>
-              <Container maxWidth="lg" className={classes.container}>
-                <Grid2 container spacing={3} className={classes.container}>
+              <ActivitiesStyleLayout
+                description="Indicadores e NPS do WhatsApp"
+                viewModes={[
+                  { value: "Indicadores", label: i18n.t("dashboard.tabs.indicators") },
+                  { value: "NPS", label: "NPS" },
+                  { value: "Atendentes", label: i18n.t("dashboard.tabs.attendants") },
+                ]}
+                currentViewMode={tab}
+                onViewModeChange={(val) => setTab(val)}
+                disableFilterBar
+                hideSearch
+                navActions={
+                  <IconButton onClick={toggleShowFilter} size="small" color="default" title="Filtros">
+                    {showFilter ? <ClearIcon /> : <FilterListIcon />}
+                  </IconButton>
+                }
+              >
+                {showFilter && (
+                  <Filters
+                    classes={classes}
+                    setDateStartTicket={setDateStartTicket}
+                    setDateEndTicket={setDateEndTicket}
+                    dateStartTicket={dateStartTicket}
+                    dateEndTicket={dateEndTicket}
+                    setQueueTicket={setQueueTicket}
+                    queueTicket={queueTicket}
+                    fetchData={setFetchDataFilter}
+                  />
+                )}
 
-                  {/* FILTROS */}
-                  <Grid2 xs={12}>
-                    <Button
-                      onClick={toggleShowFilter}
-                      style={{ float: "right" }}
-                      color="primary"
-                    >
-                      {!showFilter ? (
-                        <FilterListIcon />
-                      ) : (
-                        <ClearIcon />
-                      )}
-                    </Button>
-                  </Grid2>
-
-                  {showFilter && (
-                    <Filters
-                      classes={classes}
-                      setDateStartTicket={setDateStartTicket}
-                      setDateEndTicket={setDateEndTicket}
-                      dateStartTicket={dateStartTicket}
-                      dateEndTicket={dateEndTicket}
-                      setQueueTicket={setQueueTicket}
-                      queueTicket={queueTicket}
-                      fetchData={setFetchDataFilter}
-                    />
-                  )}
-
-                  <Grid2 container width="100%" justifyContent="center">
-                    <Tabs
-                      value={tab}
-                      onChange={handleChangeTab}
-                      variant="fullWidth"
-                      indicatorColor="primary"
-                      textColor="primary"
-                      aria-label="icon label tabs example"
-                      classes={{ indicator: classes.tabIndicator }}
-                      sx={{
-                        borderRadius: "5px",
-                        borderColor: "#aaa",
-                        borderWidth: "1px",
-                        borderStyle: "solid",
-                        fontFamily: '"Plus Jakarta Sans", sans-serif',
-                      }}
-                    >
-                      <Tab classes={{ root: classes.tab }}
-                        style={{ color: theme.mode === "light" ? theme.palette.primary.main : "#FFF" }}
-                        value="Indicadores"
-                        label={i18n.t("dashboard.tabs.indicators")}
-                      />
-                      <Tab classes={{ root: classes.tab }}
-                        style={{ color: theme.mode === "light" ? theme.palette.primary.main : "#FFF" }}
-                        value="NPS"
-                        label={i18n.t("dashboard.tabs.assessments")}
-                      />
-                      <Tab classes={{ root: classes.tab }}
-                        style={{ color: theme.mode === "light" ? theme.palette.primary.main : "#FFF" }}
-                        value="Atendentes"
-                        label={i18n.t("dashboard.tabs.attendants")}
-                      />
-                    </Tabs>
-                  </Grid2>
-                  <TabPanel
-                    className={classes.container}
-                    value={tab}
-                    name={"Indicadores"}
-                  >
+                {tab === "Indicadores" && (
                     <Container maxWidth="xl" >
                       <Grid2
                         container
@@ -480,9 +415,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#0b708c',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -529,9 +466,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#47606e',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -578,9 +517,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#5852ab',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -629,9 +570,11 @@ const WhatsappDashboard = () => {
 
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#01BBAC',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -678,9 +621,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#805753',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -727,9 +672,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#8c6b19',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -768,17 +715,17 @@ const WhatsappDashboard = () => {
                                   >
                                     {i18n.t("dashboard.cards.totalReceivedMessages")}
                                   </Typography>
-                                  <Typography variant="h4"
-                                    className={classes.h4}
-                                  >
-                                    {GetMessages(false, false)}/{GetMessages(true, false)}
+                                  <Typography variant="h4" className={classes.h4}>
+                                    {receivedRange}/{receivedTotal}
                                   </Typography>
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#333133',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -817,17 +764,17 @@ const WhatsappDashboard = () => {
                                   >
                                     {i18n.t("dashboard.cards.totalSentMessages")}
                                   </Typography>
-                                  <Typography variant="h4"
-                                    className={classes.h4}
-                                  >
-                                    {GetMessages(false, true)}/{GetMessages(true, true)}
+                                  <Typography variant="h4" className={classes.h4}>
+                                    {sentRange}/{sentTotal}
                                   </Typography>
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#558a59',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -874,9 +821,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#F79009',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -923,9 +872,11 @@ const WhatsappDashboard = () => {
                                 </Stack>
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#8a2c40',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -973,9 +924,11 @@ const WhatsappDashboard = () => {
 
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#EE4512',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -1025,9 +978,11 @@ const WhatsappDashboard = () => {
 
                                 <Avatar
                                   sx={{
-                                    backgroundColor: '#28C037',
-                                    height: 60,
-                                    width: 60
+                                    backgroundColor: 'transparent',
+                                    color: theme.palette.primary.main,
+                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    height: 56,
+                                    width: 56
                                   }}
                                 >
                                   <SvgIcon>
@@ -1040,14 +995,10 @@ const WhatsappDashboard = () => {
                         </Grid2>
                       </Grid2>
                     </Container>
-                  </TabPanel>
+                )}
 
-                  <TabPanel
-                    className={classes.container}
-                    value={tab}
-                    name={"NPS"}
-                  >
-                    <Grid2 className={classes.container}>
+                {tab === "NPS" && (
+                  <Grid2 className={classes.container}>
                       <Grid2 container width="100%" spacing={2}>
 
                         <Grid2 xs={12} sm={6} md={3}>
@@ -1115,16 +1066,11 @@ const WhatsappDashboard = () => {
                         </Grid2>
 
                       </Grid2>
-                    </Grid2>
+                  </Grid2>
+                )}
 
-                  </TabPanel>
-
-                  <TabPanel
-                    className={classes.container}
-                    value={tab}
-                    name={"Atendentes"}
-                  >
-                    <Container width="100%" className={classes.container}>
+                {tab === "Atendentes" && (
+                  <Container width="100%" className={classes.container}>
 
                       <IconButton onClick={exportarGridParaExcel} aria-label="Exportar para Excel">
                         <SaveAlt />
@@ -1169,10 +1115,9 @@ const WhatsappDashboard = () => {
                           </Paper>
                         </Grid2>
                       </Grid2>
-                    </Container>
-                  </TabPanel>
-                </Grid2>
-              </Container >
+                  </Container>
+                )}
+              </ActivitiesStyleLayout>
             </div >
           </>
       }

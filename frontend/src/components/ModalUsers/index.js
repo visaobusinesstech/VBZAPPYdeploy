@@ -73,6 +73,19 @@ const ModalUsers = ({ open, onClose, userId, companyId }) => {
     email: "",
     password: "",
     profile: "user",
+    allTicket: "disable",
+    showDashboard: "enabled",
+    allowConnections: "enabled",
+    showContacts: "enabled",
+    showCampaign: "enabled",
+    showFlow: "enabled",
+    allowSeeMessagesInPendingTickets: "enabled",
+    allUserChat: "enabled",
+    allHistoric: "enabled",
+    userClosePendingTicket: "enabled",
+    allowRealTime: "enabled",
+    allowGroup: false,
+    finalizacaoComValorVendaAtiva: "false"
   };
 
   const { user: loggedInUser } = useContext(AuthContext);
@@ -86,9 +99,17 @@ const ModalUsers = ({ open, onClose, userId, companyId }) => {
       if (open) {
         try {
           const { data } = await api.get(`/users/${userId}`);
-          setUser((prevState) => {
-            return { ...prevState, ...data };
-          });
+          setUser((prevState) => ({
+            ...prevState,
+            ...data,
+            allTicket:
+              data.allTicket === "enable" || data.allTicket === "enabled"
+                ? "enable"
+                : "disable",
+            finalizacaoComValorVendaAtiva: data.finalizacaoComValorVendaAtiva
+              ? "true"
+              : "false"
+          }));
           const userQueueIds = data.queues?.map((queue) => queue.id);
           setSelectedQueueIds(userQueueIds);
         } catch (err) {
@@ -106,7 +127,13 @@ const ModalUsers = ({ open, onClose, userId, companyId }) => {
   };
 
   const handleSaveUser = async (values) => {
-    const userData = { ...values, companyId, queueIds: selectedQueueIds };
+    const userData = { 
+      ...values, 
+      companyId, 
+      queueIds: selectedQueueIds,
+      finalizacaoComValorVendaAtiva: values.finalizacaoComValorVendaAtiva === "true",
+      allowGroup: Boolean(values.allowGroup)
+    };
     try {
       if (userId) {
         await api.put(`/users/${userId}`, userData);
@@ -213,11 +240,113 @@ const ModalUsers = ({ open, onClose, userId, companyId }) => {
                     />
                   </FormControl>
                 </div>
+                <div className={classes.multFieldLine}>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="showDashboard-label">Dashboard</InputLabel>
+                    <Field as={Select} label="Dashboard" name="showDashboard" labelId="showDashboard-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allowConnections-label">Conexões</InputLabel>
+                    <Field as={Select} label="Conexões" name="allowConnections" labelId="allowConnections-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allowPending-label">Ver mensagens em pendentes</InputLabel>
+                    <Field as={Select} label="Pendentes" name="allowSeeMessagesInPendingTickets" labelId="allowPending-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                </div>
+                <div className={classes.multFieldLine}>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="showContacts-label">Contatos</InputLabel>
+                    <Field as={Select} label="Contatos" name="showContacts" labelId="showContacts-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="showCampaign-label">Campanhas</InputLabel>
+                    <Field as={Select} label="Campanhas" name="showCampaign" labelId="showCampaign-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="showFlow-label">Flow</InputLabel>
+                    <Field as={Select} label="Flow" name="showFlow" labelId="showFlow-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                </div>
+                <div className={classes.multFieldLine}>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allTicket-label">Visualizar chamados sem fila</InputLabel>
+                    <Field as={Select} label="Visualizar chamados sem fila" name="allTicket" labelId="allTicket-label">
+                      <MenuItem value="enable">Habilitado</MenuItem>
+                      <MenuItem value="disable">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allowGroup-label">Permitir Grupos</InputLabel>
+                    <Field as={Select} label="Permitir Grupos" name="allowGroup" labelId="allowGroup-label">
+                      <MenuItem value={true}>Habilitado</MenuItem>
+                      <MenuItem value={false}>Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                </div>
+                <div className={classes.multFieldLine}>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allUserChat-label">Ver conversas de outros usuários</InputLabel>
+                    <Field as={Select} label="Outros usuários" name="allUserChat" labelId="allUserChat-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allHistoric-label">Ver conversas de outras filas</InputLabel>
+                    <Field as={Select} label="Outras filas" name="allHistoric" labelId="allHistoric-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                </div>
+                <div className={classes.multFieldLine}>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="userClosePendingTicket-label">Fechar tickets pendentes</InputLabel>
+                    <Field as={Select} label="Fechar pendentes" name="userClosePendingTicket" labelId="userClosePendingTicket-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="allowRealTime-label">Painel de Atendimentos</InputLabel>
+                    <Field as={Select} label="Painel" name="allowRealTime" labelId="allowRealTime-label">
+                      <MenuItem value="enabled">Habilitado</MenuItem>
+                      <MenuItem value="disabled">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                  <FormControl variant="outlined" className={classes.formControl} margin="dense">
+                    <InputLabel id="finalizacaoVenda-label">Finalização com Valor de Venda</InputLabel>
+                    <Field as={Select} label="Finalização com Valor de Venda" name="finalizacaoComValorVendaAtiva" labelId="finalizacaoVenda-label">
+                      <MenuItem value="true">Habilitado</MenuItem>
+                      <MenuItem value="false">Desabilitado</MenuItem>
+                    </Field>
+                  </FormControl>
+                </div>
                 <Can
                   role={loggedInUser.profile}
                   perform="user-modal:editQueues"
                   yes={() => (
                     <QueueSelect
+                      companyId={companyId}
                       selectedQueueIds={selectedQueueIds}
                       onChange={(values) => setSelectedQueueIds(values)}
                     />

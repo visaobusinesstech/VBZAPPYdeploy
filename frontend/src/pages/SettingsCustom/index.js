@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import { useLocation } from "react-router-dom";
 import { makeStyles, Paper } from "@material-ui/core";
 
 import TabPanel from "../../components/TabPanel";
@@ -77,6 +78,16 @@ const SettingsCustom = () => {
   const { getAll: getAllSettings } = useCompanySettings();
   const { getAll: getAllSettingsOld } = useSettings();
   const { user, socket } = useContext(AuthContext);
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const initialTab = params.get("tab");
+    if (initialTab) {
+      setTab(initialTab);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     async function findData() {
@@ -145,7 +156,6 @@ const SettingsCustom = () => {
     { value: "options", label: i18n.t("settings.tabs.options") },
     ...(schedulesEnabled ? [{ value: "schedules", label: "Horários" }] : []),
     ...(user.profile === "admin" && user.finalizacaoComValorVendaAtiva ? [{ value: "finalizacao", label: "Finalização do Atendimento" }] : []),
-    ...(isSuper() ? [{ value: "companies", label: i18n.t("settings.tabs.companies") }] : []),
     ...(isSuper() ? [{ value: "whitelabel", label: "Identidade Visual" }] : []),
     { value: "users", label: "Usuários" },
     { value: "connections", label: "Gerenciar Conexões" },
@@ -153,6 +163,7 @@ const SettingsCustom = () => {
     { value: "email", label: "Email" },
     { value: "tags", label: "Tags" },
     { value: "announcements", label: "Informativos" },
+    ...(isSpecificAdminUI() ? [{ value: "companies", label: "Assinaturas" }] : []),
   ];
   const trailingTabs = isSpecificAdminUI()
     ? [
@@ -191,18 +202,19 @@ const SettingsCustom = () => {
                   initialValues={schedules}
                 />
               </TabPanel>
+              {isSpecificAdminUI() && (
+                <TabPanel
+                  className={classes.container}
+                  value={tab}
+                  name={"companies"}
+                >
+                  <CompaniesManager />
+                </TabPanel>
+              )}
               <OnlyForSuperUser
                 user={currentUser}
                 yes={() => (
                   <>
-                    <TabPanel
-                      className={classes.container}
-                      value={tab}
-                      name={"companies"}
-                    >
-                      <CompaniesManager />
-                    </TabPanel>
-
                     {isSpecificAdminUI() && (
                       <TabPanel
                         className={classes.container}
@@ -212,7 +224,6 @@ const SettingsCustom = () => {
                         <PlansManager />
                       </TabPanel>
                     )}
-
                     <TabPanel
                       className={classes.container}
                       value={tab}

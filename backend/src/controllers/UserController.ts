@@ -251,9 +251,12 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 
 export const show = async (req: Request, res: Response): Promise<Response> => {
   const { userId } = req.params;
-  const { companyId } = req.user;
+  const { companyId, id: requestUserId } = req.user as any;
+  const requestUser = await User.findByPk(requestUserId);
 
-  const user = await ShowUserService(userId, companyId);
+  const skipCompanyCheck =
+    Boolean(requestUser?.super) || requestUser?.email === "admin@admin.com";
+  const user = await ShowUserService(userId, companyId, skipCompanyCheck);
 
   return res.status(200).json(user);
 };
@@ -306,7 +309,7 @@ export const remove = async (
   res: Response
 ): Promise<Response> => {
   const { userId } = req.params;
-  const { companyId, id, profile } = req.user;
+  const { companyId, id, profile, email } = req.user as any;
 
   if (profile !== "admin") {
     throw new AppError("ERR_NO_PERMISSION", 403);
@@ -320,12 +323,13 @@ export const remove = async (
     where: { id: userId }
   });
 
-  if (companyId !== user.companyId) {
+  const isRoot = email === "admin@admin.com";
+  if (!isRoot && companyId !== user.companyId) {
     return res
       .status(400)
       .json({ error: "Você não possui permissão para acessar este recurso!" });
   } else {
-    await DeleteUserService(userId, companyId);
+    await DeleteUserService(userId, isRoot ? user.companyId : companyId, +id);
 
     const io = getIO();
     io.of(String(companyId)).emit(`company-${companyId}-user`, {
