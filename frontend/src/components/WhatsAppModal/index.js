@@ -275,6 +275,8 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
   const [flowIdInactiveTime, setFlowIdInactiveTime] = useState();
   const [timeAwaitActiveFlowId, setTimeAwaitActiveFlowId] = useState();
   const [showWavoipCall, setShowWavoipCall] = useState(false);
+  const [integrationAgentName, setIntegrationAgentName] = useState("");
+  const [integrationAgentAvailable, setIntegrationAgentAvailable] = useState(false);
 
   useEffect(() => {
     if (!whatsAppId && !whatsApp.token) {
@@ -310,6 +312,31 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
       }
     })();
   }, [whatsAppId]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const [roleRes, integrationRes] = await Promise.allSettled([
+          api.get("/settings/agent_role"),
+          api.get("/settings/agent_integration"),
+        ]);
+        let roleValue = "";
+        if (roleRes.status === "fulfilled" && roleRes.value?.data?.value) {
+          const v = typeof roleRes.value.data.value === "string" ? JSON.parse(roleRes.value.data.value) : roleRes.value.data.value;
+          roleValue = v?.agente || "";
+        }
+        let hasKey = false;
+        if (integrationRes.status === "fulfilled" && integrationRes.value?.data?.value) {
+          const v = typeof integrationRes.value.data.value === "string" ? JSON.parse(integrationRes.value.data.value) : integrationRes.value.data.value;
+          hasKey = !!v?.apiKey;
+        }
+        setIntegrationAgentName(roleValue);
+        setIntegrationAgentAvailable(hasKey);
+      } catch (err) {
+        // silencia erros, pois é opcional
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -432,12 +459,10 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
 
   const handleChangeQueue = (e) => {
     setSelectedQueueIds(e);
-    setSelectedPrompt(null);
   };
 
   const handleChangePrompt = (e) => {
     setSelectedPrompt(e.target.value);
-    setSelectedQueueIds([]);
   };
 
   const handleChange = (e) => {
@@ -481,6 +506,8 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
       return;
     }
 
+    const useAgentSettings = selectedPrompt === "__agent_settings__";
+
     const whatsappData = {
       ...values,
       flowIdWelcome: flowIdWelcome ? flowIdWelcome : null,
@@ -500,7 +527,8 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
         : null,
       token: autoToken ? autoToken : null,
       schedules,
-      promptId: selectedPrompt ? selectedPrompt : null,
+      promptId: useAgentSettings ? null : (selectedPrompt ? selectedPrompt : null),
+      useAgentSettings: useAgentSettings ? true : undefined,
       channel,
       triggerIntegrationOnClose: triggerIntegrationOnClose,
       integrationTypeId: triggerIntegrationOnClose ? integrationTypeId : null,
@@ -1299,7 +1327,11 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
                           placeholder={i18n.t("queueModal.form.integrationId")}
                           labelId="integrationId-selection-label"
                         >
-                          <MenuItem value={null}>{"Desabilitado"}</MenuItem>
+                          {integrations.length === 0 ? (
+                            <MenuItem value={null} disabled>{"Nenhuma integração cadastrada"}</MenuItem>
+                          ) : (
+                            <MenuItem value={null}>{"Desabilitado"}</MenuItem>
+                          )}
                           {integrations.map((integration) => (
                             <MenuItem
                               key={integration.id}
@@ -1314,7 +1346,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
                     {showOpenAi && (
                       <FormControl margin="dense" variant="outlined" fullWidth>
                         <InputLabel>
-                          {i18n.t("whatsappModal.form.prompt")}
+                          Agente de IA
                         </InputLabel>
                         <Select
                           labelId="dialog-select-prompt-label"
@@ -1322,7 +1354,7 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
                           name="promptId"
                           value={selectedPrompt || ""}
                           onChange={handleChangePrompt}
-                          label={i18n.t("whatsappModal.form.prompt")}
+                          label="Agente de IA"
                           fullWidth
                           MenuProps={{
                             anchorOrigin: {
@@ -1336,6 +1368,11 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
                             getContentAnchorEl: null,
                           }}
                         >
+                          {integrationAgentAvailable && (
+                            <MenuItem value="__agent_settings__">
+                              {`Agente (Integração): ${integrationAgentName || "Padrão"}`}
+                            </MenuItem>
+                          )}
                           {prompts.map((prompt) => (
                             <MenuItem key={prompt.id} value={prompt.id}>
                               {prompt.name}

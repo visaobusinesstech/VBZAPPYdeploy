@@ -18,6 +18,7 @@ import Tags from "../Tags";
 import BirthdaySettings from "../BirthdaySettings";
 import Announcements from "../Annoucements";
 import EmailSettings from "../../components/Settings/EmailSettings";
+import Connections from "../Connections";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -278,6 +279,17 @@ const SettingsCustom = () => {
                 name={"integrations"}
               >
                 <QueueIntegration renderAsTab={true} />
+              </TabPanel>
+              <TabPanel
+                className={classes.container}
+                value={tab}
+                name={"connections"}
+              >
+                {isSuper() ? (
+                  <AllConnections renderAsTab={true} />
+                ) : (
+                  <Connections />
+                )}
               </TabPanel>
               <TabPanel
                 className={classes.container}

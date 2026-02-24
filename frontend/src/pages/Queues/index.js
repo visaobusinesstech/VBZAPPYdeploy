@@ -310,6 +310,7 @@ const Queues = ({ renderAsTab }) => {
       searchPlaceholder={"Buscar..."}
       searchValue={searchParam}
       onSearchChange={setSearchParam}
+      rightFilters={null}
       onCreateClick={handleOpenQueueModal}
     >
       {content}

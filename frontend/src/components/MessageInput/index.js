@@ -63,6 +63,7 @@ import {
 
 import AddIcon from "@material-ui/icons/Add";
 import { CameraAlt } from "@material-ui/icons";
+import Stars from "@material-ui/icons/Stars";
 import MicRecorder from "mic-recorder-to-mp3";
 import clsx from "clsx";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
@@ -459,6 +460,18 @@ const useStyles = makeStyles((theme) => ({
       backgroundColor: "transparent",
     },
   },
+  aiIconWrapper: {
+    width: theme.spacing(4.5),
+    height: theme.spacing(4.5),
+    borderRadius: "50%",
+    backgroundColor: "#E6F0FF",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  aiIcon: {
+    color: theme.palette.primary.main,
+  },
   flexContainer: {
     display: "flex",
     flex: 1,
@@ -536,6 +549,9 @@ const MessageInput = ({
 
   const [formatMenuAnchorPosition, setFormatMenuAnchorPosition] = useState(null);
   const [selectedText, setSelectedText] = useState({ text: '', start: 0, end: 0 });
+  const [aiMenuAnchor, setAiMenuAnchor] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiConfig, setAiConfig] = useState({ apiKey: "", model: "gpt-4o-mini" });
 
   const isTicketPending = () => {
     return ticketStatus === "pending";
@@ -577,6 +593,95 @@ const MessageInput = ({
     }
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchAIConfig = async () => {
+      try {
+        const { data } = await api.get("/settings/agent_integration");
+        const v = data?.value ? (typeof data.value === "string" ? JSON.parse(data.value) : data.value) : {};
+        setAiConfig({
+          apiKey: v.apiKey || "",
+          model: v.model || "gpt-4o-mini",
+        });
+      } catch {}
+    };
+    fetchAIConfig();
+  }, []);
+
+  const handleOpenAIMenu = (e) => setAiMenuAnchor(e.currentTarget);
+  const handleCloseAIMenu = () => setAiMenuAnchor(null);
+
+  const callOpenAITransform = async (systemPrompt, userPrompt) => {
+    if (!inputMessage || inputMessage.trim() === "") {
+      return;
+    }
+    if (!aiConfig.apiKey) {
+      toastError("Configure a API Key do agente em /prompts > Integração.");
+      return;
+    }
+    try {
+      setAiLoading(true);
+      const resp = await axios.post(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          model: aiConfig.model || "gpt-4o-mini",
+          temperature: 0.3,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${aiConfig.apiKey}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      const text = resp.data?.choices?.[0]?.message?.content || "";
+      if (text) {
+        setInputMessage(text);
+      }
+    } catch (err) {
+      toastError("Falha ao usar IA. Verifique sua chave e modelo.");
+      console.error(err);
+    } finally {
+      setAiLoading(false);
+      handleCloseAIMenu();
+    }
+  };
+
+  const handleImproveGrammar = () => {
+    callOpenAITransform(
+      "Você é um revisor. Corrija apenas gramática e ortografia, mantendo o mesmo tom e intenção. Responda apenas com o texto corrigido, sem comentários.",
+      `Texto original:\n${inputMessage}`
+    );
+  };
+
+  const handleImproveText = () => {
+    callOpenAITransform(
+      "Você é um editor. Reescreva o texto de forma mais clara, natural e objetiva, mantendo o sentido. Responda apenas com o texto reescrito.",
+      `Texto original:\n${inputMessage}`
+    );
+  };
+
+  const handleCustomPrompt = () => {
+    const instr = window.prompt("Descreva o que deseja que a IA faça com o texto:");
+    if (!instr) return;
+    callOpenAITransform(
+      "Siga estritamente as instruções do usuário para transformar o texto. Responda somente com o resultado final, sem explicações.",
+      `Instruções: ${instr}\n\nTexto original:\n${inputMessage}`
+    );
+  };
+
+  const handleTranslate = () => {
+    const lang = window.prompt("Traduzir para qual idioma? Ex.: pt-BR, en, es");
+    if (!lang) return;
+    callOpenAITransform(
+      `Traduza o texto para ${lang}. Preserve o sentido e o tom. Responda apenas com o texto traduzido.`,
+      `Texto:\n${inputMessage}`
+    );
+  };
 
   useEffect(() => {
     if (ticketStatus === "open" || ticketStatus === "group") {
@@ -1961,6 +2066,38 @@ const MessageInput = ({
                     </IconButton>
                   </Tooltip>
                 )}
+
+                <Tooltip title="IA Prompts">
+                  <IconButton
+                    aria-label="ai-prompts"
+                    component="span"
+                    onClick={handleOpenAIMenu}
+                    disabled={disableOption()}
+                  >
+                    <div className={classes.aiIconWrapper}>
+                      <Stars className={classes.aiIcon} />
+                    </div>
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={aiMenuAnchor}
+                  keepMounted
+                  open={Boolean(aiMenuAnchor)}
+                  onClose={handleCloseAIMenu}
+                >
+                  <MenuItem onClick={handleImproveGrammar} disabled={aiLoading}>
+                    Melhorar gramática
+                  </MenuItem>
+                  <MenuItem onClick={handleImproveText} disabled={aiLoading}>
+                    Melhorar texto
+                  </MenuItem>
+                  <MenuItem onClick={handleCustomPrompt} disabled={aiLoading}>
+                    Prompt (pedir um texto)
+                  </MenuItem>
+                  <MenuItem onClick={handleTranslate} disabled={aiLoading}>
+                    Traduzir
+                  </MenuItem>
+                </Menu>
 
                 {/* NOVO ÍCONE DE TRIGGER FLOW - APENAS EM TICKETS OPEN */}
                 {ticketStatus === "open" && (

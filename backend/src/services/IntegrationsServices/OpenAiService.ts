@@ -51,6 +51,12 @@ interface IOpenAi {
   completionTimeout?: number;
   objective?: string;
   autoCompleteOnObjective?: boolean;
+
+  // Parâmetros avançados
+  topP?: number;
+  presencePenalty?: number;
+  frequencyPenalty?: number;
+  stop?: string[] | string;
 }
 
 interface SessionOpenAi extends OpenAI {
@@ -430,12 +436,20 @@ const tryScheduleMeeting = async (
 // Manipula requisição OpenAI
 const handleOpenAIRequest = async (openai: SessionOpenAi, messagesAI: any[], aiSettings: IOpenAi): Promise<string> => {
   try {
-    const chat = await openai.chat.completions.create({
+    const payload: any = {
       model: aiSettings.model,
       messages: messagesAI as any,
       max_tokens: aiSettings.maxTokens,
       temperature: aiSettings.temperature,
-    });
+    };
+    if (typeof aiSettings.topP === "number") payload.top_p = aiSettings.topP;
+    if (typeof aiSettings.presencePenalty === "number") payload.presence_penalty = aiSettings.presencePenalty;
+    if (typeof aiSettings.frequencyPenalty === "number") payload.frequency_penalty = aiSettings.frequencyPenalty;
+    if (Array.isArray(aiSettings.stop)) payload.stop = aiSettings.stop;
+    if (typeof aiSettings.stop === "string" && aiSettings.stop.trim()) {
+      payload.stop = aiSettings.stop.split(",").map(s => s.trim()).filter(Boolean);
+    }
+    const chat = await openai.chat.completions.create(payload);
     return chat.choices[0].message?.content || "";
   } catch (error) {
     console.error("OpenAI request error:", error);
@@ -650,12 +664,17 @@ if (minutesElapsed >= aiSettings.completionTimeout) {
     const roleFunc = roleValue?.funcao ? `Função: ${roleValue.funcao}` : "";
     const rolePers = roleValue?.personalidade ? `Personalidade: ${roleValue.personalidade}` : "";
     const roleInstr = roleValue?.instrucoes ? `Instruções: ${roleValue.instrucoes}` : "";
+    const roleForm = roleValue?.formalidade ? `Tom: ${roleValue.formalidade}` : "";
+    const roleLang = roleValue?.idioma ? `Responda em ${roleValue.idioma}.` : "";
+    const roleGreet = roleValue?.saudacao ? `Saudação padrão: ${roleValue.saudacao}` : "";
+    const roleBye = roleValue?.despedida ? `Despedida padrão: ${roleValue.despedida}` : "";
+    const roleEmoji = roleValue?.emojis ? `Uso de emojis: ${roleValue.emojis}` : "";
     const websites = Array.isArray(brainValue?.websites) && brainValue.websites.length > 0 ? `Referências:\n${brainValue.websites.map((u: string) => `- ${u}`).join("\n")}` : "";
     const promptSystem = `Instruções do Sistema:
 - Use o nome ${clientName} nas respostas.
 - Máximo de ${aiSettings.maxTokens} tokens.
 - Inicie com 'Ação: Transferir para o setor de atendimento' quando necessário.
-${roleFunc ? `\n${roleFunc}` : ""}${rolePers ? `\n${rolePers}` : ""}${roleInstr ? `\n${roleInstr}` : ""}${websites ? `\n${websites}` : ""}
+${roleLang ? `\n${roleLang}` : ""}${roleForm ? `\n${roleForm}` : ""}${roleFunc ? `\n${roleFunc}` : ""}${rolePers ? `\n${rolePers}` : ""}${roleEmoji ? `\n${roleEmoji}` : ""}${roleGreet ? `\n${roleGreet}` : ""}${roleBye ? `\n${roleBye}` : ""}${websites ? `\n${websites}` : ""}
 
 ${aiSettings.prompt}`;
 

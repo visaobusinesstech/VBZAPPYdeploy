@@ -149,7 +149,7 @@ const useStyles = makeStyles((theme) => ({
     height: 3,
     bottom: 0,
     borderRadius: "3px 3px 0 0",
-    backgroundColor: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+    backgroundColor: "#555",
     transition: "all 0.3s ease",
   },
   tabsBadge: {
@@ -159,8 +159,8 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
     borderRadius: "12px",
     padding: "0 8px",
-    backgroundColor: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
-    color: theme.mode === "light" ? "#FFF" : theme.palette.primary.main,
+    backgroundColor: "#555",
+    color: "#FFF",
   },
   ticketOptionsBox: {
     display: "flex",
@@ -336,12 +336,12 @@ const useStyles = makeStyles((theme) => ({
   icon: {
     color: "#aaa",
     "&:hover": {
-      color: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+      color: "#555",
     },
   },
   buttonOpen: {
     "& $icon": {
-      color: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+      color: "#555",
     },
   },
   // Classe padronizada para todos os botões de ação
@@ -354,7 +354,7 @@ const useStyles = makeStyles((theme) => ({
     padding: 0,
     minWidth: 'auto',
     "&:hover": {
-      borderColor: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+      borderColor: "#555",
     },
     [theme.breakpoints.down('sm')]: {
       height: 28,
@@ -369,21 +369,21 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   activeButton: {
-    borderColor: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+    borderColor: "#555",
     borderWidth: "3px",
   },
   standardIcon: {
     color: "#aaa",
     fontSize: 18,
     "&:hover": {
-      color: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+      color: "#555",
     },
     [theme.breakpoints.down('sm')]: {
       fontSize: 16,
     },
   },
   activeIcon: {
-    color: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+    color: "#555",
   },
 }));
 

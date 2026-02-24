@@ -372,6 +372,7 @@ const Campaigns = () => {
       searchPlaceholder={i18n.t("campaigns.searchPlaceholder")}
       searchValue={searchParam}
       onSearchChange={handleSearch}
+      rightFilters={null}
       navActions={
         <>
           <Grid spacing={2} container style={{ width: 420 }}>

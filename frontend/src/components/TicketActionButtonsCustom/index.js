@@ -55,6 +55,10 @@ import html2pdf from "html2pdf.js";
 import FinalizacaoVendaModal from "../FinalizacaoVendaModal";
 import QuickMessageModal from "../QuickMessageModal";
 import { Phone } from "@material-ui/icons";
+import TagModal from "../TagModal";
+import CreateLeadSaleModal from "../CreateLeadSaleModal";
+import CreateActivityModal from "../CreateActivityModal";
+import CompanyModal from "../CompaniesModal";
 
 const useStyles = makeStyles((theme) => ({
   actionButtons: {
@@ -144,6 +148,10 @@ const TicketActionButtonsCustom = ({
   const [showFinalizacaoOptions, setShowFinalizacaoOptions] = useState(false);
   const [finalizacaoTipo, setFinalizacaoTipo] = useState(null); // 'semDespedida' ou 'comDespedida'
   const [directTicketsToWallets, setDirectTicketsToWallets] = useState(false);
+  const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
+  const [createActivityOpen, setCreateActivityOpen] = useState(false);
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
 
   // Estados para copiar telefone e respostas rápidas
   const [quickMessageModalOpen, setQuickMessageModalOpen] = useState(false);
@@ -418,6 +426,16 @@ const TicketActionButtonsCustom = ({
       setCurrentTicket({ id: newTicket.id, uuid: newTicket.uuid, code: uuidv4() });
       history.push(`/tickets/${newTicket.uuid}`);
     }
+  };
+
+  const handleOpenScheduleModal = () => {
+    setContactId(contact?.id || null);
+    setScheduleModalOpen(true);
+    handleCloseMenu();
+  };
+
+  const handleCloseScheduleModal = () => {
+    setScheduleModalOpen(false);
   };
 
   const handleDeleteTicket = async () => {
@@ -1002,6 +1020,21 @@ const TicketActionButtonsCustom = ({
           open={menuOpen}
           onClose={handleCloseMenu}
         >
+          <MenuItem onClick={() => { setTagModalOpen(true); handleCloseMenu(); }}>
+            Criar Tag
+          </MenuItem>
+          <MenuItem onClick={() => { setCreateLeadOpen(true); handleCloseMenu(); }}>
+            Criar Lead
+          </MenuItem>
+          <MenuItem onClick={() => { setCreateActivityOpen(true); handleCloseMenu(); }}>
+            Criar Atividade
+          </MenuItem>
+          <MenuItem onClick={() => { setCompanyModalOpen(true); handleCloseMenu(); }}>
+            Criar Empresa
+          </MenuItem>
+          <MenuItem onClick={handleOpenScheduleModal}>
+            Criar Agendamento
+          </MenuItem>
           <MenuItem onClick={handleOpenConfirmationModal}>
             <Can
               role={user.profile}
@@ -1148,6 +1181,42 @@ const TicketActionButtonsCustom = ({
           </DialogActions>
         </Dialog>
       )}
+      {tagModalOpen && (
+        <TagModal
+          open={tagModalOpen}
+          onClose={() => setTagModalOpen(false)}
+        />
+      )}
+      <CreateLeadSaleModal
+        open={createLeadOpen}
+        onClose={() => setCreateLeadOpen(false)}
+        lead={{
+          contactId: contact?.id || null,
+          name: contact?.name || "",
+          phone: contact?.number || ""
+        }}
+        onSave={() => setCreateLeadOpen(false)}
+      />
+      <CreateActivityModal
+        open={createActivityOpen}
+        onClose={() => setCreateActivityOpen(false)}
+        onSave={() => setCreateActivityOpen(false)}
+        activity={{
+          title: contact?.name ? `Atividade para ${contact.name}` : ""
+        }}
+      />
+      <CompanyModal
+        open={companyModalOpen}
+        onClose={() => setCompanyModalOpen(false)}
+        companyId={null}
+      />
+      <ScheduleModal
+        open={scheduleModalOpen}
+        onClose={handleCloseScheduleModal}
+        aria-labelledby="form-dialog-title"
+        contactId={contactId}
+        user={user}
+      />
     </>
   );
 };

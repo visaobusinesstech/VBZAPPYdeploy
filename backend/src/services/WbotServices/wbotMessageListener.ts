@@ -100,6 +100,7 @@ import { getGroupMetadataCache, groupMetadataCache, updateGroupMetadataCache } f
 import sgpListenerOficial from "../IntegrationsServices/Sgp/sgpListenerOficial";
 import CreateScheduleService from "../ScheduleServices/CreateService";
 import { format } from "date-fns";
+import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne";
 
 let ffmpegPath: string;
 if (os.platform() === "win32") {
@@ -3571,16 +3572,37 @@ const handleOpenAi = async (
     openai = sessionsOpenAi[openAiIndex];
   }
 
+  // Carregar configurações avançadas (papel e integração)
+  let roleValue: any = null;
+  let integrationValue: any = null;
+  try {
+    const role = await ListSettingsServiceOne({ companyId: ticket.companyId, key: "agent_role" });
+    roleValue = role?.value ? JSON.parse(role.value as any) : null;
+  } catch {}
+  try {
+    const integ = await ListSettingsServiceOne({ companyId: ticket.companyId, key: "agent_integration" });
+    integrationValue = integ?.value ? JSON.parse(integ.value as any) : null;
+  } catch {}
+
   const messages = await Message.findAll({
     where: { ticketId: ticket.id },
     order: [["createdAt", "ASC"]],
     limit: prompt.maxMessages
   });
 
+  const roleFunc = roleValue?.funcao ? `Função: ${roleValue.funcao}` : "";
+  const rolePers = roleValue?.personalidade ? `Personalidade: ${roleValue.personalidade}` : "";
+  const roleInstr = roleValue?.instrucoes ? `Instruções: ${roleValue.instrucoes}` : "";
+  const roleForm = roleValue?.formalidade ? `Tom: ${roleValue.formalidade}` : "";
+  const roleLang = roleValue?.idioma ? `Responda em ${roleValue.idioma}.` : "";
+  const roleGreet = roleValue?.saudacao ? `Saudação padrão: ${roleValue.saudacao}` : "";
+  const roleBye = roleValue?.despedida ? `Despedida padrão: ${roleValue.despedida}` : "";
+  const roleEmoji = roleValue?.emojis ? `Uso de emojis: ${roleValue.emojis}` : "";
+
   const promptSystem = `Nas respostas utilize o nome ${sanitizeName(
     contact.name || "Amigo(a)"
   )} para identificar o cliente.\nSua resposta deve usar no máximo ${prompt.maxTokens
-    } tokens e cuide para não truncar o final.\nSempre que possível, mencione o nome dele para ser mais personalizado o atendimento e mais educado. Quando a resposta requer uma transferência para o setor de atendimento, comece sua resposta com 'Ação: Transferir para o setor de atendimento'.\n
+    } tokens e cuide para não truncar o final.\nSempre que possível, mencione o nome dele para ser mais personalizado o atendimento e mais educado. Quando a resposta requer uma transferência para o setor de atendimento, comece sua resposta com 'Ação: Transferir para o setor de atendimento'.\n${roleLang ? `${roleLang}\n` : ""}${roleForm ? `${roleForm}\n` : ""}${roleFunc ? `${roleFunc}\n` : ""}${rolePers ? `${rolePers}\n` : ""}${roleEmoji ? `${roleEmoji}\n` : ""}${roleGreet ? `${roleGreet}\n` : ""}${roleBye ? `${roleBye}\n` : ""}
   ${prompt.prompt}\n`;
 
   let messagesOpenAi = [];
@@ -3604,12 +3626,21 @@ const handleOpenAi = async (
     }
     messagesOpenAi.push({ role: "user", content: bodyMessage! });
 
-    const chat = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
+    const modelToUse = (integrationValue?.model) || "gpt-4.1-mini";
+    const payload: any = {
+      model: modelToUse,
       messages: messagesOpenAi,
       max_tokens: prompt.maxTokens,
       temperature: prompt.temperature
-    });
+    };
+    if (typeof integrationValue?.topP === "number") payload.top_p = integrationValue.topP;
+    if (typeof integrationValue?.presencePenalty === "number") payload.presence_penalty = integrationValue.presencePenalty;
+    if (typeof integrationValue?.frequencyPenalty === "number") payload.frequency_penalty = integrationValue.frequencyPenalty;
+    if (Array.isArray(integrationValue?.stopSequences)) payload.stop = integrationValue.stopSequences;
+    if (typeof integrationValue?.stopSequences === "string" && integrationValue.stopSequences.trim()) {
+      payload.stop = String(integrationValue.stopSequences).split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+    const chat = await openai.chat.completions.create(payload);
 
     let response = chat.choices[0].message?.content;
 
@@ -3675,12 +3706,21 @@ const handleOpenAi = async (
       }
     }
     messagesOpenAi.push({ role: "user", content: transcription.text });
-    const chat = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
+    const modelToUse2 = (integrationValue?.model) || "gpt-4.1-mini";
+    const payload2: any = {
+      model: modelToUse2,
       messages: messagesOpenAi,
       max_tokens: prompt.maxTokens,
       temperature: prompt.temperature
-    });
+    };
+    if (typeof integrationValue?.topP === "number") payload2.top_p = integrationValue.topP;
+    if (typeof integrationValue?.presencePenalty === "number") payload2.presence_penalty = integrationValue.presencePenalty;
+    if (typeof integrationValue?.frequencyPenalty === "number") payload2.frequency_penalty = integrationValue.frequencyPenalty;
+    if (Array.isArray(integrationValue?.stopSequences)) payload2.stop = integrationValue.stopSequences;
+    if (typeof integrationValue?.stopSequences === "string" && integrationValue.stopSequences.trim()) {
+      payload2.stop = String(integrationValue.stopSequences).split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+    const chat = await openai.chat.completions.create(payload2);
     let response = chat.choices[0].message?.content;
 
     if (response?.includes("Ação: Transferir para o setor de atendimento")) {

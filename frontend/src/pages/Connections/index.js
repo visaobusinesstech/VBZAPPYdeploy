@@ -806,6 +806,7 @@ const Connections = () => {
         searchPlaceholder={"Buscar..."}
         searchValue={searchParam}
         onSearchChange={setSearchParam}
+        rightFilters={null}
         navActions={
           <>
             <Button
