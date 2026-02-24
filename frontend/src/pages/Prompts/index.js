@@ -8,6 +8,7 @@ import {
   IconButton,
   InputAdornment,
   MenuItem,
+  Chip,
   Paper,
   Select,
   Switch,
@@ -43,8 +44,84 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "auto",
     ...theme.scrollbarStyles,
   },
+  mainPaperTight: {
+    paddingTop: theme.spacing(0)
+  },
+  card: {
+    background: "transparent",
+    border: "none",
+    borderRadius: 0,
+    padding: 0,
+    boxShadow: "none",
+    height: "100%"
+  },
+  cardTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#374151",
+    marginBottom: 6
+  },
+  labelSmall: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 4,
+    display: "block"
+  },
+  inputDense: {
+    marginTop: 2,
+    marginBottom: 6,
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: '#fff',
+      borderRadius: 10
+    },
+    '& .MuiOutlinedInput-input': {
+      padding: '6px 10px',
+      fontSize: 13,
+      lineHeight: 1.4
+    },
+    '& .MuiOutlinedInput-inputMultiline': {
+      fontSize: 13,
+      lineHeight: 1.4
+    },
+    '& input::placeholder': {
+      fontSize: 13,
+      opacity: 0.8
+    },
+    '& textarea::placeholder': {
+      fontSize: 13,
+      opacity: 0.8
+    }
+  },
+  selectWhite: {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: '#fff',
+      borderRadius: 10,
+    },
+    '& .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#e5e7eb',
+    },
+    '& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#d1d5db',
+    },
+    '& .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline': {
+      borderColor: '#cbd5e1',
+    },
+    '& .MuiSelect-select': {
+      backgroundColor: '#fff',
+      fontSize: 13,
+    },
+  },
   section: {
     marginBottom: theme.spacing(2)
+  },
+  switchRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 8,
+    backgroundColor: "#fff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 10
   },
   customTableCell: {
     display: "flex",
@@ -84,16 +161,43 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 8,
     marginBottom: theme.spacing(2)
   },
-  inlineForm: {
+  rightModelCard: {
+    background: "rgba(255,255,255,0.6)",
+    border: "1px solid rgba(229,231,235,0.6)",
+    borderRadius: 12,
     padding: theme.spacing(2),
-    border: "none",
-    borderRadius: 8,
-    marginBottom: theme.spacing(2)
+    boxShadow: "0 1px 2px rgba(15,23,42,0.04)",
+    height: "100%"
+  },
+  rightSection: {
+    borderTop: "1px solid #f1f5f9",
+    marginTop: 10,
+    paddingTop: 10
+  },
+  priceRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 12
+  },
+  tipBox: {
+    background: "#F9FAFB",
+    border: "1px dashed #e5e7eb",
+    borderRadius: 10,
+    padding: 10,
+    fontSize: 12,
+    color: "#4b5563",
+    marginTop: 10
   },
   brainWrapper: {
-    padding: theme.spacing(2),
-    borderRadius: 12,
-    background: "rgba(59,130,246,0.06)"
+    padding: 0,
+    borderRadius: 0,
+    background: "transparent"
+  },
+  summaryRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1)
   }
 }));
 
@@ -254,13 +358,15 @@ const Prompts = () => {
 
   useEffect(() => {
     async function fetchData() {
-      const planConfigs = await getPlanCompany(undefined, companyId);
-      if (!planConfigs.plan.useOpenAi) {
-        toast.error("Esta empresa não possui permissão para acessar essa página! Estamos lhe redirecionando.");
-        setTimeout(() => {
-          history.push(`/`)
-        }, 1000);
-      }
+      try {
+        const planConfigs = await getPlanCompany(undefined, companyId);
+        if (planConfigs && planConfigs.plan && !planConfigs.plan.useOpenAi) {
+          toast.error("Esta empresa não possui permissão para acessar essa página! Estamos lhe redirecionando.");
+          setTimeout(() => {
+            history.push(`/`);
+          }, 1000);
+        }
+      } catch (e) {}
     }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -541,7 +647,7 @@ const Prompts = () => {
   };
 
   const tabViewModes = [
-    { value: "integracao", label: "Integração", icon: <SettingsIcon /> },
+    { value: "integracao", label: "Integração", icon: <SiOpenai size={14} /> },
     { value: "cargo", label: "Cargo", icon: <WorkOutlineIcon /> },
     { value: "cerebro", label: "Cérebro", icon: <MemoryIcon /> },
     { value: "acoes", label: "Ações", icon: <FlashOnIcon /> },
@@ -562,179 +668,234 @@ const Prompts = () => {
             hideHeaderDivider
             hideNavDivider
             hideSearch
+            compactHeader
             viewModes={tabViewModes}
             currentViewMode={activeTab}
             onViewModeChange={setActiveTab}
           >
             {activeTab === "integracao" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Integração</Typography>
-                <div className={classes.formRow}>
-                  <div className={classes.statusRow}>
-                    <span className={integrationState.status.whatsapp ? classes.statusBadgeOk : classes.statusBadgeWarn}>
-                      WhatsApp {integrationState.status.whatsapp ? "OK" : "Não conectado"}
-                    </span>
-                    <span className={classes.statusBadgeWarn}>
-                      API Key {integrationState.apiKey ? "informada" : "não informada"}
-                    </span>
-                  </div>
-                </div>
-                <Grid container spacing={2} className={classes.formRow}>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
+                <Grid container spacing={2} className={classes.formRow} alignItems="flex-start">
                   <Grid item xs={12} md={6}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <Typography>Ativo</Typography>
+                    <Paper className={classes.card}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 8 }}>
+                        <div className={classes.switchRow}>
+                          <span className={classes.labelSmall}>Ativo</span>
                           <Switch
                             checked={integrationState.active}
                             onChange={(e) => setIntegrationState(prev => ({ ...prev, active: e.target.checked }))}
                             color="primary"
                           />
                         </div>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <Typography>Responder em grupos do WhatsApp</Typography>
+                        <div className={classes.switchRow}>
+                          <span className={classes.labelSmall}>Responder em grupos do WhatsApp</span>
                           <Switch
                             checked={advancedState.responderGrupo}
                             onChange={(e) => setAdvancedState(prev => ({ ...prev, responderGrupo: e.target.checked }))}
                             color="primary"
                           />
                         </div>
-                      </Grid>
-                      <Grid item xs={12}>
+                      </div>
+
+                      <span className={classes.labelSmall}>API Key</span>
+                      <TextField
+                        placeholder="sk-..."
+                        type={showApiKey ? "text" : "password"}
+                        value={integrationState.apiKey}
+                        onChange={(e) => setIntegrationState(prev => ({ ...prev, apiKey: e.target.value }))}
+                        fullWidth
+                        variant="outlined"
+                        size="small"
+                        className={classes.inputDense}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => setShowApiKey(s => !s)}>
+                                {showApiKey ? <VisibilityOff /> : <Visibility />}
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+
+                      <span className={classes.labelSmall}>Modelo</span>
+                      <Select
+                        fullWidth
+                        variant="outlined"
+                        value={integrationState.model}
+                        onChange={(e) => setIntegrationState(prev => ({ ...prev, model: e.target.value }))}
+                        className={`${classes.inputDense} ${classes.selectWhite}`}
+                      >
+                        {openAiModels.map(m => (
+                          <MenuItem key={m} value={m}>{m}</MenuItem>
+                        ))}
+                      </Select>
+
+                      <span className={classes.labelSmall}>Escopo</span>
+                      <Select
+                        fullWidth
+                        variant="outlined"
+                        value={integrationState.scope}
+                        onChange={(e) => setIntegrationState(prev => ({ ...prev, scope: e.target.value }))}
+                        className={`${classes.inputDense} ${classes.selectWhite}`}
+                      >
+                        <MenuItem value="Pessoal">Pessoal</MenuItem>
+                        <MenuItem value="Equipe">Equipe</MenuItem>
+                        <MenuItem value="Global">Global</MenuItem>
+                      </Select>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                        <div>
+                          <span className={classes.labelSmall}>top_p</span>
+                          <TextField
+                            value={integrationState.topP}
+                            onChange={(e) => setIntegrationState(prev => ({ ...prev, topP: Number(e.target.value) }))}
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            type="number"
+                            inputProps={{ step: "0.01", min: "0", max: "1" }}
+                            className={classes.inputDense}
+                          />
+                        </div>
+                        <div>
+                          <span className={classes.labelSmall}>presence_penalty</span>
+                          <TextField
+                            value={integrationState.presencePenalty}
+                            onChange={(e) => setIntegrationState(prev => ({ ...prev, presencePenalty: Number(e.target.value) }))}
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            type="number"
+                            inputProps={{ step: "0.1", min: "-2", max: "2" }}
+                            className={classes.inputDense}
+                          />
+                        </div>
+                        <div>
+                          <span className={classes.labelSmall}>frequency_penalty</span>
+                          <TextField
+                            value={integrationState.frequencyPenalty}
+                            onChange={(e) => setIntegrationState(prev => ({ ...prev, frequencyPenalty: Number(e.target.value) }))}
+                            fullWidth
+                            variant="outlined"
+                            size="small"
+                            type="number"
+                            inputProps={{ step: "0.1", min: "-2", max: "2" }}
+                            className={classes.inputDense}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: 10 }}>
+                        <span className={classes.labelSmall}>stop (separe por vírgula)</span>
                         <TextField
-                          label="API Key OpenAI"
-                          type={showApiKey ? "text" : "password"}
-                          value={integrationState.apiKey}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, apiKey: e.target.value }))}
-                          fullWidth
-                          variant="outlined"
-                          InputProps={{
-                            endAdornment: (
-                              <InputAdornment position="end">
-                                <IconButton onClick={() => setShowApiKey(s => !s)}>
-                                  {showApiKey ? <VisibilityOff /> : <Visibility />}
-                                </IconButton>
-                              </InputAdornment>
-                            )
-                          }}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Select
-                          fullWidth
-                          variant="outlined"
-                          value={integrationState.model}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, model: e.target.value }))}
-                        >
-                          {openAiModels.map(m => (
-                            <MenuItem key={m} value={m}>{m}</MenuItem>
-                          ))}
-                        </Select>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Select
-                          fullWidth
-                          variant="outlined"
-                          value={integrationState.scope}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, scope: e.target.value }))}
-                        >
-                          <MenuItem value="Pessoal">Escopo: Pessoal</MenuItem>
-                          <MenuItem value="Equipe">Escopo: Equipe</MenuItem>
-                          <MenuItem value="Global">Escopo: Global</MenuItem>
-                        </Select>
-                      </Grid>
-                      <Grid item xs={6} md={4}>
-                        <TextField
-                          label="top_p"
-                          value={integrationState.topP}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, topP: Number(e.target.value) }))}
-                          fullWidth
-                          variant="outlined"
-                          type="number"
-                          inputProps={{ step: "0.01", min: "0", max: "1" }}
-                        />
-                      </Grid>
-                      <Grid item xs={6} md={4}>
-                        <TextField
-                          label="presence_penalty"
-                          value={integrationState.presencePenalty}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, presencePenalty: Number(e.target.value) }))}
-                          fullWidth
-                          variant="outlined"
-                          type="number"
-                          inputProps={{ step: "0.1", min: "-2", max: "2" }}
-                        />
-                      </Grid>
-                      <Grid item xs={12} md={4}>
-                        <TextField
-                          label="frequency_penalty"
-                          value={integrationState.frequencyPenalty}
-                          onChange={(e) => setIntegrationState(prev => ({ ...prev, frequencyPenalty: Number(e.target.value) }))}
-                          fullWidth
-                          variant="outlined"
-                          type="number"
-                          inputProps={{ step: "0.1", min: "-2", max: "2" }}
-                        />
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          label="stop (separe por vírgula)"
                           value={integrationState.stopSequences}
                           onChange={(e) => setIntegrationState(prev => ({ ...prev, stopSequences: e.target.value }))}
                           fullWidth
                           variant="outlined"
-                          placeholder="ex.: ###, FIM"
+                          size="small"
+                          placeholder="###, FIM"
+                          className={classes.inputDense}
                         />
-                      </Grid>
-                    </Grid>
+                      </div>
+
+                      <div className={classes.formRow} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+                        <Switch
+                          checked={integrationState.aplicarTodos}
+                          onChange={(e) => setIntegrationState(prev => ({ ...prev, aplicarTodos: e.target.checked }))}
+                          color="primary"
+                          size="small"
+                        />
+                        <Typography>Aplicar configurações a todas as filas</Typography>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                        <Button color="primary" variant="contained" onClick={handleSaveIntegration} size="small">
+                          Salvar Integração
+                        </Button>
+                      </div>
+                    </Paper>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <div className={classes.inlineForm}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                        <SiOpenai size={22} color={(modelInfo[integrationState.model] && modelInfo[integrationState.model].iconColor) || "#0ea5a4"} />
-                        <Typography variant="subtitle1" style={{ fontWeight: 600 }}>
-                          {(modelInfo[integrationState.model] && modelInfo[integrationState.model].title) || integrationState.model}
-                        </Typography>
+                    <Paper className={classes.rightModelCard}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 6 }}>
+                        <SiOpenai size={24} color={"#111827"} />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: 14 }}>
+                            {(modelInfo[integrationState.model] && modelInfo[integrationState.model].title) || integrationState.model}
+                          </div>
+                          <div style={{ fontSize: 12, color: "#6b7280" }}>
+                            {(modelInfo[integrationState.model] && modelInfo[integrationState.model].desc) || "Modelo selecionado da OpenAI."} Ideal para: Chat, automação.
+                          </div>
+                        </div>
                       </div>
-                      <Typography variant="body2" color="textSecondary" style={{ marginBottom: 6 }}>
-                        {(modelInfo[integrationState.model] && modelInfo[integrationState.model].desc) || "Modelo selecionado da OpenAI."}
-                      </Typography>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                        <span style={{ fontSize: 12 }}><b>Contexto:</b> {modelInfo[integrationState.model]?.context || "-"}</span>
-                        <span style={{ fontSize: 12 }}><b>Saída Máx.:</b> {modelInfo[integrationState.model]?.output || "-"}</span>
-                        <span style={{ fontSize: 12 }}><b>Velocidade:</b> {modelInfo[integrationState.model]?.speed || "-"}</span>
-                        <span style={{ fontSize: 12 }}><b>Qualidade:</b> {modelInfo[integrationState.model]?.quality || "-"}</span>
-                        <span style={{ fontSize: 12 }}><b>Custo:</b> {modelInfo[integrationState.model]?.cost || "-"}</span>
+
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, fontSize: 12 }}>
+                        <div>Contexto: <b>{modelInfo[integrationState.model]?.context || "-"}</b></div>
+                        <div>Saída Máx.: <b>{modelInfo[integrationState.model]?.output || "-"}</b></div>
+                        <div>Velocidade: <b>{modelInfo[integrationState.model]?.speed || "-"}</b></div>
+                        <div>Qualidade: <b>{modelInfo[integrationState.model]?.quality || "-"}</b></div>
+                        <div>Custo: <b>{modelInfo[integrationState.model]?.cost || "-"}</b></div>
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 8 }}>
-                        <InfoOutlined fontSize="small" color="action" />
-                        <Typography variant="caption">
-                          Conexão API: {integrationState.apiKey ? "Ativa" : "Indisponível"}
-                        </Typography>
+
+                      <div className={classes.rightSection} style={{ fontSize: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Resumo da Configuração</div>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                          <div>Modelo: <b>{modelInfo[integrationState.model]?.title || integrationState.model}</b></div>
+                          <div>Escopo: <b>{integrationState.scope}</b></div>
+                          <div>Status: <b>{integrationState.active ? "Pronto" : "Desativado"}</b></div>
+                          <div>Grupos do WhatsApp: <b>{advancedState.responderGrupo ? "Sim" : "Não"}</b></div>
+                        </div>
                       </div>
+
+                      <div className={classes.rightSection}>
+                        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>Preços (por 1M tokens)</div>
+                        <div className={classes.priceRow}>
+                          <span>Entrada</span>
+                          <span>$0.15/1M</span>
+                        </div>
+                        <div className={classes.priceRow} style={{ marginTop: 4 }}>
+                          <span>Saída</span>
+                          <span>$0.60/1M</span>
+                        </div>
+                      </div>
+
+                      <div className={classes.rightSection} style={{ fontSize: 12 }}>
+                        <div style={{ fontWeight: 600, marginBottom: 6 }}>Conexão Ativa</div>
+                        <div style={{ display: "flex", justifyContent: "space-between" }}>
+                          <span>Status API</span>
+                          <span>{integrationState.apiKey ? "Operacional" : "Indisponível"}</span>
+                        </div>
+                      </div>
+
+                      {/* dica removida para compactar o card */}
+                    </Paper>
+                    <div className={classes.statusRow} style={{ marginTop: 10 }}>
+                      <span className={integrationState.status.whatsapp ? classes.statusBadgeOk : classes.statusBadgeWarn}>
+                        WhatsApp {integrationState.status.whatsapp ? "OK" : "Não conectado"}
+                      </span>
+                      <span className={integrationState.apiKey ? classes.statusBadgeOk : classes.statusBadgeWarn}>
+                        API Key {integrationState.apiKey ? "informada" : "não informada"}
+                      </span>
                     </div>
                   </Grid>
                 </Grid>
-                <div className={classes.formRow} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <Switch
-                    checked={integrationState.aplicarTodos}
-                    onChange={(e) => setIntegrationState(prev => ({ ...prev, aplicarTodos: e.target.checked }))}
-                    color="primary"
-                  />
-                  <Typography>Aplicar configurações a todas as filas</Typography>
-                </div>
-                <Button color="primary" variant="contained" onClick={handleSaveIntegration}>
-                  Salvar Integração
-                </Button>
+                
               </div>
             )}
 
             {activeTab === "cargo" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Cargo</Typography>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
+                  <Grid item xs={12}>
+                    {(roleState.funcao || roleState.formalidade || roleState.personalidade || roleState.idioma) ? (
+                      <div className={classes.summaryRow}>
+                        {roleState.funcao ? <Chip size="small" label={`Função: ${roleState.funcao}`} /> : null}
+                        {roleState.formalidade ? <Chip size="small" label={`Formalidade: ${roleState.formalidade}`} /> : null}
+                        {roleState.personalidade ? <Chip size="small" label={`Personalidade: ${roleState.personalidade}`} /> : null}
+                        {roleState.idioma ? <Chip size="small" label={`Idioma: ${roleState.idioma}`} /> : null}
+                      </div>
+                    ) : null}
+                  </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
                       label="Nome do Agente"
@@ -742,15 +903,54 @@ const Prompts = () => {
                       onChange={(e) => setRoleState(prev => ({ ...prev, agente: e.target.value }))}
                       fullWidth
                       variant="outlined"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
+                    />
+                    <TextField
+                      label="Saudação padrão"
+                      value={roleState.saudacao || ""}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, saudacao: e.target.value }))}
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
+                    />
+                    <TextField
+                      label="Despedida padrão"
+                      value={roleState.despedida || ""}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, despedida: e.target.value }))}
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
+                    />
+                    <TextField
+                      label="Instruções"
+                      value={roleState.instrucoes}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, instrucoes: e.target.value }))}
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      multiline
+                      rows={6}
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <Select
+                    <TextField
+                      select
+                      label="Função"
                       fullWidth
                       variant="outlined"
+                      size="small"
                       value={roleState.funcao || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, funcao: e.target.value }))}
-                      displayEmpty
+                      className={`${classes.inputDense} ${classes.selectWhite}`}
+                      InputLabelProps={{ shrink: true }}
                     >
                       <MenuItem value="" disabled>Selecione a função</MenuItem>
                       <MenuItem value="Atendimento ao Cliente"><WorkOutlineIcon fontSize="small" style={{ marginRight: 6 }} />Atendimento ao Cliente</MenuItem>
@@ -759,43 +959,49 @@ const Prompts = () => {
                       <MenuItem value="Agente de Agendamento"><CategoryIcon fontSize="small" style={{ marginRight: 6 }} />Agente de Agendamento</MenuItem>
                       <MenuItem value="Cobrança"><Business fontSize="small" style={{ marginRight: 6 }} />Cobrança</MenuItem>
                       <MenuItem value="Marketing"><InfoOutlined fontSize="small" style={{ marginRight: 6 }} />Marketing</MenuItem>
-                    </Select>
-                  </Grid>
-                <Grid item xs={12} md={6}>
-                  <Select
-                    fullWidth
-                    variant="outlined"
-                    value={roleState.formalidade || ""}
-                    onChange={(e) => setRoleState(prev => ({ ...prev, formalidade: e.target.value }))}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>Selecione a formalidade</MenuItem>
-                    <MenuItem value="Formal"><Gavel fontSize="small" style={{ marginRight: 6 }} />Formal</MenuItem>
-                    <MenuItem value="Neutro"><InfoOutlined fontSize="small" style={{ marginRight: 6 }} />Neutro</MenuItem>
-                    <MenuItem value="Informal"><Flag fontSize="small" style={{ marginRight: 6 }} />Informal</MenuItem>
-                  </Select>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Select
-                    fullWidth
-                    variant="outlined"
-                    value={roleState.idioma || ""}
-                    onChange={(e) => setRoleState(prev => ({ ...prev, idioma: e.target.value }))}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>Selecione o idioma</MenuItem>
-                    <MenuItem value="pt-BR"><Flag fontSize="small" style={{ marginRight: 6 }} />Português (Brasil)</MenuItem>
-                    <MenuItem value="en"><Flag fontSize="small" style={{ marginRight: 6 }} />Inglês</MenuItem>
-                    <MenuItem value="es"><Flag fontSize="small" style={{ marginRight: 6 }} />Espanhol</MenuItem>
-                  </Select>
-                </Grid>
-                  <Grid item xs={12}>
-                    <Select
+                    </TextField>
+                    <TextField
+                      select
+                      label="Formalidade"
                       fullWidth
                       variant="outlined"
+                      size="small"
+                      value={roleState.formalidade || ""}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, formalidade: e.target.value }))}
+                      className={`${classes.inputDense} ${classes.selectWhite}`}
+                      InputLabelProps={{ shrink: true }}
+                    >
+                      <MenuItem value="" disabled>Selecione a formalidade</MenuItem>
+                      <MenuItem value="Formal"><Gavel fontSize="small" style={{ marginRight: 6 }} />Formal</MenuItem>
+                      <MenuItem value="Neutro"><InfoOutlined fontSize="small" style={{ marginRight: 6 }} />Neutro</MenuItem>
+                      <MenuItem value="Informal"><Flag fontSize="small" style={{ marginRight: 6 }} />Informal</MenuItem>
+                    </TextField>
+                    <TextField
+                      select
+                      label="Idioma"
+                      fullWidth
+                      variant="outlined"
+                      size="small"
+                      value={roleState.idioma || ""}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, idioma: e.target.value }))}
+                      className={`${classes.inputDense} ${classes.selectWhite}`}
+                      InputLabelProps={{ shrink: true }}
+                    >
+                      <MenuItem value="" disabled>Selecione o idioma</MenuItem>
+                      <MenuItem value="pt-BR"><Flag fontSize="small" style={{ marginRight: 6 }} />Português (Brasil)</MenuItem>
+                      <MenuItem value="en"><Flag fontSize="small" style={{ marginRight: 6 }} />Inglês</MenuItem>
+                      <MenuItem value="es"><Flag fontSize="small" style={{ marginRight: 6 }} />Espanhol</MenuItem>
+                    </TextField>
+                    <TextField
+                      select
+                      label="Personalidade"
+                      fullWidth
+                      variant="outlined"
+                      size="small"
                       value={roleState.personalidade || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, personalidade: e.target.value }))}
-                      displayEmpty
+                      className={`${classes.inputDense} ${classes.selectWhite}`}
+                      InputLabelProps={{ shrink: true }}
                     >
                       <MenuItem value="" disabled>Selecione a personalidade</MenuItem>
                       <MenuItem value="Formal"><Gavel fontSize="small" style={{ marginRight: 6 }} />Formal</MenuItem>
@@ -804,50 +1010,23 @@ const Prompts = () => {
                       <MenuItem value="Empático"><Business fontSize="small" style={{ marginRight: 6 }} />Empático</MenuItem>
                       <MenuItem value="Criativo"><Flag fontSize="small" style={{ marginRight: 6 }} />Criativo</MenuItem>
                       <MenuItem value="Técnico"><WorkOutlineIcon fontSize="small" style={{ marginRight: 6 }} />Técnico</MenuItem>
-                    </Select>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Select
-                    fullWidth
-                    variant="outlined"
-                    value={roleState.emojis || ""}
-                    onChange={(e) => setRoleState(prev => ({ ...prev, emojis: e.target.value }))}
-                    displayEmpty
-                  >
-                    <MenuItem value="" disabled>Uso de emojis</MenuItem>
-                    <MenuItem value="Nunca"><Gavel fontSize="small" style={{ marginRight: 6 }} />Nunca</MenuItem>
-                    <MenuItem value="Moderado"><InfoOutlined fontSize="small" style={{ marginRight: 6 }} />Com moderação</MenuItem>
-                    <MenuItem value="Liberal"><Flag fontSize="small" style={{ marginRight: 6 }} />Liberal</MenuItem>
-                  </Select>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Saudação padrão"
-                    value={roleState.saudacao || ""}
-                    onChange={(e) => setRoleState(prev => ({ ...prev, saudacao: e.target.value }))}
-                    fullWidth
-                    variant="outlined"
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    label="Despedida padrão"
-                    value={roleState.despedida || ""}
-                    onChange={(e) => setRoleState(prev => ({ ...prev, despedida: e.target.value }))}
-                    fullWidth
-                    variant="outlined"
-                  />
-                </Grid>
-                  <Grid item xs={12}>
+                    </TextField>
                     <TextField
-                      label="Instruções"
-                      value={roleState.instrucoes}
-                      onChange={(e) => setRoleState(prev => ({ ...prev, instrucoes: e.target.value }))}
+                      select
+                      label="Uso de emojis"
                       fullWidth
                       variant="outlined"
-                      multiline
-                      rows={6}
-                    />
+                      size="small"
+                      value={roleState.emojis || ""}
+                      onChange={(e) => setRoleState(prev => ({ ...prev, emojis: e.target.value }))}
+                      className={`${classes.inputDense} ${classes.selectWhite}`}
+                      InputLabelProps={{ shrink: true }}
+                    >
+                      <MenuItem value="" disabled>Uso de emojis</MenuItem>
+                      <MenuItem value="Nunca"><Gavel fontSize="small" style={{ marginRight: 6 }} />Nunca</MenuItem>
+                      <MenuItem value="Moderado"><InfoOutlined fontSize="small" style={{ marginRight: 6 }} />Com moderação</MenuItem>
+                      <MenuItem value="Liberal"><Flag fontSize="small" style={{ marginRight: 6 }} />Liberal</MenuItem>
+                    </TextField>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <TextField
@@ -856,9 +1035,12 @@ const Prompts = () => {
                       onChange={(e) => setRoleState(prev => ({ ...prev, empresaContexto: e.target.value }))}
                       fullWidth
                       variant="outlined"
+                      size="small"
                       multiline
                       rows={3}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Business color="action" /></InputAdornment> }}
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -868,9 +1050,12 @@ const Prompts = () => {
                       onChange={(e) => setRoleState(prev => ({ ...prev, objetivoAgente: e.target.value }))}
                       fullWidth
                       variant="outlined"
+                      size="small"
                       multiline
                       rows={3}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Flag color="action" /></InputAdornment> }}
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -880,9 +1065,12 @@ const Prompts = () => {
                       onChange={(e) => setRoleState(prev => ({ ...prev, regrasRestricoes: e.target.value }))}
                       fullWidth
                       variant="outlined"
+                      size="small"
                       multiline
                       rows={3}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Gavel color="action" /></InputAdornment> }}
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -892,117 +1080,137 @@ const Prompts = () => {
                       onChange={(e) => setRoleState(prev => ({ ...prev, nichoEmpresa: e.target.value }))}
                       fullWidth
                       variant="outlined"
+                      size="small"
                       InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon color="action" /></InputAdornment> }}
+                      InputLabelProps={{ shrink: true }}
+                      className={classes.inputDense}
                     />
                   </Grid>
                 </Grid>
-                <Button color="primary" variant="contained" onClick={handleSaveRole}>
-                  Salvar Cargo
-                </Button>
+                <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                  <Button color="primary" variant="contained" onClick={handleSaveRole} size="small">
+                    Salvar Cargo
+                  </Button>
+                </div>
               </div>
             )}
 
             {activeTab === "cerebro" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Cérebro</Typography>
-                <div className={`${classes.section} ${classes.brainWrapper}`}>
-                  <Typography variant="subtitle1">Arquivos</Typography>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => setBrainFiles(Array.from(e.target.files || []))}
-                    style={{ marginTop: 8, marginBottom: 8 }}
-                  />
-                  <div>
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      onClick={handleSendBrainFiles}
-                      disabled={!brainFiles || brainFiles.length === 0}
-                    >
-                      Enviar Arquivos
-                    </Button>
-                  </div>
-                </div>
-                <div className={`${classes.section} ${classes.brainWrapper}`}>
-                  <Typography variant="subtitle1">Sites</Typography>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
-                    <TextField
-                      placeholder="https://..."
-                      value={newWebsite}
-                      onChange={(e) => setNewWebsite(e.target.value)}
-                      fullWidth
-                      variant="outlined"
-                    />
-                    <Button variant="outlined" onClick={handleAddWebsite}>Adicionar</Button>
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    {(brainState.websites || []).map((url, idx) => (
-                      <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #eee" }}>
-                        <span>{url}</span>
-                        <Button size="small" onClick={() => handleRemoveWebsite(idx)}>Remover</Button>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
+                <Grid container spacing={2} className={classes.formRow}>
+                  <Grid item xs={12} md={6}>
+                    <div className={classes.cardTitle}>Arquivos e Sites</div>
+                    <div className={`${classes.section} ${classes.brainWrapper}`}>
+                      <Typography variant="subtitle1">Arquivos</Typography>
+                      <input
+                        type="file"
+                        multiple
+                        onChange={(e) => setBrainFiles(Array.from(e.target.files || []))}
+                        style={{ marginTop: 8, marginBottom: 8 }}
+                      />
+                      <div>
+                        <Button
+                          color="primary"
+                          variant="contained"
+                          onClick={handleSendBrainFiles}
+                          disabled={!brainFiles || brainFiles.length === 0}
+                        >
+                          Enviar Arquivos
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <div className={`${classes.section} ${classes.brainWrapper}`}>
-                  <Typography variant="subtitle1">Q&A</Typography>
-                  <Grid container spacing={2} className={classes.formRow}>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Pergunta"
-                        value={newQa.pergunta}
-                        onChange={(e) => setNewQa(prev => ({ ...prev, pergunta: e.target.value }))}
-                        fullWidth
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        label="Categoria"
-                        value={newQa.categoria}
-                        onChange={(e) => setNewQa(prev => ({ ...prev, categoria: e.target.value }))}
-                        fullWidth
-                        variant="outlined"
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        label="Resposta"
-                        value={newQa.resposta}
-                        onChange={(e) => setNewQa(prev => ({ ...prev, resposta: e.target.value }))}
-                        fullWidth
-                        variant="outlined"
-                        multiline
-                        rows={4}
-                      />
-                    </Grid>
+                    </div>
+                    <div className={`${classes.section} ${classes.brainWrapper}`}>
+                      <Typography variant="subtitle1">Sites</Typography>
+                      <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 8 }}>
+                        <TextField
+                          placeholder="https://..."
+                          value={newWebsite}
+                          onChange={(e) => setNewWebsite(e.target.value)}
+                          fullWidth
+                          variant="outlined"
+                          className={classes.inputDense}
+                        />
+                        <Button variant="outlined" onClick={handleAddWebsite}>Adicionar</Button>
+                      </div>
+                      <div style={{ marginTop: 8 }}>
+                        {(brainState.websites || []).map((url, idx) => (
+                          <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid #eee" }}>
+                            <span>{url}</span>
+                            <Button size="small" onClick={() => handleRemoveWebsite(idx)}>Remover</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </Grid>
-                  <Button variant="outlined" onClick={handleAddQa}>Adicionar Q&A</Button>
-                  <div style={{ marginTop: 12 }}>
-                    {(brainState.qna || []).map((qa, idx) => (
-                      <div key={idx} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <Typography style={{ fontWeight: 600 }}>{qa.pergunta}</Typography>
-                          <Button size="small" onClick={() => handleRemoveQa(idx)}>Remover</Button>
-                        </div>
-                        {qa.categoria ? <Typography variant="caption">Categoria: {qa.categoria}</Typography> : null}
-                        <Typography>{qa.resposta}</Typography>
+                  <Grid item xs={12} md={6}>
+                    <div className={classes.cardTitle}>Q&A</div>
+                    <div className={`${classes.section} ${classes.brainWrapper}`}>
+                      <Grid container spacing={2} className={classes.formRow}>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            label="Pergunta"
+                            value={newQa.pergunta}
+                            onChange={(e) => setNewQa(prev => ({ ...prev, pergunta: e.target.value }))}
+                            fullWidth
+                            variant="outlined"
+                            InputLabelProps={{ shrink: true }}
+                            className={classes.inputDense}
+                          />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                          <TextField
+                            label="Categoria"
+                            value={newQa.categoria}
+                            onChange={(e) => setNewQa(prev => ({ ...prev, categoria: e.target.value }))}
+                            fullWidth
+                            variant="outlined"
+                            InputLabelProps={{ shrink: true }}
+                            className={classes.inputDense}
+                          />
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            label="Resposta"
+                            value={newQa.resposta}
+                            onChange={(e) => setNewQa(prev => ({ ...prev, resposta: e.target.value }))}
+                            fullWidth
+                            variant="outlined"
+                            multiline
+                            rows={4}
+                            InputLabelProps={{ shrink: true }}
+                            className={classes.inputDense}
+                          />
+                        </Grid>
+                      </Grid>
+                      <Button variant="outlined" onClick={handleAddQa}>Adicionar Q&A</Button>
+                      <div style={{ marginTop: 12 }}>
+                        {(brainState.qna || []).map((qa, idx) => (
+                          <div key={idx} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <Typography style={{ fontWeight: 600 }}>{qa.pergunta}</Typography>
+                              <Button size="small" onClick={() => handleRemoveQa(idx)}>Remover</Button>
+                            </div>
+                            {qa.categoria ? <Typography variant="caption">Categoria: {qa.categoria}</Typography> : null}
+                            <Typography>{qa.resposta}</Typography>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <Button color="primary" variant="contained" onClick={handleSaveBrain}>
-                  Salvar Cérebro
-                </Button>
+                    </div>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Button color="primary" variant="contained" onClick={handleSaveBrain}>
+                      Salvar Cérebro
+                    </Button>
+                  </Grid>
+                </Grid>
               </div>
             )}
 
             {activeTab === "acoes" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Ações do Agente</Typography>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
-                  <Grid item xs={12} md={4}>
+                  <Grid item xs={12} md={6}>
+                    <div className={classes.cardTitle}>Ações disponíveis</div>
                     {[
                       { name: "Agendamento", desc: "Cria compromissos e lembretes" },
                       { name: "Criar Lead", desc: "Gera leads na área de Vendas" },
@@ -1026,8 +1234,7 @@ const Prompts = () => {
                       </div>
                     ))}
                   </Grid>
-                  <Grid item xs={12} md={8}>
-                    <Typography variant="subtitle1">Configuração da Ação</Typography>
+                  <Grid item xs={12} md={6}>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
                         <TextField
@@ -1036,6 +1243,8 @@ const Prompts = () => {
                           variant="outlined"
                           value={actionsState.draft?.name || actionsState.selected || ""}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), name: e.target.value } }))}
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
                         />
                       </Grid>
                       <Grid item xs={12} md={6}>
@@ -1045,6 +1254,8 @@ const Prompts = () => {
                           variant="outlined"
                           value={actionsState.draft?.objetivo || ""}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), objetivo: e.target.value } }))}
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1055,6 +1266,7 @@ const Prompts = () => {
                           displayEmpty
                           value={(actionsState.draft?.tabelas || [])}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), tabelas: e.target.value } }))}
+                          className={`${classes.inputDense} ${classes.selectWhite}`}
                         >
                           {[
                             { v: "tickets", l: "Tickets" },
@@ -1076,6 +1288,7 @@ const Prompts = () => {
                           value={actionsState.draft?.hook || ""}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), hook: e.target.value } }))}
                           displayEmpty
+                          className={`${classes.inputDense} ${classes.selectWhite}`}
                         >
                           <MenuItem value="" disabled>Selecione um Hook</MenuItem>
                           <MenuItem value="beforeCreate">Antes de criar (beforeCreate)</MenuItem>
@@ -1093,6 +1306,7 @@ const Prompts = () => {
                           rows={3}
                           value={actionsState.draft?.regras || ""}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), regras: e.target.value } }))}
+                          className={classes.inputDense}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1134,15 +1348,14 @@ const Prompts = () => {
             )}
 
             {activeTab === "avancado" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Avançado</Typography>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
-                  <Grid item xs={12}>
-                    <Typography variant="subtitle1">Exemplos de Conversação</Typography>
+                  <Grid item xs={12} md={6}>
+                    <div className={classes.cardTitle}>Exemplos de Conversação</div>
                     <Grid container spacing={1}>
                       {(advancedState.examples || [{ user: "", assistant: "" }]).map((ex, idx) => (
                         <>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12}>
                             <TextField
                               placeholder="Mensagem do usuário"
                               value={ex.user}
@@ -1153,9 +1366,10 @@ const Prompts = () => {
                               }}
                               fullWidth
                               variant="outlined"
+                              className={classes.inputDense}
                             />
                           </Grid>
-                          <Grid item xs={12} md={6}>
+                          <Grid item xs={12}>
                             <TextField
                               placeholder="Resposta do assistente"
                               value={ex.assistant}
@@ -1166,6 +1380,7 @@ const Prompts = () => {
                               }}
                               fullWidth
                               variant="outlined"
+                              className={classes.inputDense}
                             />
                           </Grid>
                         </>
@@ -1175,83 +1390,101 @@ const Prompts = () => {
                       </Grid>
                     </Grid>
                   </Grid>
-                  <Grid item xs={12} md={4}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                      <Typography>Permitir responder em grupos</Typography>
-                      <Switch
-                        checked={advancedState.responderGrupo}
-                        onChange={(e) => setAdvancedState(prev => ({ ...prev, responderGrupo: e.target.checked }))}
-                        color="primary"
-                      />
-                    </div>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Timeout de Inatividade (minutos)"
-                      value={advancedState.timeoutMinutes || ""}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, timeoutMinutes: Number(e.target.value) }))}
-                      fullWidth
-                      variant="outlined"
-                      type="number"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Mensagem de boas-vindas"
-                      value={advancedState.welcomeMessage}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, welcomeMessage: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Mensagem de despedida"
-                      value={advancedState.farewellMessage}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, farewellMessage: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Mensagem de transferência"
-                      value={advancedState.transferMessage}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, transferMessage: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <Select
-                      value={advancedState.voice}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, voice: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    >
-                      <MenuItem value="texto">Texto</MenuItem>
-                      <MenuItem value="pt-BR-FranciscaNeural">pt-BR-FranciscaNeural</MenuItem>
-                      <MenuItem value="pt-BR-AntonioNeural">pt-BR-AntonioNeural</MenuItem>
-                      <MenuItem value="pt-BR-BrendaNeural">pt-BR-BrendaNeural</MenuItem>
-                    </Select>
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Voice Key"
-                      value={advancedState.voiceKey}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, voiceKey: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    />
-                  </Grid>
-                  <Grid item xs={12} md={4}>
-                    <TextField
-                      label="Voice Region"
-                      value={advancedState.voiceRegion}
-                      onChange={(e) => setAdvancedState(prev => ({ ...prev, voiceRegion: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                    />
+                  <Grid item xs={12} md={6}>
+                    <div className={classes.cardTitle}>Configurações</div>
+                    <Grid container spacing={2}>
+                      <Grid item xs={12}>
+                        <div className={classes.switchRow}>
+                          <Typography>Permitir responder em grupos</Typography>
+                          <Switch
+                            checked={advancedState.responderGrupo}
+                            onChange={(e) => setAdvancedState(prev => ({ ...prev, responderGrupo: e.target.checked }))}
+                            color="primary"
+                          />
+                        </div>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Timeout de Inatividade (minutos)"
+                          value={advancedState.timeoutMinutes || ""}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, timeoutMinutes: Number(e.target.value) }))}
+                          fullWidth
+                          variant="outlined"
+                          type="number"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Mensagem de boas-vindas"
+                          value={advancedState.welcomeMessage}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, welcomeMessage: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Mensagem de despedida"
+                          value={advancedState.farewellMessage}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, farewellMessage: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Mensagem de transferência"
+                          value={advancedState.transferMessage}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, transferMessage: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Select
+                          value={advancedState.voice}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, voice: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          className={`${classes.inputDense} ${classes.selectWhite}`}
+                        >
+                          <MenuItem value="texto">Texto</MenuItem>
+                          <MenuItem value="pt-BR-FranciscaNeural">pt-BR-FranciscaNeural</MenuItem>
+                          <MenuItem value="pt-BR-AntonioNeural">pt-BR-AntonioNeural</MenuItem>
+                          <MenuItem value="pt-BR-BrendaNeural">pt-BR-BrendaNeural</MenuItem>
+                        </Select>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Voice Key"
+                          value={advancedState.voiceKey}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, voiceKey: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                      <Grid item xs={12}>
+                        <TextField
+                          label="Voice Region"
+                          value={advancedState.voiceRegion}
+                          onChange={(e) => setAdvancedState(prev => ({ ...prev, voiceRegion: e.target.value }))}
+                          fullWidth
+                          variant="outlined"
+                          InputLabelProps={{ shrink: true }}
+                          className={classes.inputDense}
+                        />
+                      </Grid>
+                    </Grid>
                   </Grid>
                 </Grid>
                 <Button variant="contained" color="primary" onClick={handleSaveAdvanced}>
@@ -1261,8 +1494,7 @@ const Prompts = () => {
             )}
 
             {activeTab === "teste" && (
-              <div className={classes.mainPaper}>
-                <Typography variant="h6">Teste do Agente</Typography>
+              <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 {!integrationState.apiKey ? (
                   <Typography variant="body2" color="textSecondary">Informe sua API Key em Integração para testar o chat.</Typography>
                 ) : null}

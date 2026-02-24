@@ -152,7 +152,7 @@ const AllConnections = ({ renderAsTab }) => {
   );
 
   const history = useHistory();
-  if (!user.super) {
+  if (!user.super && !renderAsTab) {
     history.push("/tickets");
   }
 
@@ -239,11 +239,9 @@ const AllConnections = ({ renderAsTab }) => {
 
   const handleOpenWhatsAppModal = (whatsappsFilter, comp) => {
     setSelectedWhatsApp(null);
+    setFilterConnections(whatsappsFilter || []);
+    setCompanyWhatsApps(comp || null);
     setWhatsAppModalOpen(true);
-    if (whatsappsFilter?.length > 0) {
-      setFilterConnections(whatsappsFilter);
-      setCompanyWhatsApps(comp);
-    }
   };
 
   const handleCloseWhatsAppModal = useCallback(() => {

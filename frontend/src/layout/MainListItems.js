@@ -53,7 +53,6 @@ import BusinessIcon from "@material-ui/icons/Business";
 import ConfirmationNumberOutlinedIcon from "@material-ui/icons/ConfirmationNumberOutlined";
 import AndroidIcon from "@material-ui/icons/Android";
 import BusinessCenterIcon from "@material-ui/icons/BusinessCenter";
-import MonetizationOnIcon from "@material-ui/icons/MonetizationOn";
 import StoreIcon from "@material-ui/icons/Store";
 import FolderIcon from "@material-ui/icons/Folder";
 import EmailIcon from "@material-ui/icons/Email";
@@ -697,15 +696,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               tooltip={collapsed}
             />
           )}
-          {user?.email?.toLowerCase() === "admin@admin.com" && (
-            <ListItemLink
-              to="/settings?tab=companies"
-              primary="Assinaturas"
-              icon={<MonetizationOnIcon />}
-              tooltip={collapsed}
-              collapsed={collapsed}
-            />
-          )}
+          
         </>
       )}
 

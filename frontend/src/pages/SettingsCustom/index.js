@@ -269,13 +269,6 @@ const SettingsCustom = () => {
               <TabPanel
                 className={classes.container}
                 value={tab}
-                name={"connections"}
-              >
-                <AllConnections renderAsTab={true} />
-              </TabPanel>
-              <TabPanel
-                className={classes.container}
-                value={tab}
                 name={"integrations"}
               >
                 <QueueIntegration renderAsTab={true} />

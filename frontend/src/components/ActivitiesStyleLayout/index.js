@@ -254,6 +254,7 @@ const ActivitiesStyleLayout = ({
   hideNavDivider = false,
   hideHeaderDivider = false,
   rightFilters,
+  hideDefaultRightFilters = false,
   rootBackground,
   compactHeader = false,
   transparentHeader = false,
@@ -282,7 +283,13 @@ const ActivitiesStyleLayout = ({
       >
         <div className={classes.headerContent} style={compactHeader ? { padding: 0 } : undefined}>
           {viewModes.length > 0 && (
-            <div className={classes.navRow} style={hideNavDivider ? { borderBottom: 'none' } : undefined}>
+            <div
+              className={classes.navRow}
+              style={{
+                ...(hideNavDivider ? { borderBottom: 'none' } : undefined),
+                ...(compactHeader ? { paddingTop: 4, paddingBottom: 4, paddingLeft: 8, paddingRight: 8 } : undefined)
+              }}
+            >
               {/* Menu Icon for collapsed state */}
               {!drawerOpen && setDrawerOpen && (
                 <IconButton 
@@ -369,30 +376,35 @@ const ActivitiesStyleLayout = ({
               </div>
 
               {/* Direita: Filtros */}
-              <div className={classes.rightFilter}>{rightFilters ? (typeof rightFilters === "function" ? rightFilters({ classes }) : rightFilters) : (
-                <>
-                  <div className={classes.filterItem}>
-                    <Typography className={classes.filterLabel}>Pipeline Ativa</Typography>
-                    <ExpandMoreIcon className={classes.chevronIcon} />
-                  </div>
-                  <div className={classes.filterItem}>
-                    <Typography className={classes.filterLabel}>Responsável</Typography>
-                    <ExpandMoreIcon className={classes.chevronIcon} />
-                  </div>
-                  <div className={classes.filterItem}>
-                    <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
-                    <ExpandMoreIcon className={classes.chevronIcon} />
-                  </div>
-                  <div className={classes.filterItem}>
-                    <CalendarIcon className={classes.calendarIcon} />
-                    <Typography className={classes.filterLabel}>Período</Typography>
-                  </div>
-                  <div className={classes.filterItem}>
-                    <Typography className={classes.filterLabel}>Todos</Typography>
-                    <ExpandMoreIcon className={classes.chevronIcon} />
-                  </div>
-                </>
-              )}</div>
+              <div className={classes.rightFilter}>
+                {rightFilters !== undefined && rightFilters !== null
+                  ? (typeof rightFilters === "function" ? rightFilters({ classes }) : rightFilters)
+                  : (hideDefaultRightFilters ? null : (
+                    <>
+                      <div className={classes.filterItem}>
+                        <Typography className={classes.filterLabel}>Pipeline Ativa</Typography>
+                        <ExpandMoreIcon className={classes.chevronIcon} />
+                      </div>
+                      <div className={classes.filterItem}>
+                        <Typography className={classes.filterLabel}>Responsável</Typography>
+                        <ExpandMoreIcon className={classes.chevronIcon} />
+                      </div>
+                      <div className={classes.filterItem}>
+                        <Typography className={classes.filterLabel}>Contato/Empr...</Typography>
+                        <ExpandMoreIcon className={classes.chevronIcon} />
+                      </div>
+                      <div className={classes.filterItem}>
+                        <CalendarIcon className={classes.calendarIcon} />
+                        <Typography className={classes.filterLabel}>Período</Typography>
+                      </div>
+                      <div className={classes.filterItem}>
+                        <Typography className={classes.filterLabel}>Todos</Typography>
+                        <ExpandMoreIcon className={classes.chevronIcon} />
+                      </div>
+                    </>
+                  ))
+                }
+              </div>
             </div>
           )}
         </div>

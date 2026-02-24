@@ -805,6 +805,7 @@ const Reports = ({ renderAsTab }) => {
       searchPlaceholder={i18n.t("chatIndex.search") || "Buscar..."}
       searchValue={searchParam}
       onSearchChange={(v) => setSearchParam(v)}
+      hideDefaultRightFilters
     >
       {content}
     </ActivitiesStyleLayout>

@@ -311,6 +311,7 @@ const Queues = ({ renderAsTab }) => {
       searchValue={searchParam}
       onSearchChange={setSearchParam}
       rightFilters={null}
+      hideDefaultRightFilters
       onCreateClick={handleOpenQueueModal}
     >
       {content}

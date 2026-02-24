@@ -257,6 +257,7 @@ const Quickemessages = () => {
       searchPlaceholder={i18n.t("quickMessages.searchPlaceholder")}
       searchValue={searchParam}
       onSearchChange={(v) => handleSearch({ target: { value: v } })}
+      hideDefaultRightFilters
       navActions={
         <>
         </>

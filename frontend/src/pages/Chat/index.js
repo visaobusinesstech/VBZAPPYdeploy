@@ -1170,6 +1170,7 @@ function Chat(props) {
       searchPlaceholder={i18n.t("chatList.searchChat")}
       searchValue={chatSearch}
       onSearchChange={setChatSearch}
+      hideDefaultRightFilters
     >
       <ChatModal
         type={dialogType}

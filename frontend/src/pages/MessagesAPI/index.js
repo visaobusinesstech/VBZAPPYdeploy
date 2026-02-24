@@ -84,6 +84,12 @@ const MessagesAPI = ({ renderAsTab }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.scrollTo) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   const getEndpoint = () => {
     return process.env.REACT_APP_BACKEND_URL + "/api/messages/send";
   };
@@ -485,6 +491,7 @@ const MessagesAPI = ({ renderAsTab }) => {
       searchPlaceholder={"Buscar..."}
       searchValue={searchParam}
       onSearchChange={setSearchParam}
+      hideDefaultRightFilters
     >
       {content}
     </ActivitiesStyleLayout>

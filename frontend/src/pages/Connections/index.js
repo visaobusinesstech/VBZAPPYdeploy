@@ -807,6 +807,7 @@ const Connections = () => {
         searchValue={searchParam}
         onSearchChange={setSearchParam}
         rightFilters={null}
+        hideDefaultRightFilters
         navActions={
           <>
             <Button
