@@ -2,7 +2,9 @@ import React, { useContext, useState, useEffect } from "react";
 
 import Paper from "@material-ui/core/Paper";
 import Typography from "@material-ui/core/Typography";
-// import {  Button, Grid } from "@material-ui/core";
+import Popover from "@material-ui/core/Popover";
+import { Button, TextField } from "@material-ui/core";
+// import {  Grid } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { useTheme } from "@material-ui/core/styles";
 import { IconButton } from "@mui/material";
@@ -43,6 +45,8 @@ import { i18n } from "../../translate/i18n";
 import Grid2 from "@mui/material/Unstable_Grid2/Grid2";
 import ForbiddenPage from "../../components/ForbiddenPage";
 import { ArrowDownward, ArrowUpward } from "@material-ui/icons";
+import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import CalendarTodayIcon from "@material-ui/icons/CalendarToday";
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 
 const useStyles = makeStyles((theme) => ({
@@ -213,6 +217,7 @@ const WhatsappDashboard = () => {
   const [dateEndTicket, setDateEndTicket] = useState(now);
   const [queueTicket, setQueueTicket] = useState(false);
   const [fetchDataFilter, setFetchDataFilter] = useState(false);
+  const [anchorPeriodo, setAnchorPeriodo] = useState(null);
 
   const { user } = useContext(AuthContext);
 
@@ -355,26 +360,63 @@ const WhatsappDashboard = () => {
                 ]}
                 currentViewMode={tab}
                 onViewModeChange={(val) => setTab(val)}
-                disableFilterBar
-                hideSearch
-                navActions={
-                  <IconButton onClick={toggleShowFilter} size="small" color="default" title="Filtros">
-                    {showFilter ? <ClearIcon /> : <FilterListIcon />}
-                  </IconButton>
-                }
-              >
-                {showFilter && (
-                  <Filters
-                    classes={classes}
-                    setDateStartTicket={setDateStartTicket}
-                    setDateEndTicket={setDateEndTicket}
-                    dateStartTicket={dateStartTicket}
-                    dateEndTicket={dateEndTicket}
-                    setQueueTicket={setQueueTicket}
-                    queueTicket={queueTicket}
-                    fetchData={setFetchDataFilter}
-                  />
+                rightFilters={({ classes: layout }) => (
+                  <>
+                    <div
+                      className={layout.filterItem}
+                      onClick={(e) => setAnchorPeriodo(e.currentTarget)}
+                    >
+                      <CalendarTodayIcon className={layout.calendarIcon} />
+                      <Typography className={layout.filterLabel}>Período</Typography>
+                      <ExpandMoreIcon className={layout.chevronIcon} />
+                    </div>
+                    <Popover
+                      open={Boolean(anchorPeriodo)}
+                      anchorEl={anchorPeriodo}
+                      onClose={() => setAnchorPeriodo(null)}
+                      anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+                    >
+                      <div style={{ padding: 12, minWidth: 280 }}>
+                        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                          <TextField
+                            label="Data Inicial"
+                            type="date"
+                            value={dateStartTicket}
+                            onChange={(e) => setDateStartTicket(e.target.value)}
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                          />
+                          <TextField
+                            label="Data Final"
+                            type="date"
+                            value={dateEndTicket}
+                            onChange={(e) => setDateEndTicket(e.target.value)}
+                            variant="outlined"
+                            size="small"
+                            fullWidth
+                            InputLabelProps={{ shrink: true }}
+                          />
+                        </div>
+                        <Button
+                          onClick={() => {
+                            setAnchorPeriodo(null);
+                            setFetchDataFilter((v) => !v);
+                          }}
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          fullWidth
+                        >
+                          Aplicar
+                        </Button>
+                      </div>
+                    </Popover>
+                  </>
                 )}
+              >
+                
 
                 {tab === "Indicadores" && (
                     <Container maxWidth="xl" >
@@ -389,10 +431,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -417,7 +458,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -438,10 +479,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -468,7 +508,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -489,10 +529,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -519,7 +558,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -540,10 +579,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -572,7 +610,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -593,10 +631,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -623,7 +660,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -644,10 +681,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -674,7 +710,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -695,10 +731,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -723,7 +758,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -744,10 +779,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -772,7 +806,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -793,10 +827,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -823,7 +856,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -844,10 +877,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -874,7 +906,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -895,10 +927,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -926,7 +957,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}
@@ -947,10 +978,9 @@ const WhatsappDashboard = () => {
                         >
                           <Card sx={{
                             height: "100%",
-                            backgroundColor:
-                              theme.mode === "light"
-                                ? "transparent"
-                                : "rgba(170, 170, 170, 0.2)",
+                            backgroundColor: "#fff",
+                            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                            border: "none",
                           }}>
                             <CardContent>
                               <Stack
@@ -980,7 +1010,7 @@ const WhatsappDashboard = () => {
                                   sx={{
                                     backgroundColor: 'transparent',
                                     color: theme.palette.primary.main,
-                                    border: `1px solid ${theme.palette.primary.main}33`,
+                                    border: 'none',
                                     height: 56,
                                     width: 56
                                   }}

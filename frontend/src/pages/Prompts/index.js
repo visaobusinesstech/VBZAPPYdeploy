@@ -1311,7 +1311,9 @@ const Prompts = () => {
                       </Grid>
                       <Grid item xs={12}>
                         <Button
-                          variant="outlined"
+                          variant="contained"
+                          color="primary"
+                          size="small"
                           onClick={() => {
                             if (!actionsState.draft?.name) return;
                             const next = { ...actionsState, custom: [...(actionsState.custom || []), actionsState.draft], draft: undefined };
@@ -1388,21 +1390,22 @@ const Prompts = () => {
                       <Grid item xs={12}>
                         <Button variant="outlined" onClick={() => setAdvancedState(prev => ({ ...prev, examples: [...(prev.examples || []), { user: "", assistant: "" }] }))}>+ Adicionar Exemplo</Button>
                       </Grid>
+                      <Grid item xs={12} style={{ textAlign: 'left' }}>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          onClick={handleSaveAdvanced}
+                          style={{ marginTop: 4 }}
+                        >
+                          Salvar Avançado
+                        </Button>
+                      </Grid>
                     </Grid>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <div className={classes.cardTitle}>Configurações</div>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
-                        <div className={classes.switchRow}>
-                          <Typography>Permitir responder em grupos</Typography>
-                          <Switch
-                            checked={advancedState.responderGrupo}
-                            onChange={(e) => setAdvancedState(prev => ({ ...prev, responderGrupo: e.target.checked }))}
-                            color="primary"
-                          />
-                        </div>
-                      </Grid>
+                    <Grid container spacing={1}>
                       <Grid item xs={12}>
                         <TextField
                           label="Timeout de Inatividade (minutos)"
@@ -1487,9 +1490,6 @@ const Prompts = () => {
                     </Grid>
                   </Grid>
                 </Grid>
-                <Button variant="contained" color="primary" onClick={handleSaveAdvanced}>
-                  Salvar Avançado
-                </Button>
               </div>
             )}
 

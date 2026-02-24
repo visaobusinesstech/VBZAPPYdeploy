@@ -26,10 +26,13 @@ const useStyles = makeStyles((theme) => ({
 		padding: "2px",
 		height: `calc(100% - 48px)`,
 		overflowY: "hidden",
+		overflowX: "hidden",
 	},
 	chatPapper: {
 		display: "flex",
 		height: "100%",
+		width: "100%",
+		overflow: "hidden",
 	},
 	contactsWrapper: {
 		display: "flex",
@@ -45,6 +48,8 @@ const useStyles = makeStyles((theme) => ({
 		height: "100%",
 		flexDirection: "column",
 		flexGrow: 1,
+		minWidth: 0,
+		overflow: "hidden",
 	},
 	welcomeMsg: {
 		background: theme.palette.tabHeaderBackground,
@@ -86,6 +91,10 @@ const TicketsCustom = () => {
 	const [ticketsManagerWidth, setTicketsManagerWidth] = useState(
 		user?.defaultTicketsManagerWidth || defaultTicketsManagerWidth
 	);
+	// Acompanhar largura da viewport para limitar responsivamente a lista
+	const [viewportWidth, setViewportWidth] = useState(
+		typeof window !== "undefined" ? window.innerWidth : 1366
+	);
 	
 	const classes = useStyles({ ticketsManagerWidth });
 	const { ticketId } = useParams();
@@ -105,6 +114,13 @@ const TicketsCustom = () => {
 		setTicketsManagerWidth(validWidth);
 		ticketsManagerWidthRef.current = validWidth;
 	}, [user]);
+
+	// Atualizar largura da viewport para clamp responsivo
+	useEffect(() => {
+		const onResize = () => setViewportWidth(window.innerWidth);
+		window.addEventListener("resize", onResize);
+		return () => window.removeEventListener("resize", onResize);
+	}, []);
 
 	const handleMouseDown = (e) => {
 		document.addEventListener("mouseup", handleMouseUp, true);
@@ -144,8 +160,16 @@ const TicketsCustom = () => {
 		}
 	};
 
-	// ⚠️ CORREÇÃO: Garantir que a largura nunca seja 0 ou inválida
-	const effectiveWidth = Math.max(minTicketsManagerWidth, ticketsManagerWidth);
+	// Limite responsivo: até 40% da tela, respeitando min/max
+	const responsiveMax = Math.max(
+		minTicketsManagerWidth,
+		Math.min(maxTicketsManagerWidth, Math.floor(viewportWidth * 0.4))
+	);
+	// ⚠️ CORREÇÃO: Garantir que a largura nunca seja 0 ou inválida e não ultrapasse o limite responsivo
+	const effectiveWidth = Math.min(
+		responsiveMax,
+		Math.max(minTicketsManagerWidth, ticketsManagerWidth)
+	);
 
 	return (
 		<QueueSelectedProvider>

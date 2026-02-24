@@ -17,6 +17,7 @@ const useStyles = makeStyles(theme => ({
 		padding: theme.padding,
 		height: `calc(100% - 48px)`,
 		overflowY: "hidden",
+		overflowX: "hidden",
 		// Ajuste para monitores pequenos (11-13 polegadas)
 		'@media (max-width: 1366px)': {
 			padding: theme.spacing(1),
@@ -34,11 +35,13 @@ const useStyles = makeStyles(theme => ({
 		height: "100%",
 		flexDirection: "column",
 		overflowY: "hidden",
+		minWidth: 0
 	},
 	messagessWrapper: {
 		display: "flex",
 		height: "100%",
 		flexDirection: "column",
+		minWidth: 0
 	},
 	welcomeMsg: {
 		// backgroundColor: "#eee",
@@ -63,10 +66,10 @@ const Chat = () => {
 		<div className={classes.chatContainer}>
 			<div className={classes.chatPapper}>
 				<Grid container spacing={0}>
-					<Grid item xs={12} sm={4} md={3} lg={2} className={classes.contactsWrapper}>
+					<Grid item xs={12} sm={4} md={3} lg={3} className={classes.contactsWrapper}>
 						<TicketsManagerTabs />
 					</Grid>
-					<Grid item xs={12} sm={8} md={9} lg={7} className={classes.messagessWrapper}>
+					<Grid item xs={12} sm={8} md={9} lg={9} className={classes.messagessWrapper}>
 						{ticketId ? (
 							<>
 								<Ticket />
