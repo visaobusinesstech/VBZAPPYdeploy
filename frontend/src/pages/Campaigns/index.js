@@ -38,7 +38,7 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import CampaignModal from "../../components/CampaignModal";
 import ConfirmationModal from "../../components/ConfirmationModal";
 import toastError from "../../errors/toastError";
-import { Grid, FormControl, InputLabel, Select, MenuItem, TablePagination, Pagination, Box } from "@material-ui/core";
+import { Grid, FormControl, InputLabel, Select, MenuItem, TablePagination, Pagination, Box, Menu } from "@material-ui/core";
 import { isArray } from "lodash";
 import { useDate } from "../../hooks/useDate";
 import ForbiddenPage from "../../components/ForbiddenPage";
@@ -153,6 +153,9 @@ const Campaigns = () => {
 
   const { datetimeToClient } = useDate();
   const { getPlanCompany } = usePlans();
+  
+  const [anchorStatus, setAnchorStatus] = useState(null);
+  const [anchorRecurrence, setAnchorRecurrence] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -372,7 +375,62 @@ const Campaigns = () => {
       searchPlaceholder={i18n.t("campaigns.searchPlaceholder")}
       searchValue={searchParam}
       onSearchChange={handleSearch}
-      rightFilters={null}
+      rightFilters={({ classes }) => (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div
+            className={classes.filterItem}
+            onClick={(e) => setAnchorStatus(e.currentTarget)}
+          >
+            <span className={classes.filterLabel}>
+              {statusFilter ? `Status: ${formatStatus(statusFilter)}` : "Filtrar por Status"}
+            </span>
+            <span className={classes.chevronIcon}>▾</span>
+          </div>
+          <Menu
+            anchorEl={anchorStatus}
+            keepMounted
+            open={Boolean(anchorStatus)}
+            onClose={() => setAnchorStatus(null)}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <MenuItem onClick={() => { setStatusFilter(""); setAnchorStatus(null); }}>Todos</MenuItem>
+            <MenuItem onClick={() => { setStatusFilter("INATIVA"); setAnchorStatus(null); }}>Inativa</MenuItem>
+            <MenuItem onClick={() => { setStatusFilter("PROGRAMADA"); setAnchorStatus(null); }}>Programada</MenuItem>
+            <MenuItem onClick={() => { setStatusFilter("EM_ANDAMENTO"); setAnchorStatus(null); }}>Em Andamento</MenuItem>
+            <MenuItem onClick={() => { setStatusFilter("CANCELADA"); setAnchorStatus(null); }}>Cancelada</MenuItem>
+            <MenuItem onClick={() => { setStatusFilter("FINALIZADA"); setAnchorStatus(null); }}>Finalizada</MenuItem>
+          </Menu>
+
+          <div
+            className={classes.filterItem}
+            onClick={(e) => setAnchorRecurrence(e.currentTarget)}
+          >
+            <span className={classes.filterLabel}>
+              {recurrenceFilter === "true"
+                ? "Recorrentes"
+                : recurrenceFilter === "false"
+                ? "Únicas"
+                : "Filtrar por Recorrência"}
+            </span>
+            <span className={classes.chevronIcon}>▾</span>
+          </div>
+          <Menu
+            anchorEl={anchorRecurrence}
+            keepMounted
+            open={Boolean(anchorRecurrence)}
+            onClose={() => setAnchorRecurrence(null)}
+            getContentAnchorEl={null}
+            anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+            transformOrigin={{ vertical: "top", horizontal: "left" }}
+          >
+            <MenuItem onClick={() => { setRecurrenceFilter(""); setAnchorRecurrence(null); }}>Todas</MenuItem>
+            <MenuItem onClick={() => { setRecurrenceFilter("true"); setAnchorRecurrence(null); }}>Recorrentes</MenuItem>
+            <MenuItem onClick={() => { setRecurrenceFilter("false"); setAnchorRecurrence(null); }}>Únicas</MenuItem>
+          </Menu>
+        </div>
+      )}
       navActions={
         <>
           <Grid spacing={2} container style={{ width: 420 }}>
@@ -422,43 +480,6 @@ const Campaigns = () => {
           <ForbiddenPage />
           :
           <>
-
-            {/* Filtros */}
-            <Paper className={classes.filterContainer} style={{ padding: 16, marginBottom: 16 }}>
-              <Grid spacing={2} container>
-                <Grid xs={12} sm={4} item>
-                  <FormControl fullWidth variant="outlined" size="small">
-                    <InputLabel>Filtrar por Status</InputLabel>
-                    <Select
-                      value={statusFilter}
-                      onChange={handleStatusFilterChange}
-                      label="Filtrar por Status"
-                    >
-                      <MenuItem value="">Todos</MenuItem>
-                      <MenuItem value="INATIVA">Inativa</MenuItem>
-                      <MenuItem value="PROGRAMADA">Programada</MenuItem>
-                      <MenuItem value="EM_ANDAMENTO">Em Andamento</MenuItem>
-                      <MenuItem value="CANCELADA">Cancelada</MenuItem>
-                      <MenuItem value="FINALIZADA">Finalizada</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid xs={12} sm={4} item>
-                  <FormControl fullWidth variant="outlined" size="small">
-                    <InputLabel>Filtrar por Recorrência</InputLabel>
-                    <Select
-                      value={recurrenceFilter}
-                      onChange={handleRecurrenceFilterChange}
-                      label="Filtrar por Recorrência"
-                    >
-                      <MenuItem value="">Todas</MenuItem>
-                      <MenuItem value="true">Recorrentes</MenuItem>
-                      <MenuItem value="false">Únicas</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-              </Grid>
-            </Paper>
 
             <Paper
               className={classes.mainPaper}

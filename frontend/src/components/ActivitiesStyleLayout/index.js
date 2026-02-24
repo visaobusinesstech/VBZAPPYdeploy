@@ -216,6 +216,7 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
     padding: theme.spacing(0.5),
     overflowY: 'auto',
+    maxHeight: 'calc(100vh - 112px)',
   },
   fab: {
     position: 'fixed',
@@ -261,6 +262,7 @@ const ActivitiesStyleLayout = ({
   scrollContent = true
 }) => {
   const classes = useStyles();
+  const contentRef = React.useRef(null);
   const tabsRef = React.useRef(null);
   const context = useContext(DrawerContext);
   const { drawerOpen, setDrawerOpen } = context || {};
@@ -271,6 +273,14 @@ const ActivitiesStyleLayout = ({
       tabsRef.current.scrollLeft += direction === 'left' ? -scrollAmount : scrollAmount;
     }
   };
+
+  React.useEffect(() => {
+    if (scrollContent && contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    } else if (typeof window !== "undefined" && window.scrollTo) {
+      window.scrollTo(0, 0);
+    }
+  }, []);
 
   return (
     <div className={classes.root} style={rootBackground ? { backgroundColor: rootBackground } : undefined}>
@@ -410,7 +420,7 @@ const ActivitiesStyleLayout = ({
         </div>
       </div>
 
-      <div className={classes.content} style={scrollContent ? undefined : { overflowY: 'visible' }}>
+      <div ref={contentRef} className={classes.content} style={scrollContent ? undefined : { overflowY: 'visible', maxHeight: 'none' }}>
         {children}
       </div>
 

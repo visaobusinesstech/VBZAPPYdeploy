@@ -360,6 +360,7 @@ const WhatsappDashboard = () => {
                 ]}
                 currentViewMode={tab}
                 onViewModeChange={(val) => setTab(val)}
+                scrollContent={false}
                 rightFilters={({ classes: layout }) => (
                   <>
                     <div
