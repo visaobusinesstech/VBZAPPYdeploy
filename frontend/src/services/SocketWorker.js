@@ -13,10 +13,19 @@ class SocketWorker {
       this.token = sessionToken
       this.socket = null;
       this.configureSocket();
-      this.eventListeners = {}; // Armazena os ouvintes de eventos registrados
+      this.eventListeners = {};
       SocketWorker.instance = this;
 
-    } 
+    } else {
+      if (SocketWorker.instance.companyId !== companyId) {
+        SocketWorker.instance.disconnect();
+        SocketWorker.instance.companyId = companyId;
+        SocketWorker.instance.userId = userId;
+        SocketWorker.instance.token = sessionToken;
+        SocketWorker.instance.eventListeners = {};
+        SocketWorker.instance.configureSocket();
+      }
+    }
 
     return SocketWorker.instance;
   }

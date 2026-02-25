@@ -198,6 +198,24 @@ const App = () => {
                   overflowX: "hidden",
                   overflowY: "hidden", // Hide native scrollbar
                 },
+                // Labels e bordas em Modais (Drawer/Dialog)
+                ".MuiDrawer-paper .MuiFormLabel-root, .MuiDialog-paper .MuiFormLabel-root, .MuiDrawer-paper .MuiInputLabel-root, .MuiDialog-paper .MuiInputLabel-root": {
+                  color: "#000",
+                  fontWeight: 400,
+                  textTransform: "none",
+                  fontSize: "13px"
+                },
+                ".MuiDrawer-paper .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline, .MuiDialog-paper .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#E5E7EB",
+                  borderWidth: "1px"
+                },
+                ".MuiDrawer-paper .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline, .MuiDialog-paper .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#E5E7EB",
+                  borderWidth: "1px"
+                },
+                ".MuiDrawer-paper .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline, .MuiDialog-paper .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
+                  borderColor: "#E5E7EB"
+                }
               },
             },
             // Botões usando cor do tema

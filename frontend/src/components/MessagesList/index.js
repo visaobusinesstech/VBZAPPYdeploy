@@ -441,7 +441,8 @@ const MessagesList = ({
   whatsappId,
   queueId,
   channel,
-  ticketStatus
+  ticketStatus,
+  ticketIdOverride
 }) => {
   const classes = useStyles();
   const [messagesList, dispatch] = useReducer(reducer, []);
@@ -456,7 +457,8 @@ const MessagesList = ({
   const { setReplyingMessage } = useContext(ReplyMessageContext);
   const [anchorEl, setAnchorEl] = useState(null);
   const messageOptionsMenuOpen = Boolean(anchorEl);
-  const { ticketId } = useParams();
+  const params = useParams();
+  const ticketId = ticketIdOverride ?? params.ticketId;
 
   const currentTicketId = useRef(ticketId);
   const { getAll } = useCompanySettings();

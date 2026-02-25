@@ -501,6 +501,7 @@ const MessageInput = ({
   contactId,
   ticketChannel,
   whatsappId,
+  disableAutoFocus = false,
 }) => {
   const classes = useStyles();
   const theme = useTheme();
@@ -720,13 +721,15 @@ const MessageInput = ({
   }, []);
 
   useEffect(() => {
+    if (disableAutoFocus) return;
     inputRef.current.focus();
     if (editingMessage) {
       setInputMessage(editingMessage.body);
     }
-  }, [replyingMessage, editingMessage]);
+  }, [replyingMessage, editingMessage, disableAutoFocus]);
 
   useEffect(() => {
+    if (disableAutoFocus) return;
     inputRef.current.focus();
     return () => {
       setInputMessage("");
@@ -739,7 +742,7 @@ const MessageInput = ({
       }
       setEditingMessage(null);
     };
-  }, [ticketId, setReplyingMessage, setEditingMessage]);
+  }, [ticketId, setReplyingMessage, setEditingMessage, disableAutoFocus]);
 
 
   useEffect(() => {
@@ -2352,8 +2355,12 @@ const MessageInput = ({
                   <div className={isTicketPending() ? classes.messageInputWrapperPending : classes.messageInputWrapperPrivate}>
                     <InputBase
                       inputRef={(input) => {
-                        input && input.focus();
-                        input && (inputRef.current = input);
+                        if (input) {
+                          inputRef.current = input;
+                          if (!disableAutoFocus) {
+                            input.focus();
+                          }
+                        }
                       }}
                       className={isTicketPending() ? classes.messageInputPending : classes.messageInputPrivate}
                       placeholder={
@@ -2450,8 +2457,12 @@ const MessageInput = ({
                   <div className={classes.messageInputWrapper}>
                     <InputBase
                       inputRef={(input) => {
-                        input && input.focus();
-                        input && (inputRef.current = input);
+                        if (input) {
+                          inputRef.current = input;
+                          if (!disableAutoFocus) {
+                            input.focus();
+                          }
+                        }
                       }}
                       className={classes.messageInput}
                       placeholder={placeholderText}

@@ -54,6 +54,45 @@ import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
 
 const localizer = momentLocalizer(moment);
 
+const ContactAvatar = ({ contact, lead, classes }) => {
+  const [src, setSrc] = useState(contact?.urlPicture || contact?.profilePicUrl || "");
+  const name = lead?.name || contact?.name || "Lead";
+  const number = lead?.phone || contact?.number;
+
+  useEffect(() => {
+    setSrc(contact?.urlPicture || contact?.profilePicUrl || "");
+  }, [contact?.urlPicture, contact?.profilePicUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function fetchProfile() {
+      if (src || !number) return;
+      try {
+        const { data } = await api.get(`/contacts/profile/${encodeURIComponent(number)}`);
+        const fetched =
+          data?.profilePicUrl || data?.urlPicture || (typeof data === "string" ? data : "");
+        if (!cancelled && fetched) setSrc(fetched);
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [src, number]);
+
+  return (
+    <Avatar
+      className={classes.cardAvatarTopLeft}
+      src={src || undefined}
+      imgProps={{ onError: () => setSrc("") }}
+    >
+      {initials(name)}
+    </Avatar>
+  );
+};
+
 const useStyles = makeStyles((theme) => ({
   root: {
     flexGrow: 1,
@@ -547,9 +586,7 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
                               const contact = l.contact || (Array.isArray(contacts) ? contacts.find((c) => String(c.id) === String(l.contactId)) : null);
                               return (
                                 <>
-                                  <Avatar className={classes.cardAvatarTopLeft} src={contact?.profilePicUrl}>
-                                    {initials(l.name || contact?.name || "Lead")}
-                                  </Avatar>
+                                  <ContactAvatar contact={contact} lead={l} classes={classes} />
                                   <span className={classes.avatarStatusDot} />
                                   <div className={classes.cardHeader}>
                                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -620,6 +657,11 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
 };
 
 const LeadsList = ({ leads }) => {
+  const getStatusMeta = (key) => {
+    const k = String(key || "").toLowerCase();
+    const meta = COLUMN_DEFS.find((c) => c.key === k);
+    return meta || { label: String(key || "").toUpperCase(), color: "#E5E7EB" };
+    };
   return (
     <TableContainer component={Paper} style={{ height: '100%', overflow: 'auto' }}>
       <Table stickyHeader aria-label="leads table">
@@ -639,11 +681,16 @@ const LeadsList = ({ leads }) => {
                   {item.name}
                 </TableCell>
                 <TableCell>
-                  <Chip 
-                    label={String(item.status || "").toUpperCase()} 
-                    size="small" 
-                    color={String(item.status).toLowerCase() === 'fechado' ? 'primary' : 'default'} 
-                  />
+                  {(() => {
+                    const meta = getStatusMeta(item.status);
+                    return (
+                      <Chip
+                        label={meta.label}
+                        size="small"
+                        style={{ background: `${meta.color}20`, color: meta.color, fontWeight: 600 }}
+                      />
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>{currencyBRL(item.value)}</TableCell>
                 <TableCell>{item.contact?.name || item.contactId || "—"}</TableCell>
@@ -1016,6 +1063,7 @@ const LeadsSales = () => {
         currentViewMode={viewMode}
         onViewModeChange={setViewMode}
         rightFilters={rightFilters}
+        scrollContent={viewMode !== "calendar"}
       >
         {loading ? (
           <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
@@ -1114,10 +1162,10 @@ const LeadsSales = () => {
               const total = leadsState.length;
               const ganho = leadsState.filter(l => /(won|converted|fechado)/i.test(String(l.status || ""))).length;
               return (
-                <div className="schedules-page" style={{ paddingTop: 8 }}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={9} lg={9}>
-                      <Paper style={{ padding: 8 }}>
+                <div className="schedules-page" style={{ paddingTop: 8, height: 'calc(100vh - 128px)', overflow: 'hidden' }}>
+                  <Grid container spacing={2} style={{ height: '100%' }}>
+                    <Grid item xs={12} md={9} lg={9} style={{ height: '100%' }}>
+                      <Paper style={{ padding: 8, height: '100%', display: 'flex' }}>
                         <Calendar
                           localizer={localizer}
                           views={["day","week","month"]}
@@ -1133,12 +1181,12 @@ const LeadsSales = () => {
                             setEditing({ date: d.toISOString().slice(0,10) });
                             setDrawerOpen(true);
                           }}
-                          style={{ height: "calc(100vh - 220px)" }}
+                          style={{ height: "100%", width: '100%' }}
                         />
                       </Paper>
                     </Grid>
-                    <Grid item xs={12} md={3} lg={3}>
-                      <div className="right-aside">
+                    <Grid item xs={12} md={3} lg={3} style={{ height: '100%' }}>
+                      <div className="right-aside" style={{ height: '100%', overflowY: 'auto' }}>
                         <div className="aside-top-actions">
                           <button className="aside-action" onClick={() => { setEditing(null); setDrawerOpen(true); }}>
                             Novo Lead
