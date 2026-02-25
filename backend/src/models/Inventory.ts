@@ -29,6 +29,24 @@ class Inventory extends Model<Inventory> {
   quantity: number;
 
   @Column
+  currency: string;
+
+  @Column(DataType.TEXT)
+  image: string;
+
+  @Column
+  sku: string;
+
+  @Column
+  category: string;
+
+  @Column
+  brand: string;
+
+  @Column(DataType.TEXT)
+  description: string;
+
+  @Column
   status: string;
 
   @ForeignKey(() => Company)

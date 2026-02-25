@@ -31,6 +31,7 @@ import { ForwardMessageProvider } from "../../context/ForwarMessage/ForwardMessa
 import { EditMessageProvider } from "../../context/EditingMessage/EditingMessageContext";
 import { QueueSelectedProvider, QueueSelectedContext } from "../../context/QueuesSelected/QueuesSelectedContext";
 import NumberFormat from "react-number-format";
+import inventoryService from "../../services/inventoryService";
 
 const NumberFormatCustom = (props) => {
   const { inputRef, onChange, thousandSeparator, decimalSeparator, prefix, ...other } = props;
@@ -259,6 +260,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
   const [productService, setProductService] = useState("");
   const [priority, setPriority] = useState("Média");
   const [currency, setCurrency] = useState("BRL");
+  const [inventoryItems, setInventoryItems] = useState([]);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -304,6 +306,11 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
   useEffect(() => {
     const load = async () => {
       try {
+        // Carregar inventário para seleção de produto/serviço
+        try {
+          const data = await inventoryService.list({ searchParam: "", pageNumber: 1 });
+          setInventoryItems(Array.isArray(data?.inventory) ? data.inventory : []);
+        } catch { /* ignore inventário */ }
         const { data: contactsResp } = await api.get("/contacts/list");
         setContacts(contactsResp || []);
         const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
@@ -564,14 +571,29 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             <div className={classes.cardRow}>
               <div style={{ width: '100%' }}>
                 <div className={classes.fieldLabel}>Produto/ Serviço (inventário)</div>
-                <TextField
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  value={productService}
-                  onChange={(e) => setProductService(e.target.value)}
-                  placeholder="Ex.: Plano Premium"
-                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                <Autocomplete
+                  options={inventoryItems}
+                  getOptionLabel={(opt) => `${opt?.name ?? ""} ${typeof opt?.price === "number" ? `- R$ ${opt.price?.toFixed?.(2)}` : ""}`}
+                  value={inventoryItems.find(i => i.name === productService) || null}
+                  onChange={(_e, val) => {
+                    setProductService(val?.name || "");
+                    if (val && typeof val.price !== "undefined") {
+                      setForm(prev => ({ ...prev, value: Number(val.price || 0) }));
+                    }
+                    if (val?.currency) setCurrency(String(val.currency || "BRL").toUpperCase());
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      size="small"
+                      placeholder="Selecione um produto/serviço"
+                      InputProps={{
+                        ...params.InputProps,
+                        classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline }
+                      }}
+                    />
+                  )}
                 />
               </div>
             </div>
@@ -814,14 +836,29 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
               <div className={classes.cardRow}>
                 <div style={{ width: '100%' }}>
                   <div className={classes.fieldLabel}>Produto/ Serviço (inventário)</div>
-                  <TextField
-                    variant="outlined"
-                    size="small"
-                    fullWidth
-                    value={productService}
-                    onChange={(e) => setProductService(e.target.value)}
-                    placeholder="Ex.: Plano Premium"
-                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  <Autocomplete
+                    options={inventoryItems}
+                    getOptionLabel={(opt) => `${opt?.name ?? ""} ${typeof opt?.price === "number" ? `- R$ ${opt.price?.toFixed?.(2)}` : ""}`}
+                    value={inventoryItems.find(i => i.name === productService) || null}
+                    onChange={(_e, val) => {
+                      setProductService(val?.name || "");
+                      if (val && typeof val.price !== "undefined") {
+                        setForm(prev => ({ ...prev, value: Number(val.price || 0) }));
+                      }
+                      if (val?.currency) setCurrency(String(val.currency || "BRL").toUpperCase());
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        size="small"
+                        placeholder="Selecione um produto/serviço"
+                        InputProps={{
+                          ...params.InputProps,
+                          classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline }
+                        }}
+                      />
+                    )}
                   />
                 </div>
               </div>

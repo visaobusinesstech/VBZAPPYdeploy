@@ -9,27 +9,26 @@ const useInventory = ({ searchParam, pageNumber }) => {
     const [count, setCount] = useState(0);
 
     useEffect(() => {
-        setLoading(true);
-        const delayDebounceFn = setTimeout(() => {
-            const fetchInventory = async () => {
-                try {
-                    const data = await inventoryService.list({
-                        searchParam,
-                        pageNumber,
-                    });
-                    setInventory(data.inventory || []);
-                    setHasMore(data.hasMore);
-                    setCount(data.count);
-                    setLoading(false);
-                } catch (err) {
-                    setLoading(false);
-                    toastError(err);
-                }
-            };
-
-            fetchInventory();
-        }, 500);
-        return () => clearTimeout(delayDebounceFn);
+        let mounted = true;
+        const fetchInventory = async () => {
+            try {
+                setLoading(true);
+                const data = await inventoryService.list({
+                    searchParam,
+                    pageNumber,
+                });
+                if (!mounted) return;
+                setInventory(data.inventory || []);
+                setHasMore(!!data.hasMore);
+                setCount(data.count || 0);
+            } catch (err) {
+                if (mounted) toastError(err);
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+        fetchInventory();
+        return () => { mounted = false; };
     }, [searchParam, pageNumber]);
 
     return { inventory, loading, hasMore, count };

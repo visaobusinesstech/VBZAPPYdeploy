@@ -20,7 +20,7 @@ import api from "../../services/api";
 import { toast } from "react-toastify";
 import useInventory from "../../hooks/useInventory";
 
-import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, InputLabel, FormControl, Fab } from "@material-ui/core";
+import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem, InputLabel, FormControl, Fab, Avatar, ButtonGroup } from "@material-ui/core";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import inventoryService from "../../services/inventoryService";
 import KanbanBoard from "../../components/KanbanBoard";
@@ -32,7 +32,60 @@ const columnsDef = [
   { id: "ordered", title: "Pedido Efetuado", color: "#3B82F6" }
 ];
 
+const listUseStyles = makeStyles(() => ({
+  kpiRow: {
+    display: "grid",
+    gridTemplateColumns: "repeat(5, minmax(160px, 1fr))",
+    gap: 16,
+    padding: 0,
+    margin: "0 24px 24px",
+    width: "calc(100% - 48px)",
+    "@media (max-width:1280px)": {
+      gridTemplateColumns: "repeat(5, minmax(140px, 1fr))"
+    },
+    "@media (max-width:1024px)": {
+      gridTemplateColumns: "repeat(5, minmax(120px, 1fr))"
+    },
+    "@media (max-width:900px)": {
+      gridTemplateColumns: "repeat(5, minmax(110px, 1fr))"
+    }
+  },
+  kpiCard: {
+    borderRadius: 12,
+    padding: 12,
+    border: "1px solid #E5EAF1",
+    boxShadow:
+      "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(2,6,23,0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    gap: 8,
+    minHeight: 110,
+    width: "100%",
+    background: "#ffffff",
+    transition: "transform 160ms ease, box-shadow 220ms ease",
+    "&:hover": {
+      transform: "translateY(-3px)",
+      boxShadow:
+        "0 10px 20px rgba(2,6,23,0.12), 0 3px 6px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.6)"
+    }
+  }
+}));
+
+const boardStyles = makeStyles(() => ({
+  kanbanCard: {
+    marginBottom: 8,
+    transition: "transform 160ms ease, box-shadow 220ms ease",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(2,6,23,0.06)",
+    "&:hover": {
+      transform: "translateY(-3px)",
+      boxShadow: "0 10px 20px rgba(2,6,23,0.12), 0 3px 6px rgba(0,0,0,0.06)"
+    }
+  }
+}));
+
 const InventoryBoard = ({ data, loading, onMove }) => {
+  const bclasses = boardStyles();
   if (loading) return <CircularProgress />;
   const getByCol = (colId) => (Array.isArray(data) ? data.filter(i => String(i.status || "").toLowerCase() === colId) : []);
   const handleDragEnd = (result) => {
@@ -56,7 +109,7 @@ const InventoryBoard = ({ data, loading, onMove }) => {
                     {getByCol(col.id).map((item, index) => (
                       <Draggable draggableId={String(item.id)} index={index} key={item.id}>
                         {(prov) => (
-                          <Card ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps} style={{ marginBottom: 8 }}>
+                          <Card ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps} className={bclasses.kanbanCard}>
                             <CardContent>
                               <Typography variant="subtitle1">{item.name || "Sem nome"}</Typography>
                               <Typography variant="body2" color="textSecondary">Qtd: {item.quantity || 0}</Typography>
@@ -78,6 +131,7 @@ const InventoryBoard = ({ data, loading, onMove }) => {
 };
 
 const InventoryList = ({ data, loading, onEdit, onDelete }) => {
+    const lclasses = listUseStyles();
     if (loading) return <CircularProgress />;
     const items = Array.isArray(data) ? data : [];
     const totalItens = items.length;
@@ -90,20 +144,19 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
       if (!isFinite(q) || !isFinite(p)) return sum;
       return sum + q * p;
     }, 0);
+    const fmt = (value, currency) => {
+      const c = (currency || "BRL").toUpperCase();
+      const locales = c === "USD" ? "en-US" : "pt-BR";
+      try {
+        return new Intl.NumberFormat(locales, { style: "currency", currency: c }).format(Number(value || 0));
+      } catch {
+        return c === "USD" ? `$ ${Number(value || 0).toFixed(2)}` : `R$ ${Number(value || 0).toFixed(2)}`;
+      }
+    };
     
     return (
         <div>
-          <div style={{
-            display: "flex",
-            flexWrap: "nowrap",
-            gap: 16,
-            justifyContent: "center",
-            padding: "0 24px",
-            margin: "0 auto 24px",
-            width: "100%",
-            maxWidth: 1120,
-            overflowX: "auto"
-          }}>
+          <div className={lclasses.kpiRow}>
             {[
               { label: "Itens", value: totalItens, icon: <ListIcon style={{ color: "#111827" }} /> },
               { label: "Em Estoque", value: emEstoque, icon: <CheckCircleOutlineIcon style={{ color: "#111827" }} /> },
@@ -111,20 +164,7 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
               { label: "Sem Estoque", value: semEstoque, icon: <CloseIcon style={{ color: "#111827" }} /> },
               { label: "Valor Total", value: (valorTotal || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}), icon: <AttachMoneyOutlinedIcon style={{ color: "#111827" }} /> }
             ].map((c) => (
-              <Paper key={c.label} style={{
-                borderRadius: 12,
-                padding: 12,
-                border: "1px solid #E5EAF1",
-                boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(2,6,23,0.08), inset 0 1px 0 rgba(255,255,255,0.6)",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                gap: 8,
-                minHeight: 110,
-                width: 200,
-                flex: "0 0 auto",
-                background: "#ffffff"
-              }}>
+              <Paper key={c.label} className={lclasses.kpiCard}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <div style={{ fontSize: 13, color: "#0F172A", whiteSpace: "nowrap" }}>{c.label}</div>
                   <div style={{ fontWeight: 700, fontSize: 18, color: "#0F172A", whiteSpace: "nowrap" }}>{c.value}</div>
@@ -140,14 +180,15 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
               </Paper>
             ))}
           </div>
-        <TableContainer component={Paper} style={{ maxWidth: 1120, margin: "0 auto", padding: "0 16px", borderRadius: 12, border: "1px solid #E5EAF1", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(2,6,23,0.06)" }}>
+        <TableContainer component={Paper} style={{ width: "calc(100% - 48px)", margin: "0 24px", borderRadius: 12, border: "1px solid #E5EAF1", boxShadow: "0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(2,6,23,0.06)" }}>
             <Table size="small">
             <TableHead>
                 <TableRow>
-                <TableCell style={{ width: "48%", padding: "8px 12px" }}>Produto</TableCell>
+                <TableCell style={{ width: 72, padding: "8px 12px" }}>Imagem</TableCell>
+                <TableCell style={{ width: "43%", padding: "8px 12px" }}>Produto</TableCell>
                 <TableCell style={{ width: "22%", padding: "8px 12px" }}>Status</TableCell>
                 <TableCell style={{ width: "15%", padding: "8px 12px" }}>Quantidade</TableCell>
-                <TableCell style={{ width: "15%", padding: "8px 12px" }}>Preço</TableCell>
+                <TableCell style={{ width: "20%", padding: "8px 12px" }}>Preço</TableCell>
                 <TableCell style={{ width: 88, padding: "8px 8px" }} align="right">Ações</TableCell>
                 </TableRow>
             </TableHead>
@@ -155,6 +196,15 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
                 {data && data.length > 0 ? (
                     data.map((item) => (
                         <TableRow key={item.id}>
+                            <TableCell style={{ padding: "8px 12px" }}>
+                              {item?.image ? (
+                                <Avatar variant="rounded" src={item.image} style={{ width: 40, height: 40 }} />
+                              ) : (
+                                <Avatar variant="rounded" style={{ width: 40, height: 40, background: "#E5E7EB", color: "#111827" }}>
+                                  {(item.name || "P")[0]}
+                                </Avatar>
+                              )}
+                            </TableCell>
                             <TableCell style={{ padding: "8px 12px" }}>{item.name}</TableCell>
                             <TableCell style={{ padding: "8px 12px" }}>{(() => {
                               const map = {
@@ -166,7 +216,9 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
                               return map[String(item.status || "").toLowerCase()] || item.status;
                             })()}</TableCell>
                             <TableCell style={{ padding: "8px 12px" }}>{item.quantity}</TableCell>
-                            <TableCell style={{ padding: "8px 12px" }}>{typeof item.price === "number" ? `R$ ${item.price.toFixed(2)}` : item.price}</TableCell>
+                            <TableCell style={{ padding: "8px 12px" }}>
+                              {fmt(item.price, item.currency)}
+                            </TableCell>
                             <TableCell style={{ padding: "8px 8px" }} align="right">
                               <IconButton size="small" onClick={() => onEdit(item)} aria-label="editar">
                                 <EditIcon fontSize="small" />
@@ -179,7 +231,7 @@ const InventoryList = ({ data, loading, onEdit, onDelete }) => {
                     ))
                 ) : (
                     <TableRow>
-                        <TableCell colSpan={5} align="center" style={{ padding: "12px" }}>Nenhum produto encontrado</TableCell>
+                        <TableCell colSpan={6} align="center" style={{ padding: "12px" }}>Nenhum produto encontrado</TableCell>
                     </TableRow>
                 )}
             </TableBody>
@@ -249,7 +301,18 @@ const Inventory = () => {
   const [searchParam, setSearchParam] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [editItem, setEditItem] = useState(null);
-  const [form, setForm] = useState({ name: "", price: "", quantity: 0, status: "in_stock" });
+  const [form, setForm] = useState({ 
+    name: "", 
+    price: "", 
+    currency: "BRL",
+    quantity: 0, 
+    status: "in_stock",
+    sku: "",
+    category: "",
+    brand: "",
+    description: "",
+    image: ""
+  });
   const [inventoryState, setInventoryState] = useState([]);
   
   const { inventory, loading, count } = useInventory({
@@ -275,12 +338,29 @@ const Inventory = () => {
       setForm({
         name: item.name || "",
         price: item.price || "",
+        currency: (item.currency || "BRL").toUpperCase(),
         quantity: item.quantity || 0,
-        status: item.status || "in_stock"
+        status: item.status || "in_stock",
+        sku: item.sku || "",
+        category: item.category || "",
+        brand: item.brand || "",
+        description: item.description || "",
+        image: item.image || ""
       });
     } else {
       setEditItem(null);
-      setForm({ name: "", price: "", quantity: 0, status: "in_stock" });
+      setForm({ 
+        name: "", 
+        price: "", 
+        currency: "BRL",
+        quantity: 0, 
+        status: "in_stock",
+        sku: "",
+        category: "",
+        brand: "",
+        description: "",
+        image: ""
+      });
     }
     setOpenModal(true);
   };
@@ -288,6 +368,15 @@ const Inventory = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm(prev => ({ ...prev, [name]: name === "quantity" ? Number(value) : value }));
+  };
+  const handleImageFile = async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setForm(prev => ({ ...prev, image: reader.result || "" }));
+    };
+    reader.readAsDataURL(file);
   };
   const handleSave = async () => {
     try {
@@ -304,8 +393,14 @@ const Inventory = () => {
       const payload = {
         name: form.name || "",
         price: normalizedPrice,
+        currency: (form.currency || "BRL").toUpperCase(),
         quantity: Number(form.quantity || 0),
-        status: form.status || undefined
+        status: form.status || undefined,
+        sku: form.sku || undefined,
+        category: form.category || undefined,
+        brand: form.brand || undefined,
+        description: form.description || undefined,
+        image: form.image || undefined
       };
       if (editItem) {
         const saved = await inventoryService.update(editItem.id, payload);
@@ -454,7 +549,25 @@ const Inventory = () => {
                 <TextField fullWidth label="Preço" name="price" value={form.price} onChange={handleChange} variant="outlined" size="small" />
               </Grid>
               <Grid item xs={6}>
+                <FormControl fullWidth variant="outlined" size="small">
+                  <InputLabel>Moeda</InputLabel>
+                  <Select label="Moeda" name="currency" value={form.currency} onChange={handleChange}>
+                    <MenuItem value="BRL">Real (R$)</MenuItem>
+                    <MenuItem value="USD">Dólar ($)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
                 <TextField fullWidth type="number" label="Quantidade" name="quantity" value={form.quantity} onChange={handleChange} variant="outlined" size="small" />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth label="SKU" name="sku" value={form.sku} onChange={handleChange} variant="outlined" size="small" />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth label="Categoria" name="category" value={form.category} onChange={handleChange} variant="outlined" size="small" />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth label="Marca" name="brand" value={form.brand} onChange={handleChange} variant="outlined" size="small" />
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth variant="outlined" size="small">
@@ -466,6 +579,22 @@ const Inventory = () => {
                     <MenuItem value="ordered">Pedido Efetuado</MenuItem>
                   </Select>
                 </FormControl>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Descrição" name="description" value={form.description} onChange={handleChange} variant="outlined" size="small" multiline rows={3} />
+              </Grid>
+              <Grid item xs={12}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <input id="inventory-image-input" type="file" accept="image/*" style={{ display: "none" }} onChange={handleImageFile} />
+                  <Button variant="outlined" onClick={() => document.getElementById("inventory-image-input").click()}>
+                    Anexar imagem
+                  </Button>
+                  {form.image ? (
+                    <Avatar variant="rounded" src={form.image} style={{ width: 56, height: 56 }} />
+                  ) : (
+                    <Typography variant="body2" color="textSecondary">Nenhuma imagem selecionada</Typography>
+                  )}
+                </div>
               </Grid>
             </Grid>
           </div>
