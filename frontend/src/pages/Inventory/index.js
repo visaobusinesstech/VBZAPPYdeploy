@@ -16,6 +16,7 @@ import MainContainer from "../../components/MainContainer";
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import { Button, CircularProgress, Drawer, Box, IconButton } from "@material-ui/core";
 import { Close as CloseIcon } from "@material-ui/icons";
+import CloudUploadIcon from "@material-ui/icons/CloudUpload";
 import api from "../../services/api";
 import { toast } from "react-toastify";
 import useInventory from "../../hooks/useInventory";
@@ -285,12 +286,58 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     gap: theme.spacing(2),
+    overflowY: "auto",
+    paddingRight: theme.spacing(1),
+    '&::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'rgba(0,0,0,0.1)',
+      borderRadius: '3px',
+    }
   },
   drawerActions: {
     display: "flex",
     justifyContent: "flex-end",
     marginTop: theme.spacing(3),
     gap: theme.spacing(1),
+  },
+  importDrawerPaper: {
+    width: 420,
+    maxWidth: "100%",
+    padding: theme.spacing(2),
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: "calc(100% - 32px)",
+    marginRight: theme.spacing(2),
+    overflow: "hidden",
+  },
+  importHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    paddingBottom: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    borderBottom: "1px solid #eee",
+  },
+  importClose: {
+    position: "absolute",
+    right: 0,
+  },
+  importIntro: {
+    fontSize: 13,
+    color: "#4B5563",
+    marginBottom: 8
+  },
+  importBox: {
+    border: "1px solid #E5E7EB",
+    borderRadius: 8,
+    padding: theme.spacing(1.5),
+    background: "#F9FAFB",
+    marginTop: theme.spacing(1),
+    marginBottom: theme.spacing(2)
   },
 }));
 
@@ -314,6 +361,9 @@ const Inventory = () => {
     image: ""
   });
   const [inventoryState, setInventoryState] = useState([]);
+  const [openImport, setOpenImport] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
   
   const { inventory, loading, count } = useInventory({
       pageNumber: 1,
@@ -518,6 +568,11 @@ const Inventory = () => {
         searchValue={searchParam}
         onSearchChange={setSearchParam}
         onCreateClick={() => handleOpen(null)}
+        navActions={
+          <IconButton title="Importar Itens" onClick={() => setOpenImport(true)}>
+            <CloudUploadIcon />
+          </IconButton>
+        }
       >
         <div className={classes.content}>
           {renderContent()}
@@ -603,6 +658,116 @@ const Inventory = () => {
             <Button onClick={handleClose}>Cancelar</Button>
             <Button color="primary" variant="contained" onClick={handleSave}>
               {editItem ? "Salvar" : "Criar"}
+            </Button>
+          </div>
+        </div>
+      </Drawer>
+
+      <Drawer
+        anchor="right"
+        open={openImport}
+        onClose={() => setOpenImport(false)}
+        classes={{ paper: classes.importDrawerPaper }}
+      >
+        <div className={classes.drawerContainer}>
+          <div className={classes.importHeader}>
+            <Typography variant="h6" className={classes.drawerTitle} style={{ textAlign: "center" }}>
+              Importar Itens do Inventário
+            </Typography>
+            <IconButton onClick={() => setOpenImport(false)} aria-label="fechar" className={classes.importClose}>
+              <CloseIcon />
+            </IconButton>
+          </div>
+          <div className={classes.drawerContent}>
+            <Typography className={classes.importIntro}>
+              Use uma planilha .xlsx ou .csv seguindo o modelo. Recomendado salvar em UTF-8.
+            </Typography>
+            <div className={classes.importBox}>
+              <Typography variant="subtitle2" style={{ color: "#111827", marginBottom: 6 }}>
+                Estrutura esperada
+              </Typography>
+              <ul style={{ margin: 0, paddingLeft: 18, color: "#374151" }}>
+                <li>name (obrigatório)</li>
+                <li>price e currency (BRL ou USD)</li>
+                <li>quantity e status [in_stock, low_stock, out_of_stock, ordered]</li>
+                <li>sku, category, brand, description, image (opcional)</li>
+              </ul>
+              <Typography variant="caption" style={{ display: "block", marginTop: 8, color: "#6B7280" }}>
+                Também aceitamos cabeçalhos em PT equivalentes: Preco/Valor → price, Quantidade/Qtd → quantity, Moeda → currency, Descricao → description, Imagem → image.
+              </Typography>
+            </div>
+            <Typography variant="body2" style={{ color: "#111827", marginBottom: 6 }}>
+              Passo a passo
+            </Typography>
+            <ol style={{ marginTop: 0, paddingLeft: 18, color: "#374151" }}>
+              <li>Baixe o modelo e preencha seus itens.</li>
+              <li>Salve como .csv ou .xlsx.</li>
+              <li>Clique em “Selecionar arquivo” e escolha sua planilha.</li>
+              <li>Pressione “Importar”. Os itens aparecerão na lista e no quadro.</li>
+            </ol>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                onClick={() => {
+                  const headers = ["name","price","currency","quantity","status","sku","category","brand","description","image"];
+                  const example = [
+                    ["Capa de Celular", "39.9", "BRL", "10", "in_stock","C-001","Acessórios","VB","Capa silicone",""],
+                    ["Suporte Articulado","19.9","BRL","3","low_stock","","Suportes","","",""]
+                  ];
+                  const csv = [headers.join(","), ...example.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(","))].join("\n");
+                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = "modelo_inventario.csv";
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >
+                Baixar modelo (.csv)
+              </Button>
+            </div>
+            <div style={{ marginTop: 16 }}>
+              <input
+                id="inventory-import-input"
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                style={{ display: "none" }}
+                onChange={(e) => setImportFile(e.target.files?.[0] || null)}
+              />
+              <Button variant="outlined" onClick={() => document.getElementById("inventory-import-input").click()}>
+                Selecionar arquivo
+              </Button>
+              <span style={{ marginLeft: 8, fontSize: 13, color: "#4B5563" }}>
+                {importFile ? importFile.name : "Nenhum arquivo selecionado"}
+              </span>
+            </div>
+          </div>
+          <div className={classes.drawerActions}>
+            <Button onClick={() => setOpenImport(false)}>Cancelar</Button>
+            <Button
+              color="primary"
+              variant="contained"
+              disabled={!importFile || importing}
+              onClick={async () => {
+                if (!importFile) return;
+                setImporting(true);
+                try {
+                  const data = await inventoryService.importFile(importFile);
+                  const items = Array.isArray(data?.items) ? data.items : [];
+                  if (items.length) {
+                    setInventoryState(prev => [...items, ...prev]);
+                  }
+                  toast.success(`Importação concluída (${data?.created || items.length} itens)`);
+                  setOpenImport(false);
+                  setImportFile(null);
+                } catch (err) {
+                  toast.error("Falha ao importar planilha");
+                } finally {
+                  setImporting(false);
+                }
+              }}
+            >
+              {importing ? "Importando..." : "Importar"}
             </Button>
           </div>
         </div>

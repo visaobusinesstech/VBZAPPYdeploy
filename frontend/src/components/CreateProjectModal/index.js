@@ -19,9 +19,9 @@ import { Close as CloseIcon } from '@material-ui/icons';
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import projectsService from "../../services/projectsService";
-import useCompanies from "../../hooks/useCompanies";
 import useActivities from "../../hooks/useActivities";
 import useUsers from "../../hooks/useUsers";
+import convertedLeadsService from "../../services/convertedLeadsService";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -75,9 +75,9 @@ const useStyles = makeStyles((theme) => ({
 const CreateProjectModal = ({ open, onClose, onSave, project }) => {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
-  const { companies } = useCompanies();
   const { activities } = useActivities({ searchParam: "", pageNumber: 1 });
   const { users } = useUsers();
+  const [companiesConverted, setCompaniesConverted] = useState([]);
   const activeUsers = Array.isArray(users) ? users.filter(u => {
     if (typeof u.isActive === "boolean") return u.isActive;
     if (typeof u.active === "boolean") return u.active;
@@ -118,6 +118,21 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
       }
     }
   }, [open, project]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadConverted = async () => {
+      try {
+        const data = await convertedLeadsService.list({ pageNumber: 1 });
+        if (!mounted) return;
+        setCompaniesConverted(Array.isArray(data?.leads) ? data.leads : []);
+      } catch (err) {
+        // falha silenciosa
+      }
+    };
+    loadConverted();
+    return () => { mounted = false; };
+  }, []);
 
   const handleChange = (field) => (event) => {
     setFormValues((prev) => ({
@@ -255,19 +270,23 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
           )}
         />
 
-        <FormControl variant="outlined" fullWidth size="small">
-          <InputLabel>Empresa</InputLabel>
-          <Select
-            value={formValues.companyId}
-            onChange={handleChange("companyId")}
-            label="Empresa"
-          >
-            <MenuItem value=""><em>Nenhuma</em></MenuItem>
-            {companies && companies.map(c => (
-              <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        <Autocomplete
+          options={companiesConverted}
+          getOptionLabel={(option) => option?.name || String(option?.id)}
+          value={companiesConverted.find(c => String(c.id) === String(formValues.companyId)) || null}
+          onChange={(_, value) => setFormValues(prev => ({ ...prev, companyId: value ? value.id : "" }))}
+          noOptionsText="Nenhuma empresa encontrada"
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Empresa"
+              variant="outlined"
+              size="small"
+              placeholder="Selecione a empresa (Leads Convertidos)"
+              fullWidth
+            />
+          )}
+        />
 
         <Box mt={2}>
            <Typography variant="caption" color="textSecondary">

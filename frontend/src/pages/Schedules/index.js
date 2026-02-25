@@ -173,8 +173,8 @@ const useStyles = makeStyles((theme) => ({
   mainPaper: {
     flex: 1,
     padding: theme.spacing(1),
-    overflowY: "scroll",
-    ...theme.scrollbarStyles,
+    height: "100%",
+    overflow: "hidden",
   },
   calendarToolbar: {
     "& .rbc-toolbar-label": {
@@ -564,9 +564,9 @@ const Schedules = () => {
               Calendário
             </h1>
           </div>
-          <Grid container spacing={2} style={{ margin: 0, width: '100%', overflowX: 'hidden' }}>
+          <Grid container spacing={2} style={{ margin: 0, width: '100%', height: 'calc(100vh - 128px)', overflow: 'hidden' }}>
             <Grid item xs={12} md={9} lg={9}>
-              <Paper className={classes.mainPaper} onScroll={handleScroll} style={{ width: '100%', overflowX: 'hidden' }}>
+              <Paper className={classes.mainPaper} style={{ width: '100%' }}>
                 <Calendar
                   messages={defaultMessages}
                   formats={{
@@ -618,12 +618,12 @@ const Schedules = () => {
                   endAccessor="end"
                   eventPropGetter={eventPropGetter}
                   onSelectEvent={handleSelectEvent}
-                  style={{ height: "calc(100vh - 160px)", width: '100%' }}
+                  style={{ height: "100%", width: '100%' }}
                 />
               </Paper>
             </Grid>
             <Grid item xs={12} md={3} lg={3}>
-              <div className="right-aside">
+              <div className="right-aside" style={{ height: '100%', overflowY: 'auto' }}>
                 <div className="aside-top-actions">
                   <button className="aside-action" onClick={handleOpenScheduleModal}>
                     Agende uma Mensagem

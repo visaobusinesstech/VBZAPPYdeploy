@@ -235,7 +235,19 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     borderTop: '1px solid #eee',
     zIndex: 2
-  }
+  },
+  priorityChip: {
+    fontSize: 12,
+    fontWeight: 600,
+    padding: '4px 8px',
+    borderRadius: 8,
+    display: 'inline-flex',
+    alignItems: 'center'
+  },
+  prioBaixa: { backgroundColor: '#DCFCE7', color: '#166534' },
+  prioMedia: { backgroundColor: '#FEF9C3', color: '#A16207' },
+  prioAlta: { backgroundColor: '#FFE4D5', color: '#9A3412' },
+  prioCritica: { backgroundColor: '#FEE2E2', color: '#B91C1C' }
 }));
 
 const statusOptions = [
@@ -930,11 +942,20 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                       value={priority}
                       onChange={(e) => setPriority(e.target.value)}
                       input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
+                      renderValue={(val) => {
+                        const mapClass = {
+                          'Baixa': classes.prioBaixa,
+                          'Média': classes.prioMedia,
+                          'Alta': classes.prioAlta,
+                          'Crítica': classes.prioCritica
+                        };
+                        return <span className={`${classes.priorityChip} ${mapClass[val] || ''}`}>{val}</span>;
+                      }}
                     >
-                      <MenuItem value="Baixa">Baixa</MenuItem>
-                      <MenuItem value="Média">Média</MenuItem>
-                      <MenuItem value="Alta">Alta</MenuItem>
-                      <MenuItem value="Crítica">Crítica</MenuItem>
+                      <MenuItem value="Baixa"><span className={`${classes.priorityChip} ${classes.prioBaixa}`}>Baixa</span></MenuItem>
+                      <MenuItem value="Média"><span className={`${classes.priorityChip} ${classes.prioMedia}`}>Média</span></MenuItem>
+                      <MenuItem value="Alta"><span className={`${classes.priorityChip} ${classes.prioAlta}`}>Alta</span></MenuItem>
+                      <MenuItem value="Crítica"><span className={`${classes.priorityChip} ${classes.prioCritica}`}>Crítica</span></MenuItem>
                     </Select>
                   </FormControl>
                 </div>

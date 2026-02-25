@@ -1159,12 +1159,14 @@ const LeadsSales = () => {
               const originLabels = (dash?.conversionByOrigin || []).map(o => o.origin);
               const originValues = (dash?.conversionByOrigin || []).map(o => o.won);
 
+              const chartHeight = 180;
               const lineOptions = {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                   x: { ticks: { maxRotation: 0, color: palette.sub }, grid: { display: false } },
-                  y: { ticks: { color: palette.sub }, grid: { color: "#eef2f7" } }
+                  y: { ticks: { color: palette.sub }, grid: { color: "#eef2f7" }, beginAtZero: true }
                 }
               };
               const lineData = {
@@ -1180,9 +1182,10 @@ const LeadsSales = () => {
               };
               const barOptions = {
                 responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { position: "bottom" } },
                 scales: {
-                  x: { stacked: false, ticks: { color: palette.sub }, grid: { display: false } },
+                  x: { stacked: false, ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
                   y: { stacked: false, ticks: { color: palette.sub }, grid: { color: "#eef2f7" } }
                 }
               };
@@ -1200,6 +1203,11 @@ const LeadsSales = () => {
               const doughnutData = {
                 labels: originLabels,
                 datasets: [{ data: originValues, backgroundColor: [palette.indigo, palette.blue, palette.green, palette.amber, palette.red] }]
+              };
+              const doughnutOptions = {
+                maintainAspectRatio: false,
+                plugins: { legend: { position: "bottom", labels: { color: palette.sub } } },
+                layout: { padding: { top: 8, bottom: 8 } }
               };
 
               return (
@@ -1219,7 +1227,7 @@ const LeadsSales = () => {
                         background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`
                       }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ fontSize: 13, color: palette.sub, whiteSpace: "nowrap" }}>{c.label}</div>
+                          <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 600 }}>{c.label}</div>
                           <div style={{ fontWeight: 700, fontSize: 18, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
                         </div>
                         {c.sub && <div style={{ fontSize: 11, color: palette.sub }}>{c.sub}</div>}
@@ -1287,23 +1295,29 @@ const LeadsSales = () => {
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
                     {/* Gráfico 1 */}
                     <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Receita por Dia</div>
-                      <Line options={lineOptions} data={lineData} height={160} />
+                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Receita por Dia</div>
+                      <Line options={lineOptions} data={lineData} height={chartHeight} />
                     </Paper>
                     {/* Gráfico 2 */}
                     <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Clientes x Valor</div>
-                      <Bar options={barOptions} data={barData} height={160} />
+                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Clientes x Valor</div>
+                      <Bar options={barOptions} data={barData} height={chartHeight} />
                     </Paper>
                     {/* Gráfico 3 */}
                     <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Ranking de Responsáveis</div>
-                      <Bar options={{ responsive: true, plugins: { legend: { display: false } }, indexAxis: "y" }} data={barRanking} height={160} />
+                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Ranking de Responsáveis</div>
+                      <Bar
+                        options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, indexAxis: "y",
+                          scales: { x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true }, y: { ticks: { color: palette.sub } } }
+                        }}
+                        data={barRanking}
+                        height={chartHeight}
+                      />
                     </Paper>
                     {/* Gráfico 4 */}
                     <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Conversão por Origem</div>
-                      <Doughnut data={doughnutData} height={160} options={{ plugins: { legend: { position: "bottom" } } }} />
+                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Conversão por Origem</div>
+                      <Doughnut data={doughnutData} height={chartHeight} options={doughnutOptions} />
                     </Paper>
                   </div>
                 </div>

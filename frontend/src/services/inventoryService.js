@@ -19,6 +19,14 @@ const inventoryService = {
     const { data } = await api.delete(`/inventory/${id}`);
     return data;
   },
+  importFile: async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const { data } = await api.post("/inventory/import", formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    return data;
+  }
 };
 
 export default inventoryService;
