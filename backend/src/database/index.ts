@@ -74,6 +74,7 @@ import EmailSchedule from "../models/EmailSchedule";
 import EmailLog from "../models/EmailLog";
 import SmtpConfig from "../models/SmtpConfig";
 import EmailAnalytics from "../models/EmailAnalytics";
+import Inventory from "../models/Inventory";
 import EmailTemplateAttachment from "../models/EmailTemplateAttachment";
 
 // eslint-disable-next-line
@@ -157,7 +158,8 @@ const models = [
   EmailSchedule,
   EmailLog,
   SmtpConfig,
-  EmailAnalytics
+  EmailAnalytics,
+  Inventory
 ];
 
 sequelize.addModels(models);

@@ -228,20 +228,24 @@ const Ticket = () => {
       >
         {/* <div id="TicketHeader"> */}
         <TicketHeader loading={loading}>
-          {ticket.contact !== undefined && (
-            <div id="TicketHeader">
-              <TicketInfo
-                contact={contact}
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            {ticket.contact !== undefined && (
+              <div id="TicketHeader" style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
+                <TicketInfo
+                  contact={contact}
+                  ticket={ticket}
+                  onClick={handleDrawerOpen}
+                />
+              </div>
+            )}
+            <div style={{ flex: "none", marginLeft: "auto" }}>
+              <TicketActionButtons
                 ticket={ticket}
-                onClick={handleDrawerOpen}
+                contact={contact}
+                onQuickMessageSelect={handleQuickMessageSelect}
               />
             </div>
-          )}
-        <TicketActionButtons
-          ticket={ticket}
-          contact={contact}
-          onQuickMessageSelect={handleQuickMessageSelect}
-        />
+          </div>
         </TicketHeader>
         {/* </div> */}
         

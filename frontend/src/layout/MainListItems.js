@@ -660,6 +660,13 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
             {!collapsed && (openMoreSubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
           </ListItem>
           <Collapse in={openMoreSubmenu} timeout="auto" unmountOnExit className={`${classes.submenuContainer} ${classes.moreCollapse}`}>
+            <ListItemLink
+              to="/inventory"
+              primary="Inventário"
+              icon={<StoreOutlinedIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
             {/* Relatórios acima da aba Gerência */}
             <ListItemLink
               to="/reports"

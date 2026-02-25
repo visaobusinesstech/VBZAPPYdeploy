@@ -564,9 +564,9 @@ const Schedules = () => {
               Calendário
             </h1>
           </div>
-          <Grid container spacing={2}>
+          <Grid container spacing={2} style={{ margin: 0, width: '100%', overflowX: 'hidden' }}>
             <Grid item xs={12} md={9} lg={9}>
-              <Paper className={classes.mainPaper} onScroll={handleScroll}>
+              <Paper className={classes.mainPaper} onScroll={handleScroll} style={{ width: '100%', overflowX: 'hidden' }}>
                 <Calendar
                   messages={defaultMessages}
                   formats={{
@@ -618,8 +618,7 @@ const Schedules = () => {
                   endAccessor="end"
                   eventPropGetter={eventPropGetter}
                   onSelectEvent={handleSelectEvent}
-                  style={{ height: "calc(100vh - 160px)" }}
-                  className={classes.calendarToolbar}
+                  style={{ height: "calc(100vh - 160px)", width: '100%' }}
                 />
               </Paper>
             </Grid>

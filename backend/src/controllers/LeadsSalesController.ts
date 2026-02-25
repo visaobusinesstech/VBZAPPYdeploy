@@ -5,6 +5,7 @@ import CreateService from "../services/LeadSalesServices/CreateService";
 import UpdateService from "../services/LeadSalesServices/UpdateService";
 import ShowService from "../services/LeadSalesServices/ShowService";
 import DeleteService from "../services/LeadSalesServices/DeleteService";
+import DashboardService from "../services/LeadSalesServices/DashboardService";
 
 type IndexQuery = {
   searchParam?: string;
@@ -33,6 +34,22 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   });
 
   return res.json({ leads, count, hasMore });
+};
+
+export const dashboard = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { status, responsibleId, contactId, dateStart, dateEnd } = req.query as IndexQuery;
+
+  const data = await DashboardService({
+    status,
+    responsibleId,
+    contactId,
+    dateStart,
+    dateEnd,
+    companyId
+  });
+
+  return res.json(data);
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {

@@ -60,6 +60,7 @@ import emailRoutes from "./emailRoutes";
 import smtpRoutes from "./smtpRoutes";
 import emailCampaignRoutes from "./emailCampaignRoutes";
 import emailScheduleRoutes from "./emailScheduleRoutes";
+import inventoryRoutes from "./inventoryRoutes";
 
 import ChatController from "../controllers/ChatController";
 
@@ -127,6 +128,7 @@ routes.use(emailRoutes);
 routes.use(smtpRoutes);
 routes.use(emailCampaignRoutes);
 routes.use(emailScheduleRoutes);
+routes.use(inventoryRoutes);
 
 routes.post("/chats/backfill", ChatController.backfillChats);
 

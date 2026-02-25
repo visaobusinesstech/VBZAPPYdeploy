@@ -27,6 +27,7 @@
   --vb-today-bg: #F1F5F9;
   background: #FFFFFF;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .schedules-page .rbc-calendar { background: transparent; border: none; border-radius: 0; box-shadow: none; padding: 0; }

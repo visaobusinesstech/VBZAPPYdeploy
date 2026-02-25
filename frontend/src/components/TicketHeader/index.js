@@ -14,6 +14,10 @@ const useStyles = makeStyles(theme => ({
 		flex: "none",
 		borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
 		height: "65px",
+		width: "100%",
+		alignItems: "center",
+		justifyContent: "space-between",
+		overflow: "hidden",
 		[theme.breakpoints.down("sm")]: {
 			flexWrap: "wrap",
 			height: 'max-content'

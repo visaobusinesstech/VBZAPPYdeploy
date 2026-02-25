@@ -51,6 +51,33 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import leadsSalesService from "../../services/leadsSalesService";
 import { toast } from "react-toastify";
 import LocalOfferOutlinedIcon from "@material-ui/icons/LocalOfferOutlined";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title as ChartTitle,
+  Tooltip,
+  Legend,
+  Filler
+} from "chart.js";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  ChartTitle,
+  Tooltip,
+  Legend,
+  Filler
+);
 
 const localizer = momentLocalizer(moment);
 
@@ -728,6 +755,7 @@ const LeadsSales = () => {
   const { user, socket } = useContext(AuthContext);
   const kanbanRef = useRef(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [dash, setDash] = useState(null);
 
   const [anchorResp, setAnchorResp] = useState(null);
   const [anchorContact, setAnchorContact] = useState(null);
@@ -765,6 +793,26 @@ const LeadsSales = () => {
   useEffect(() => {
     setLeadsState(leadsSales || []);
   }, [leadsSales]);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchDashboard() {
+      try {
+        const data = await leadsSalesService.dashboard({
+          status,
+          responsibleId: responsible?.id,
+          contactId: contact?.id,
+          dateStart,
+          dateEnd
+        });
+        if (active) setDash(data);
+      } catch (err) {
+        // no toast noise here
+      }
+    }
+    fetchDashboard();
+    return () => { active = false; };
+  }, [status, responsible?.id, contact?.id, dateStart, dateEnd]);
 
   useEffect(() => {
     if (!socket || !user || !user.companyId) return;
@@ -1069,28 +1117,198 @@ const LeadsSales = () => {
           <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
         ) : (
           <>
-            {viewMode === "dashboard" && (
-              <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
-                {(() => {
-                  const total = leadsState.length;
-                  const byStatus = (s) => leadsState.filter(l => String(l.status || l.stage || '').toLowerCase() === s).length;
-                  const cards = [
-                    { label: 'Total', value: total, color: '#2563eb' },
-                    { label: 'Novos', value: byStatus('new') || byStatus('novo') || 0, color: '#3b82f6' },
-                    { label: 'Em andamento', value: byStatus('in_progress') || byStatus('em_andamento') || 0, color: '#8b5cf6' },
-                    { label: 'Convertidos', value: byStatus('won') || byStatus('converted') || 0, color: '#10b981' },
-                  ];
-                  return cards.map((c) => (
-                    <Grid item xs={12} sm={6} md={3} key={c.label}>
-                      <Paper style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
-                        <div style={{ fontSize: '2rem', fontWeight: 'bold', color: c.color }}>{c.value}</div>
-                        <div style={{ color: '#6b7280' }}>{c.label}</div>
+            {viewMode === "dashboard" && (() => {
+              const palette = {
+                bg: "#F8FAFC",
+                card: "#FFFFFF",
+                text: "#0F172A",
+                sub: "#64748B",
+                border: "#E2E8F0",
+                shadow: "0 2px 8px rgba(2,6,23,0.06)",
+                blue: "#3B82F6",
+                green: "#10B981",
+                red: "#EF4444",
+                amber: "#F59E0B",
+                indigo: "#6366F1"
+              };
+              const summary = dash?.summary || { totalLeads: leadsState.length, leadsWon: 0, leadsLost: 0, totalSales: 0, efficiency: 0 };
+              const kpi = [
+                { label: "Total de Leads", value: summary.totalLeads, color: palette.indigo, icon: <PersonOutlineIcon style={{ color: palette.indigo }} /> },
+                { label: "Total de Vendas", value: (summary.totalSales || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}), color: palette.green, icon: <BusinessCenterIcon style={{ color: palette.green }} /> },
+                { label: "Eficiência", value: `${summary.efficiency?.toFixed ? summary.efficiency.toFixed(0) : summary.efficiency}%`, sub: "Conversão relativa entre leads e vendas", color: palette.amber, icon: <CheckCircleOutlineIcon style={{ color: palette.amber }} /> },
+                { label: "Leads Ganhos", value: summary.leadsWon || 0, color: palette.green, icon: <CheckCircleOutlineIcon style={{ color: palette.green }} /> },
+                { label: "Leads Perdidos", value: summary.leadsLost || 0, color: palette.red, icon: <CloseIcon style={{ color: palette.red }} /> }
+              ];
+              // Dados para mini-sparklines
+              const seriesLeads = (dash?.clientsValueByDay || []).map(d => d.leads);
+              const seriesRevenue = (dash?.revenuePerDay || []).map(d => d.revenue);
+              const sparkOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false }, y: { display: false } },
+                elements: { point: { radius: 0 } }
+              };
+              const labelsRevenue = (dash?.revenuePerDay || []).map(d => d.date);
+              const dataRevenue = (dash?.revenuePerDay || []).map(d => d.revenue);
+              const labelsClients = (dash?.clientsValueByDay || []).map(d => d.date);
+              const dataClients = (dash?.clientsValueByDay || []).map(d => d.leads);
+              const dataValues = (dash?.clientsValueByDay || []).map(d => d.value);
+              const rankingLabels = (dash?.rankingResponsibles || []).map(r => r.name);
+              const rankingValues = (dash?.rankingResponsibles || []).map(r => r.value);
+              const originLabels = (dash?.conversionByOrigin || []).map(o => o.origin);
+              const originValues = (dash?.conversionByOrigin || []).map(o => o.won);
+
+              const lineOptions = {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                  x: { ticks: { maxRotation: 0, color: palette.sub }, grid: { display: false } },
+                  y: { ticks: { color: palette.sub }, grid: { color: "#eef2f7" } }
+                }
+              };
+              const lineData = {
+                labels: labelsRevenue,
+                datasets: [{
+                  label: "Receita",
+                  data: dataRevenue,
+                  fill: true,
+                  borderColor: palette.indigo,
+                  backgroundColor: "rgba(99,102,241,0.12)",
+                  tension: 0.35
+                }]
+              };
+              const barOptions = {
+                responsive: true,
+                plugins: { legend: { position: "bottom" } },
+                scales: {
+                  x: { stacked: false, ticks: { color: palette.sub }, grid: { display: false } },
+                  y: { stacked: false, ticks: { color: palette.sub }, grid: { color: "#eef2f7" } }
+                }
+              };
+              const barData = {
+                labels: labelsClients,
+                datasets: [
+                  { type: "bar", label: "Leads", data: dataClients, backgroundColor: palette.indigo, borderRadius: 6, maxBarThickness: 22 },
+                  { type: "bar", label: "Valor", data: dataValues, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 22, yAxisID: "y1" }
+                ]
+              };
+              const barRanking = {
+                labels: rankingLabels,
+                datasets: [{ label: "Valor", data: rankingValues, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 22 }]
+              };
+              const doughnutData = {
+                labels: originLabels,
+                datasets: [{ data: originValues, backgroundColor: [palette.indigo, palette.blue, palette.green, palette.amber, palette.red] }]
+              };
+
+              return (
+                <div style={{ padding: 4 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
+                    {kpi.map((c) => (
+                      <Paper key={c.label} style={{
+                        borderRadius: 12,
+                        padding: 12,
+                        border: `1px solid ${palette.border}`,
+                        boxShadow: palette.shadow,
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        minHeight: 110,
+                        background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`
+                      }}>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontSize: 13, color: palette.sub, whiteSpace: "nowrap" }}>{c.label}</div>
+                          <div style={{ fontWeight: 700, fontSize: 18, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
+                        </div>
+                        {c.sub && <div style={{ fontSize: 11, color: palette.sub }}>{c.sub}</div>}
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{
+                            width: 32, height: 32, borderRadius: 10, background: `${c.color}15`,
+                            display: "grid", placeItems: "center", marginRight: 8
+                          }}>
+                            {c.icon}
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ width: "100%", height: 18 }}>
+                              {(() => {
+                                let data = seriesLeads;
+                                if (c.label === "Total de Vendas") data = seriesRevenue;
+                                if (c.label === "Leads Ganhos") data = seriesRevenue.map(v => (v > 0 ? 1 : 0));
+                                if (c.label === "Leads Perdidos") data = seriesLeads.map(() => 0);
+                                const sparkData = {
+                                  labels: data.map((_, i) => i + 1),
+                                  datasets: [{
+                                    data,
+                                    borderColor: c.color,
+                                    backgroundColor: `${c.color}20`,
+                                    fill: true,
+                                    tension: 0.35
+                                  }]
+                                };
+                                return <Line height={18} options={sparkOptions} data={sparkData} />;
+                              })()}
+                            </div>
+                          </div>
+                        </div>
+                        {(c.label === "Total de Leads" || c.label === "Total de Vendas") && (
+                          <div style={{ width: "100%", height: 10, marginTop: 6 }}>
+                            {(() => {
+                              const isSales = c.label === "Total de Vendas";
+                              const data = isSales ? seriesRevenue : seriesLeads;
+                              const lineColor = isSales ? palette.blue : palette.indigo;
+                              const bottomSparkOptions = {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                                scales: { x: { display: false }, y: { display: false } },
+                                elements: { point: { radius: 0 } }
+                              };
+                              const bottomSparkData = {
+                                labels: data.map((_, i) => i + 1),
+                                datasets: [{
+                                  data,
+                                  borderColor: lineColor,
+                                  backgroundColor: `${lineColor}00`,
+                                  fill: false,
+                                  tension: 0.45,
+                                  borderWidth: 2
+                                }]
+                              };
+                              return <Line height={10} options={bottomSparkOptions} data={bottomSparkData} />;
+                            })()}
+                          </div>
+                        )}
                       </Paper>
-                    </Grid>
-                  ));
-                })()}
-              </Grid>
-            )}
+                    ))}
+                  </div>
+
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
+                    {/* Gráfico 1 */}
+                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
+                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Receita por Dia</div>
+                      <Line options={lineOptions} data={lineData} height={160} />
+                    </Paper>
+                    {/* Gráfico 2 */}
+                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
+                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Clientes x Valor</div>
+                      <Bar options={barOptions} data={barData} height={160} />
+                    </Paper>
+                    {/* Gráfico 3 */}
+                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
+                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Ranking de Responsáveis</div>
+                      <Bar options={{ responsive: true, plugins: { legend: { display: false } }, indexAxis: "y" }} data={barRanking} height={160} />
+                    </Paper>
+                    {/* Gráfico 4 */}
+                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
+                      <div style={{ fontSize: 14, color: palette.sub, marginBottom: 6 }}>Conversão por Origem</div>
+                      <Doughnut data={doughnutData} height={160} options={{ plugins: { legend: { position: "bottom" } } }} />
+                    </Paper>
+                  </div>
+                </div>
+              );
+            })()}
             {viewMode === "list" && <LeadsList leads={leadsState} />}
             {viewMode === "calendar" && (() => {
               const MiniMonth = ({ value, onChange }) => {

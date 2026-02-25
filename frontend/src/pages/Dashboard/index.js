@@ -66,6 +66,7 @@ import {
   Checkbox,
 } from "@mui/material";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MenuIcon from "@mui/icons-material/Menu";
 import { i18n } from "../../translate/i18n";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import ForbiddenPage from "../../components/ForbiddenPage";
@@ -85,12 +86,12 @@ const useStyles = makeStyles((theme) => ({
   },
   greetingContainer: {
     marginBottom: theme.spacing(2),
-    marginLeft: theme.spacing(2.5),
+    marginLeft: theme.spacing(4),
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    marginTop: theme.spacing(3),
-    paddingRight: theme.spacing(10),
+    marginTop: theme.spacing(2),
+    paddingRight: theme.spacing(4),
   },
   greetingTitle: {
     fontWeight: 700,
@@ -103,7 +104,7 @@ const useStyles = makeStyles((theme) => ({
   miniTopbar: {
     backgroundColor: "#ffffff",
     borderRadius: 0,
-    padding: theme.spacing(0.5, 1.5),
+    padding: theme.spacing(0.75, 2),
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-start",
@@ -113,6 +114,9 @@ const useStyles = makeStyles((theme) => ({
     width: "100%",
     boxShadow: "none",
     borderBottom: "none",
+    position: "sticky",
+    top: 0,
+    zIndex: 5
   },
   miniTopbarRight: {
     marginLeft: "auto",
@@ -124,7 +128,7 @@ const useStyles = makeStyles((theme) => ({
     color: "#000",
     backgroundColor: "transparent",
     opacity: 1,
-    padding: 4,
+    padding: 6,
     marginRight: 96,
     [theme.breakpoints.down("sm")]: {
       marginRight: 28,
@@ -146,7 +150,7 @@ const useStyles = makeStyles((theme) => ({
   },
   blockPaper: {
     padding: theme.spacing(2),
-    borderRadius: 18,
+    borderRadius: 8,
     backgroundColor: theme.palette.background.paper,
     boxShadow:
       theme.palette.mode === "light"
@@ -154,8 +158,8 @@ const useStyles = makeStyles((theme) => ({
         : theme.shadows[4],
     aspectRatio: "1 / 1",
     minHeight: 200,
-    width: "88%",
-    margin: "0 auto",
+    width: "100%",
+    margin: 0,
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
@@ -1214,6 +1218,30 @@ const Dashboard = () => {
                 marginTop: 0,
               }}
             >
+              <div className={classes.miniTopbar}>
+                {drawerCtx && drawerCtx.setDrawerOpen && (
+                  <IconButton
+                    size="small"
+                    onClick={toggleDrawer}
+                    aria-label="Alternar menu lateral"
+                    title="Menu"
+                    style={{ color: "#000" }}
+                  >
+                    <MenuIcon style={{ fontSize: 20 }} />
+                  </IconButton>
+                )}
+                <div className={classes.miniTopbarRight}>
+                  <IconButton
+                    size="small"
+                    className={classes.miniTopbarButton}
+                    onClick={handleOpenSettings}
+                    aria-label="Mais opções"
+                    title="Mais"
+                  >
+                    <MoreHorizIcon style={{ fontSize: 20, color: "#000" }} />
+                  </IconButton>
+                </div>
+              </div>
               <div className={classes.greetingContainer}>
                 <Typography variant="h4" className={classes.greetingTitle}>
                   {greetingText}
@@ -1238,7 +1266,7 @@ const Dashboard = () => {
                         >
                         <Grid2
                           container
-                          spacing={2}
+                          spacing={1}
                           className={classes.container}
                             style={{ margin: 0, width: "100%", marginTop: 0 }}
                         >

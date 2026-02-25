@@ -69,6 +69,8 @@ const useStyles = makeStyles((theme) => ({
     marginLeft: "auto",
     // flexBasis: "50%",
     display: "flex",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
     "& > *": {
       margin: theme.spacing(1),
     },
@@ -1000,7 +1002,7 @@ const TicketActionButtonsCustom = ({
           aria-haspopup="true"
           onClick={handleMenu}
           color="inherit"
-          style={{ paddingHorizontal: 3, paddingTop: 10 }}
+          style={{ padding: 6 }}
         >
           <MoreVert style={{ fontSize: 16, padding: 0 }} />
         </IconButton>

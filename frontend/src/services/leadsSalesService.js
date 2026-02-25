@@ -5,6 +5,10 @@ const leadsSalesService = {
     const { data } = await api.get("/leads-sales", { params });
     return data; // { leads, count, hasMore }
   },
+  async dashboard(params) {
+    const { data } = await api.get("/leads-sales/dashboard", { params });
+    return data;
+  },
   async create(payload) {
     const { data } = await api.post("/leads-sales", payload);
     return data;

@@ -188,24 +188,31 @@ const withAlpha = (hex, alpha) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete }) => {
+const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, columns: columnsProp, statusResolver }) => {
   const classes = useStyles();
 
-  const columns = [
-    { id: 'backlog', title: 'Backlog', color: '#4B5563' },         // cinza forte
-    { id: 'pending', title: 'Pendente', color: '#4B5563' },        // cinza forte
-    { id: 'in_progress', title: 'Em Progresso', color: '#F97316' }, // laranja forte
-    { id: 'completed', title: 'Concluído', color: '#10B981' }     // verde
+  const columns = columnsProp || [
+    { id: 'backlog', title: 'Backlog', color: '#4B5563' },
+    { id: 'pending', title: 'Pendente', color: '#4B5563' },
+    { id: 'in_progress', title: 'Em Progresso', color: '#F97316' },
+    { id: 'completed', title: 'Concluído', color: '#10B981' }
   ];
 
   // Função auxiliar para mapear status do backend para colunas
-  const getColumnId = (status) => {
+  const defaultStatusToColumn = (status) => {
     const s = String(status || '').toLowerCase();
     if (['backlog'].includes(s)) return 'backlog';
     if (['pendente','pending','a fazer','a_fazer'].includes(s)) return 'pending';
     if (['em progresso','in_progress','em_progresso','concluindo','concluding'].includes(s)) return 'in_progress';
     if (['concluído','concluido','completed','finalizado','finalizada'].includes(s)) return 'completed';
     return 'pending';
+  };
+
+  const getColumnId = (status) => {
+    if (typeof statusResolver === 'function') {
+      return statusResolver(status);
+    }
+    return defaultStatusToColumn(status);
   };
 
   const getActivitiesByColumn = (columnId) => {

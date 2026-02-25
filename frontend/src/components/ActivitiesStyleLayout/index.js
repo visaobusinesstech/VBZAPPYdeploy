@@ -259,7 +259,8 @@ const ActivitiesStyleLayout = ({
   rootBackground,
   compactHeader = false,
   transparentHeader = false,
-  scrollContent = true
+  scrollContent = true,
+  hideLeftIcon = false
 }) => {
   const classes = useStyles();
   const contentRef = React.useRef(null);
@@ -376,7 +377,7 @@ const ActivitiesStyleLayout = ({
             <div className={classes.filterBar}>
               {/* Esquerda: Busca */}
               <div className={classes.leftFilter}>
-                <FilterListIcon className={classes.funnelIcon} />
+                {!hideLeftIcon && <FilterListIcon className={classes.funnelIcon} />}
                 <InputBase
                   placeholder={searchPlaceholder}
                   className={classes.filterInput}
