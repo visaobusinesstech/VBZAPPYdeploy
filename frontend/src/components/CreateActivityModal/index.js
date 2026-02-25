@@ -294,8 +294,8 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
             label="Projeto"
           >
              <MenuItem value=""><em>Nenhum</em></MenuItem>
-             {projects && projects.map(p => (
-              <MenuItem key={p.id} value={p.id}>{p.title}</MenuItem>
+             {(projects || []).map(p => (
+              <MenuItem key={p.id} value={p.id}>{p.name || p.title || `Projeto ${p.id}`}</MenuItem>
             ))}
           </Select>
         </FormControl>

@@ -4,6 +4,8 @@ import React, {
   useReducer,
   useCallback,
   useContext,
+  useLayoutEffect,
+  useRef,
 } from "react";
 import { toast } from "react-toastify";
 import { useHistory } from "react-router-dom";
@@ -222,6 +224,26 @@ const Schedules = () => {
   const [eventDetailsOpen, setEventDetailsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [activities, setActivities] = useState([]);
+  const leftTopRef = useRef(null);
+  const [panelHeight, setPanelHeight] = useState(600);
+
+  useLayoutEffect(() => {
+    const compute = () => {
+      try {
+        const rect = leftTopRef.current?.getBoundingClientRect();
+        const top = rect?.top || 0;
+        const vh = Math.max(window.innerHeight || 0, document.documentElement?.clientHeight || 0, 720);
+        const h = Math.max(360, vh - top - 16);
+        setPanelHeight(h);
+      } catch {
+        const vh = Math.max(window.innerHeight || 0, 720);
+        setPanelHeight(Math.max(360, vh - 180));
+      }
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
 
   const { getPlanCompany } = usePlans();
 
@@ -564,9 +586,9 @@ const Schedules = () => {
               Calendário
             </h1>
           </div>
-          <Grid container spacing={2} style={{ margin: 0, width: '100%', height: 'calc(100vh - 128px)', overflow: 'hidden' }}>
-            <Grid item xs={12} md={9} lg={9}>
-              <Paper className={classes.mainPaper} style={{ width: '100%' }}>
+          <Grid container spacing={2} style={{ margin: 0, width: '100%', overflow: 'hidden' }}>
+            <Grid item xs={12} md={9} lg={9} ref={leftTopRef} style={{ height: panelHeight }}>
+              <Paper className={classes.mainPaper} style={{ width: '100%', height: '100%' }}>
                 <Calendar
                   messages={defaultMessages}
                   formats={{
@@ -622,7 +644,7 @@ const Schedules = () => {
                 />
               </Paper>
             </Grid>
-            <Grid item xs={12} md={3} lg={3}>
+            <Grid item xs={12} md={3} lg={3} style={{ height: panelHeight }}>
               <div className="right-aside" style={{ height: '100%', overflowY: 'auto' }}>
                 <div className="aside-top-actions">
                   <button className="aside-action" onClick={handleOpenScheduleModal}>

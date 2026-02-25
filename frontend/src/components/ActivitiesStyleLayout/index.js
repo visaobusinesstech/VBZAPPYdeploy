@@ -421,7 +421,15 @@ const ActivitiesStyleLayout = ({
         </div>
       </div>
 
-      <div ref={contentRef} className={classes.content} style={scrollContent ? undefined : { overflowY: 'visible', maxHeight: 'none' }}>
+      <div
+        ref={contentRef}
+        className={classes.content}
+        style={
+          scrollContent
+            ? undefined
+            : { overflowY: 'visible', overflowX: 'hidden', maxHeight: 'none', height: 'auto' }
+        }
+      >
         {children}
       </div>
 

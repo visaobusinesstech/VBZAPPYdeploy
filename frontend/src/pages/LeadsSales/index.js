@@ -740,6 +740,7 @@ const LeadsSales = () => {
   const classes = useStyles();
   const [viewMode, setViewMode] = useState("board");
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [chartCols, setChartCols] = useState(2);
   const [searchParam, setSearchParam] = useState("");
   const [pageNumber, setPageNumber] = useState(1);
   const [status, setStatus] = useState("");
@@ -765,6 +766,17 @@ const LeadsSales = () => {
   const [tagAnchor, setTagAnchor] = useState(null);
   const [tagLead, setTagLead] = useState(null);
   const [tagText, setTagText] = useState("");
+
+  useEffect(() => {
+    const handleResize = () => {
+      const w = window.innerWidth || document.documentElement.clientWidth || 0;
+      setChartCols(w >= 1024 ? 2 : 1);
+      document.body.style.overflowX = "hidden";
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     async function fetchFilters() {
@@ -1111,7 +1123,7 @@ const LeadsSales = () => {
         currentViewMode={viewMode}
         onViewModeChange={setViewMode}
         rightFilters={rightFilters}
-        scrollContent={viewMode !== "calendar"}
+        scrollContent={viewMode !== "calendar" && viewMode !== "dashboard"}
       >
         {loading ? (
           <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
@@ -1149,15 +1161,74 @@ const LeadsSales = () => {
                 scales: { x: { display: false }, y: { display: false } },
                 elements: { point: { radius: 0 } }
               };
-              const labelsRevenue = (dash?.revenuePerDay || []).map(d => d.date);
-              const dataRevenue = (dash?.revenuePerDay || []).map(d => d.revenue);
-              const labelsClients = (dash?.clientsValueByDay || []).map(d => d.date);
-              const dataClients = (dash?.clientsValueByDay || []).map(d => d.leads);
-              const dataValues = (dash?.clientsValueByDay || []).map(d => d.value);
-              const rankingLabels = (dash?.rankingResponsibles || []).map(r => r.name);
-              const rankingValues = (dash?.rankingResponsibles || []).map(r => r.value);
-              const originLabels = (dash?.conversionByOrigin || []).map(o => o.origin);
-              const originValues = (dash?.conversionByOrigin || []).map(o => o.won);
+              let labelsRevenue = (dash?.revenuePerDay || []).map(d => d.date);
+              let dataRevenue = (dash?.revenuePerDay || []).map(d => d.revenue);
+              let labelsClients = (dash?.clientsValueByDay || []).map(d => d.date);
+              let dataClients = (dash?.clientsValueByDay || []).map(d => d.leads);
+              let dataValues = (dash?.clientsValueByDay || []).map(d => d.value);
+
+              const fromLeadsSeries = (() => {
+                const toKey = (v) => {
+                  try {
+                    const dt = new Date(v);
+                    if (isNaN(dt.getTime())) return null;
+                    return dt.toISOString().slice(0,10);
+                  } catch { return null; }
+                };
+                const counts = {};
+                const totals = {};
+                const revenue = {};
+                (leadsState || []).forEach((l) => {
+                  const raw = l.updatedAt || l.createdAt || l.date || Date.now();
+                  const k = toKey(raw);
+                  if (!k) return;
+                  const val = Number(l.value || 0) || 0;
+                  counts[k] = (counts[k] || 0) + 1;
+                  totals[k] = (totals[k] || 0) + val;
+                  const st = String(l.status || "").toLowerCase();
+                  const won = /(won|converted|fechado|ganho)/i.test(st);
+                  revenue[k] = (revenue[k] || 0) + (won ? val : 0);
+                });
+                const keys = Object.keys(counts).sort();
+                return {
+                  labels: keys,
+                  leads: keys.map(k => counts[k] || 0),
+                  values: keys.map(k => totals[k] || 0),
+                  revenue: keys.map(k => revenue[k] || 0)
+                };
+              })();
+
+              if (!labelsRevenue.length && fromLeadsSeries.labels.length) {
+                labelsRevenue = fromLeadsSeries.labels;
+                dataRevenue = fromLeadsSeries.revenue;
+              }
+              if (!labelsClients.length && fromLeadsSeries.labels.length) {
+                labelsClients = fromLeadsSeries.labels;
+                dataClients = fromLeadsSeries.leads;
+                dataValues = fromLeadsSeries.values;
+              }
+
+              // Fallback robusto para Ranking de Responsáveis
+              const fallbackRankingMap = (() => {
+                const map = {};
+                (leadsState || []).forEach((l) => {
+                  const name = (l?.responsible?.name || "Outros");
+                  const val = Number(l?.value || 0);
+                  map[name] = (map[name] || 0) + (isNaN(val) ? 0 : val);
+                });
+                return map;
+              })();
+              const rankingDataArr = Array.isArray(dash?.rankingResponsibles) && dash.rankingResponsibles.length
+                ? dash.rankingResponsibles
+                : Object.entries(fallbackRankingMap).map(([name, value]) => ({ name, value }));
+              const rankingLabels = rankingDataArr.map(r => r.name);
+              const rankingValues = rankingDataArr.map(r => r.value);
+
+              // Fallback para Funil (contagem por status) — substitui o antigo doughnut
+              const statusOrder = ["novo", "qualificacao", "proposta", "negociacao", "fechado"];
+              const LABEL_BY_KEY = COLUMN_DEFS.reduce((acc, c) => { acc[c.key] = c.label; return acc; }, {});
+              const funnelCounts = statusOrder.map((k) => (leadsState || []).filter(l => String(l.status || "").toLowerCase() === k).length);
+              const funnelLabels = statusOrder.map(k => LABEL_BY_KEY[k] || k.toUpperCase());
 
               const chartHeight = 180;
               const lineOptions = {
@@ -1200,19 +1271,14 @@ const LeadsSales = () => {
                 labels: rankingLabels,
                 datasets: [{ label: "Valor", data: rankingValues, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 22 }]
               };
-              const doughnutData = {
-                labels: originLabels,
-                datasets: [{ data: originValues, backgroundColor: [palette.indigo, palette.blue, palette.green, palette.amber, palette.red] }]
-              };
-              const doughnutOptions = {
-                maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom", labels: { color: palette.sub } } },
-                layout: { padding: { top: 8, bottom: 8 } }
+              const funnelBar = {
+                labels: funnelLabels,
+                datasets: [{ label: "Quantidade", data: funnelCounts, backgroundColor: palette.indigo, borderRadius: 6, maxBarThickness: 22 }]
               };
 
               return (
-                <div style={{ padding: 4 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
+                <div style={{ padding: 4, overflowX: "hidden", overflowY: "visible", width: "100%", height: "auto" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
                     {kpi.map((c) => (
                       <Paper key={c.label} style={{
                         borderRadius: 12,
@@ -1227,7 +1293,7 @@ const LeadsSales = () => {
                         background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`
                       }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 600 }}>{c.label}</div>
+                          <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 400 }}>{c.label}</div>
                           <div style={{ fontWeight: 700, fontSize: 18, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
                         </div>
                         {c.sub && <div style={{ fontSize: 11, color: palette.sub }}>{c.sub}</div>}
@@ -1292,33 +1358,67 @@ const LeadsSales = () => {
                     ))}
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 8 }}>
-                    {/* Gráfico 1 */}
-                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Receita por Dia</div>
-                      <Line options={lineOptions} data={lineData} height={chartHeight} />
-                    </Paper>
-                    {/* Gráfico 2 */}
-                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Clientes x Valor</div>
-                      <Bar options={barOptions} data={barData} height={chartHeight} />
-                    </Paper>
-                    {/* Gráfico 3 */}
-                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Ranking de Responsáveis</div>
-                      <Bar
-                        options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, indexAxis: "y",
-                          scales: { x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true }, y: { ticks: { color: palette.sub } } }
-                        }}
-                        data={barRanking}
-                        height={chartHeight}
-                      />
-                    </Paper>
-                    {/* Gráfico 4 */}
-                    <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, minHeight: 260 }}>
-                      <div style={{ fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 600 }}>Conversão por Origem</div>
-                      <Doughnut data={doughnutData} height={chartHeight} options={doughnutOptions} />
-                    </Paper>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${chartCols}, minmax(0, 1fr))`, gap: 16, marginTop: 8, width: "100%", overflowX: "hidden", overflowY: "visible", alignItems: "stretch", minWidth: 0 }}>
+                    {(() => {
+                      const boxH = 260; // Altura igual para todos os gráficos
+                      const chartH = 200; // Área interna do canvas
+                      const titleStyle = { fontSize: 14, color: palette.text, marginBottom: 6, fontWeight: 400 };
+                      return (
+                        <>
+                          {/* Gráfico 1 */}
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                            <div style={titleStyle}>Receita por Dia</div>
+                            <div style={{ height: chartH }}>
+                              <Line options={lineOptions} data={lineData} />
+                            </div>
+                          </Paper>
+                          {/* Gráfico 2 */}
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                            <div style={titleStyle}>Clientes x Valor</div>
+                            <div style={{ height: chartH }}>
+                              <Bar options={barOptions} data={barData} />
+                            </div>
+                          </Paper>
+                          {/* Gráfico 3 */}
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                            <div style={titleStyle}>Ranking de Responsáveis</div>
+                            <div style={{ height: chartH }}>
+                              <Bar
+                                options={{
+                                  responsive: true,
+                                  maintainAspectRatio: false,
+                                  plugins: { legend: { display: false } },
+                                  indexAxis: "y",
+                                  scales: {
+                                    x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
+                                    y: { ticks: { color: palette.sub } }
+                                  }
+                                }}
+                                data={barRanking}
+                              />
+                            </div>
+                          </Paper>
+                          {/* Gráfico 4 */}
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                            <div style={titleStyle}>Funil de Vendas (Barras)</div>
+                            <Bar
+                              options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                indexAxis: "y",
+                                scales: {
+                                  x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
+                                  y: { ticks: { color: palette.sub } }
+                                }
+                              }}
+                              data={funnelBar}
+                              height={chartH}
+                            />
+                          </Paper>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               );

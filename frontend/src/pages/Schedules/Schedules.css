@@ -27,7 +27,7 @@
   --vb-today-bg: #F1F5F9;
   background: #FFFFFF;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .schedules-page .rbc-calendar { background: transparent; border: none; border-radius: 0; box-shadow: none; padding: 0; }
@@ -194,6 +194,10 @@
 }
 
 /* Aside (direita) */
+.schedules-page .right-aside {
+  height: 100%;
+  overflow-y: auto;
+}
 .schedules-page .right-aside .aside-card {
   background: #fff;
   border: 1px solid var(--vb-border);
