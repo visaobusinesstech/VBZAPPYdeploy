@@ -1497,7 +1497,7 @@ const LeadsSales = () => {
                 <div className="schedules-page" style={{ paddingTop: 8, height: 'calc(100vh - 128px)', overflow: 'hidden' }}>
                   <Grid container spacing={2} style={{ height: '100%' }}>
                     <Grid item xs={12} md={9} lg={9} style={{ height: '100%' }}>
-                      <Paper style={{ padding: 8, height: '100%', display: 'flex' }}>
+                      <Paper style={{ padding: 8, height: '100%', display: 'flex', overflow: 'visible' }}>
                         <Calendar
                           localizer={localizer}
                           views={["day","week","month"]}
@@ -1518,7 +1518,7 @@ const LeadsSales = () => {
                       </Paper>
                     </Grid>
                     <Grid item xs={12} md={3} lg={3} style={{ height: '100%' }}>
-                      <div className="right-aside" style={{ height: '100%', overflowY: 'auto' }}>
+                      <div className="right-aside" style={{ height: '100%', overflowY: 'visible' }}>
                         <div className="aside-top-actions">
                           <button className="aside-action" onClick={() => { setEditing(null); setDrawerOpen(true); }}>
                             Novo Lead
