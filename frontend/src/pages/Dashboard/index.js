@@ -1,4 +1,5 @@
 import React, { useContext, useState, useEffect, useMemo } from "react";
+import { useHistory } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 import Paper from "@material-ui/core/Paper";
@@ -104,7 +105,7 @@ const useStyles = makeStyles((theme) => ({
   miniTopbar: {
     backgroundColor: "#ffffff",
     borderRadius: 0,
-    padding: theme.spacing(0.75, 2),
+    padding: theme.spacing(0.3, 2),
     display: "flex",
     alignItems: "center",
     justifyContent: "flex-start",
@@ -112,11 +113,20 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 0,
     marginBottom: theme.spacing(2),
     width: "100%",
-    boxShadow: "none",
+    boxShadow:
+      "0 2px 4px rgba(2, 6, 23, 0.04), 0 6px 16px rgba(2, 6, 23, 0.06), inset 0 1px 0 rgba(17, 24, 39, 0.04)",
     borderBottom: "none",
     position: "sticky",
     top: 0,
-    zIndex: 5
+    zIndex: 5,
+    [theme.breakpoints.up("lg")]: {
+      paddingTop: theme.spacing(0.4),
+      paddingBottom: theme.spacing(0.4),
+    },
+    [theme.breakpoints.up("xl")]: {
+      paddingTop: theme.spacing(0.5),
+      paddingBottom: theme.spacing(0.5),
+    }
   },
   miniTopbarRight: {
     marginLeft: "auto",
@@ -130,8 +140,14 @@ const useStyles = makeStyles((theme) => ({
   },
   miniTopbarClock: {
     color: theme.palette.text.secondary,
-    fontSize: "0.8rem",
+    fontSize: "0.74rem",
     fontWeight: 500,
+    [theme.breakpoints.up("lg")]: {
+      fontSize: "0.78rem",
+    },
+    [theme.breakpoints.up("xl")]: {
+      fontSize: "0.8rem",
+    },
   },
   blocksWrapper: {
     width: "100%",
@@ -224,6 +240,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1.25),
     borderRadius: 10,
     marginBottom: theme.spacing(1),
+    cursor: "pointer",
     backgroundColor:
       theme.palette.mode === "light"
         ? "#f9fafb"
@@ -267,6 +284,7 @@ const useStyles = makeStyles((theme) => ({
     padding: theme.spacing(1),
     borderRadius: 10,
     marginBottom: theme.spacing(1),
+    cursor: "pointer",
     transition: "background-color 0.15s ease, box-shadow 0.15s ease",
     "&:hover": {
       backgroundColor:
@@ -471,8 +489,9 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(1),
   },
   settingsDialogPaper: {
-    borderRadius: 18,
-    padding: theme.spacing(1),
+    borderRadius: "36px !important",
+    padding: theme.spacing(1.5),
+    overflow: "hidden",
   },
   settingsDialogTitle: {
     fontWeight: 700,
@@ -487,21 +506,21 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 10,
     textTransform: "none",
     fontWeight: 700,
-    borderColor: "#131B2D",
-    color: "#131B2D",
+    borderColor: "#131B2D !important",
+    color: "#131B2D !important",
     "&:hover": {
-      backgroundColor: "rgba(19, 27, 45, 0.06)",
-      borderColor: "#131B2D",
+      backgroundColor: "rgba(19, 27, 45, 0.06) !important",
+      borderColor: "#131B2D !important",
     },
   },
   dialogAddButton: {
     borderRadius: 10,
     textTransform: "none",
     fontWeight: 700,
-    backgroundColor: "#131B2D",
-    color: "#FFFFFF",
+    backgroundColor: "#131B2D !important",
+    color: "#FFFFFF !important",
     "&:hover": {
-      backgroundColor: "#0f1525",
+      backgroundColor: "#0f1525 !important",
     },
   },
 }));
@@ -772,7 +791,7 @@ const Dashboard = () => {
     }
   }
 
-  // const history = useHistory();
+  const history = useHistory();
   const [nowText, setNowText] = useState(moment().format("ddd, D MMM • HH:mm"));
   useEffect(() => {
     const id = setInterval(() => {
@@ -936,6 +955,7 @@ const Dashboard = () => {
             const hasDate = !!a.date;
             const d = hasDate ? moment(a.date) : null;
             const isFuture = d ? d.isAfter(moment()) : false;
+            const isOverdue = hasDate ? (!isFuture && !d.isSame(moment(), "day")) : false;
             const when = d ? d.fromNow(true) : "-";
             const metaText = hasDate
               ? (isFuture
@@ -945,14 +965,22 @@ const Dashboard = () => {
                     : `Atividade vencida há ${when}`)
               : "-";
             return (
-              <li key={a.id} className={classes.blockListItem}>
+              <li
+                key={a.id}
+                className={classes.blockListItem}
+                onClick={() => history.push("/activities")}
+              >
                 <div className={classes.dotLine}>
                   <span className={classes.dot} style={{ backgroundColor: color }} />
                   <Typography className={classes.blockItemTitle}>
                     {a.title || "Sem título"}
                   </Typography>
                 </div>
-                <Typography className={classes.blockItemMeta} title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}>
+                <Typography
+                  className={classes.blockItemMeta}
+                  title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}
+                  style={isOverdue ? { color: "#ef4444", fontWeight: 400 } : undefined}
+                >
                   {metaText}
                 </Typography>
               </li>
@@ -990,7 +1018,12 @@ const Dashboard = () => {
               const color =
                 e.type === "schedule" ? "#3b82f6" : e.type === "activity" ? "#10b981" : "#8b5cf6";
               return (
-                <div key={`${e.type}-${idx}`} className={classes.agendaItem} style={{ backgroundColor: bg }}>
+                <div
+                  key={`${e.type}-${idx}`}
+                  className={classes.agendaItem}
+                  style={{ backgroundColor: bg }}
+                  onClick={() => history.push("/schedules")}
+                >
                   <span className={classes.dot} style={{ backgroundColor: color }} />
                   <div className={classes.agendaTime}>
                     {e.time ? moment(e.time).format("HH:mm") : "--:--"}
@@ -1034,6 +1067,7 @@ const Dashboard = () => {
             const hasDate = !!a.date;
             const d = hasDate ? moment(a.date) : null;
             const isFuture = d ? d.isAfter(moment()) : false;
+            const isOverdue = hasDate ? (!isFuture && !d.isSame(moment(), "day")) : false;
             const when = d ? d.fromNow(true) : "-";
             const metaText = hasDate
               ? (isFuture
@@ -1043,14 +1077,22 @@ const Dashboard = () => {
                     : `Atividade vencida há ${when}`)
               : "-";
             return (
-              <li key={a.id} className={classes.blockListItem}>
+              <li
+                key={a.id}
+                className={classes.blockListItem}
+                onClick={() => history.push("/activities")}
+              >
                 <div className={classes.dotLine}>
                   <span className={classes.dot} style={{ backgroundColor: color }} />
                   <Typography className={classes.blockItemTitle}>
                     {a.title || "Sem título"}
                   </Typography>
                 </div>
-                <Typography className={classes.blockItemMeta} title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}>
+                <Typography
+                  className={classes.blockItemMeta}
+                  title={hasDate ? d.format("DD/MM/YYYY HH:mm") : "-"}
+                  style={isOverdue ? { color: "#ef4444", fontWeight: 400 } : undefined}
+                >
                   {metaText}
                 </Typography>
               </li>
@@ -1080,7 +1122,11 @@ const Dashboard = () => {
             if (status.includes("done") || status.includes("concl")) color = "#10b981";
             if (status.includes("pend")) color = "#f59e0b";
             return (
-              <li key={p.id} className={classes.blockListItem}>
+              <li
+                key={p.id}
+                className={classes.blockListItem}
+                onClick={() => history.push("/projects")}
+              >
                 <div className={classes.dotLine}>
                   <span className={classes.dot} style={{ backgroundColor: color }} />
                   <Typography className={classes.blockItemTitle}>
@@ -1107,7 +1153,11 @@ const Dashboard = () => {
       return (
         <ul className={classes.blockList}>
           {dueActivities.map((a) => (
-            <li key={a.id} className={classes.blockListItem}>
+            <li
+              key={a.id}
+              className={classes.blockListItem}
+              onClick={() => history.push("/activities")}
+            >
               <Typography className={classes.blockItemTitle}>
                 {a.title || "Sem título"}
               </Typography>
@@ -1130,7 +1180,11 @@ const Dashboard = () => {
       return (
         <ul className={classes.blockList}>
           {dueProjects.map((p) => (
-            <li key={p.id} className={classes.blockListItem}>
+            <li
+              key={p.id}
+              className={classes.blockListItem}
+              onClick={() => history.push("/projects")}
+            >
               <Typography className={classes.blockItemTitle}>
                 {p.title || p.name || "Projeto"}
               </Typography>
@@ -1261,6 +1315,13 @@ const Dashboard = () => {
                   </IconButton>
                 )}
                 <div className={classes.miniTopbarRight}>
+                  <div className={classes.miniTopbarClock} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                      <circle cx="12" cy="12" r="10" />
+                      <path d="M12 7v5l3 2" />
+                    </svg>
+                    <span>{nowText}</span>
+                  </div>
                   <IconButton
                     size="small"
                     className={classes.miniTopbarButton}
@@ -1377,10 +1438,10 @@ const Dashboard = () => {
               </FormGroup>
             </DialogContent>
             <DialogActions>
-              <Button variant="outlined" color="primary" onClick={handleCloseSettings} className={classes.dialogCancelButton}>
+              <Button variant="outlined" onClick={handleCloseSettings} className={classes.dialogCancelButton}>
                 Cancelar
               </Button>
-              <Button variant="contained" color="primary" onClick={handleApplySettings} className={classes.dialogAddButton}>
+              <Button variant="contained" onClick={handleApplySettings} className={classes.dialogAddButton}>
                 Adicionar
               </Button>
             </DialogActions>
