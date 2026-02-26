@@ -72,11 +72,17 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
     overflow: "hidden",
     "& > *": {
-      margin: theme.spacing(1),
+      margin: theme.spacing(0.5),
+    },
+    "& .MuiIconButton-root": {
+      padding: 4,
+    },
+    "& .MuiSvgIcon-root": {
+      fontSize: 18,
     },
   },
   bottomButtonVisibilityIcon: {
-    padding: 1,
+    padding: 2,
     color: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
   },
   botoes: {

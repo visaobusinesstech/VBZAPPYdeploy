@@ -159,9 +159,9 @@ const TicketsCustom = () => {
 	};
 
 	// Limite responsivo: até 40% da tela, respeitando min/max
-	const responsiveMax = Math.max(
+  const responsiveMax = Math.max(
 		minTicketsManagerWidth,
-		Math.min(maxTicketsManagerWidth, Math.floor(viewportWidth * 0.4))
+    Math.min(maxTicketsManagerWidth, Math.floor(viewportWidth * 0.35))
 	);
 	// ⚠️ CORREÇÃO: Garantir que a largura nunca seja 0 ou inválida e não ultrapasse o limite responsivo
 	const effectiveWidth = Math.min(
