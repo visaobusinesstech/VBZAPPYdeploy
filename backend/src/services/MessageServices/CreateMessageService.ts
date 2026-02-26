@@ -132,6 +132,10 @@ const CreateMessageService = async ({
 
   if (message.isPrivate) {
     await message.update({ wid: `PVT${message.id}` });
+    const ticket = await Ticket.findByPk(message.ticketId);
+    if (ticket) {
+      await ticket.update({ status: "open" });
+    }
   }
 
   if (!message) {

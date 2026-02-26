@@ -162,6 +162,28 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: green[500],
   },
 
+  agentPreview: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "2px 6px",
+    border: "1px solid #0cb7f2",
+    borderRadius: 8,
+    backgroundColor: "rgba(12,183,242,0.06)",
+    marginRight: 6
+  },
+  agentPreviewBadge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 4,
+    color: "#0cb7f2",
+    fontWeight: 600,
+    fontSize: "0.72rem"
+  },
+  agentPreviewText: {
+    color: "inherit"
+  },
+
   acceptButton: {
     position: "absolute",
     right: "1px",
@@ -229,6 +251,9 @@ const useStyles = makeStyles((theme) => ({
     "&:hover": {
       opacity: 0.8,
     },
+  },
+  aiAgent: {
+    borderLeft: "4px solid #0cb7f2",
   }
 }));
 
@@ -264,6 +289,11 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
   const { user } = useContext(AuthContext);
 
   const { get: getSetting } = useCompanySettings();
+
+  const isAI =
+    !!(ticket?.lastMessage &&
+      ticket?.lastMessage?.fromMe &&
+      ticket?.lastMessage?.isPrivate);
 
   useEffect(() => {
     return () => {
@@ -633,6 +663,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
         selected={ticketId && ticketId === ticket.uuid}
         className={clsx(classes.ticket, {
           [classes.pendingTicket]: ticket.status === "pending",
+          [classes.aiAgent]: isAI,
         })}
       >
         <ListItemAvatar style={{ marginLeft: "-15px" }}>
