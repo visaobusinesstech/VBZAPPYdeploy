@@ -27,7 +27,7 @@ import TableRowSkeleton from "../../components/TableRowSkeleton";
 import { i18n } from "../../translate/i18n";
 import toastError from "../../errors/toastError";
 import api from "../../services/api";
-import { DeleteOutline, Edit, Visibility, VisibilityOff, Settings as SettingsIcon, WorkOutline as WorkOutlineIcon, Memory as MemoryIcon, FlashOn as FlashOnIcon, BugReport as BugReportIcon, List as ListIcon, Business, Flag, Gavel, Category as CategoryIcon, InfoOutlined } from "@material-ui/icons";
+import { DeleteOutline, Edit, Visibility, VisibilityOff, Settings as SettingsIcon, WorkOutline as WorkOutlineIcon, Memory as MemoryIcon, FlashOn as FlashOnIcon, BugReport as BugReportIcon, List as ListIcon, Business, Flag, Gavel, Category as CategoryIcon, InfoOutlined, EventNote, PersonAdd, Assignment, DragHandle } from "@material-ui/icons";
 // Ícone oficial da OpenAI via react-icons (simple-icons)
 import { SiOpenai } from "react-icons/si";
 import { toast } from "react-toastify";
@@ -197,12 +197,14 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    padding: 10,
+    padding: 14,
     border: "1px solid #e5e7eb",
     background: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 8,
-    cursor: "pointer"
+    cursor: "pointer",
+    minHeight: 88,
+    height: "100%"
   },
   uploadBox: {
     border: "1px dashed #cbd5e1",
@@ -214,6 +216,23 @@ const useStyles = makeStyles((theme) => ({
     fontSize: 12,
     color: "#6b7280"
   },
+  expandableWrapper: {
+    position: "relative"
+  },
+  resizableInput: {
+    resize: "none",
+    minHeight: 96,
+    maxHeight: 480,
+    overflow: "auto"
+  },
+  resizeHandle: {
+    position: "absolute",
+    right: 10,
+    bottom: 8,
+    opacity: 0.45,
+    cursor: "ns-resize",
+    userSelect: "none"
+  },
   summaryRow: {
     display: "flex",
     flexWrap: "wrap",
@@ -221,6 +240,92 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(1)
   }
 }));
+
+const ExpandableField = ({
+  label,
+  value,
+  onChange,
+  className,
+  InputProps,
+  InputLabelProps,
+  minRows = 4,
+  maxRows = 14,
+  placeholder
+}) => {
+  const classes = useStyles();
+  const inputRef = React.useRef(null);
+  const wrapperRef = React.useRef(null);
+  const [rows, setRows] = useState(() => {
+    const text = String(value || "");
+    const lines = text.split("\n").length + 1;
+    return Math.min(maxRows, Math.max(minRows, lines));
+  });
+
+  useEffect(() => {
+    const text = String(value || "");
+    const lines = text.split("\n").length + 1;
+    setRows(Math.min(maxRows, Math.max(minRows, lines)));
+  }, [value, minRows, maxRows]);
+
+  useEffect(() => {
+    return () => {
+      window.removeEventListener("mousemove", onDrag);
+      window.removeEventListener("mouseup", onStop);
+    };
+  }, []);
+
+  let startY = 0;
+  let startH = 0;
+
+  const onStart = (e) => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    startY = e.clientY;
+    startH = ta.clientHeight;
+    window.addEventListener("mousemove", onDrag);
+    window.addEventListener("mouseup", onStop);
+    e.preventDefault();
+  };
+
+  const onDrag = (e) => {
+    const ta = inputRef.current;
+    if (!ta) return;
+    const dy = e.clientY - startY;
+    const next = Math.max(96, Math.min(480, startH + dy));
+    ta.style.height = `${next}px`;
+  };
+
+  const onStop = () => {
+    window.removeEventListener("mousemove", onDrag);
+    window.removeEventListener("mouseup", onStop);
+  };
+
+  return (
+    <div className={classes.expandableWrapper} ref={wrapperRef}>
+      <TextField
+        label={label}
+        value={value}
+        onChange={onChange}
+        fullWidth
+        variant="outlined"
+        multiline
+        rows={rows}
+        className={className}
+        InputProps={{
+          ...(InputProps || {}),
+          classes: {
+            ...(InputProps && InputProps.classes ? InputProps.classes : {}),
+            inputMultiline: classes.resizableInput
+          }
+        }}
+        InputLabelProps={InputLabelProps}
+        placeholder={placeholder}
+        inputRef={inputRef}
+      />
+      <DragHandle fontSize="small" className={classes.resizeHandle} onMouseDown={onStart} />
+    </div>
+  );
+};
 
 const reducer = (state, action) => {
   if (action.type === "LOAD_PROMPTS") {
@@ -948,17 +1053,14 @@ const Prompts = () => {
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
                     />
-                    <TextField
+                    <ExpandableField
                       label="Instruções"
                       value={roleState.instrucoes}
                       onChange={(e) => setRoleState(prev => ({ ...prev, instrucoes: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      multiline
-                      rows={6}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
+                      minRows={5}
+                      maxRows={16}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
@@ -1050,63 +1152,51 @@ const Prompts = () => {
                     </TextField>
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <ExpandableField
                       label="Contexto da Empresa"
                       value={roleState.empresaContexto || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, empresaContexto: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      multiline
-                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Business color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
+                      minRows={5}
+                      maxRows={16}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <ExpandableField
                       label="Objetivo do Agente"
                       value={roleState.objetivoAgente || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, objetivoAgente: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      multiline
-                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Flag color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
+                      minRows={5}
+                      maxRows={16}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <ExpandableField
                       label="Regras e Restrições"
                       value={roleState.regrasRestricoes || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, regrasRestricoes: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      multiline
-                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Gavel color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
+                      minRows={5}
+                      maxRows={16}
                     />
                   </Grid>
                   <Grid item xs={12} md={6}>
-                    <TextField
+                    <ExpandableField
                       label="Nicho da Empresa"
                       value={roleState.nichoEmpresa || ""}
                       onChange={(e) => setRoleState(prev => ({ ...prev, nichoEmpresa: e.target.value }))}
-                      fullWidth
-                      variant="outlined"
-                      size="small"
-                      multiline
-                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
+                      minRows={5}
+                      maxRows={16}
                     />
                   </Grid>
                 </Grid>
@@ -1121,8 +1211,7 @@ const Prompts = () => {
             {activeTab === "cerebro" && (
               <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
-                  <Grid item xs={12} md={6}>
-                    <div className={classes.cardTitle}>Arquivos e Sites</div>
+                  <Grid item xs={12} md={12}>
                     <div className={`${classes.section} ${classes.brainWrapper}`}>
                       <Typography variant="subtitle1">Arquivos</Typography>
                       <div className={classes.uploadBox}>
@@ -1158,7 +1247,7 @@ const Prompts = () => {
                       </div>
                     </div>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={12}>
                     <div className={classes.cardTitle}>Q&A</div>
                     <div className={`${classes.section} ${classes.brainWrapper}`}>
                       <Grid container spacing={2} className={classes.formRow}>
@@ -1185,20 +1274,23 @@ const Prompts = () => {
                           />
                         </Grid>
                         <Grid item xs={12}>
-                          <TextField
+                          <ExpandableField
                             label="Resposta"
                             value={newQa.resposta}
                             onChange={(e) => setNewQa(prev => ({ ...prev, resposta: e.target.value }))}
-                            fullWidth
-                            variant="outlined"
-                            multiline
-                            rows={4}
                             InputLabelProps={{ shrink: true }}
                             className={classes.inputDense}
+                            minRows={4}
+                            maxRows={16}
                           />
                         </Grid>
                       </Grid>
-                      <Button variant="outlined" onClick={handleAddQa}>Adicionar Q&A</Button>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Button variant="outlined" onClick={handleAddQa}>Adicionar Q&A</Button>
+                        <Button color="primary" variant="contained" onClick={handleSaveBrain}>
+                          Salvar Cérebro
+                        </Button>
+                      </div>
                       <div style={{ marginTop: 12 }}>
                         {(brainState.qna || []).map((qa, idx) => (
                           <div key={idx} style={{ padding: "8px 0", borderBottom: "1px solid #eee" }}>
@@ -1213,11 +1305,7 @@ const Prompts = () => {
                       </div>
                     </div>
                   </Grid>
-                  <Grid item xs={12}>
-                    <Button color="primary" variant="contained" onClick={handleSaveBrain}>
-                      Salvar Cérebro
-                    </Button>
-                  </Grid>
+                  
                 </Grid>
               </div>
             )}
@@ -1226,31 +1314,38 @@ const Prompts = () => {
               <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
                   <Grid item xs={12} md={6}>
-                    <div className={classes.cardTitle}>Ações disponíveis</div>
-                    {[
-                      { name: "Agendamento", desc: "Cria compromissos e lembretes" },
-                      { name: "Criar Lead", desc: "Gera leads na área de Vendas" },
-                      { name: "Criar Empresa", desc: "Registra empresas no CRM" },
-                      { name: "Consultar Pedidos", desc: "Busca pedidos no sistema" },
-                    ].map((a) => (
-                      <div key={a.name} className={classes.actionItem} onClick={() => setActionsState(prev => ({ ...prev, selected: a.name }))}>
-                        <div>
-                          <Typography style={{ fontWeight: 600 }}>{a.name}</Typography>
-                          <Typography variant="caption" color="textSecondary">{a.desc}</Typography>
-                        </div>
-                        <Switch
-                          checked={actionsState.enabled.includes(a.name)}
-                          onChange={(e) => {
-                            const set = new Set(actionsState.enabled);
-                            if (e.target.checked) set.add(a.name); else set.delete(a.name);
-                            setActionsState(prev => ({ ...prev, enabled: Array.from(set) }));
-                          }}
-                          color="primary"
-                        />
-                      </div>
-                    ))}
+                    <div className={classes.cardTitle} style={{ marginLeft: 8 }}>Ações disponíveis</div>
+                    <Grid container spacing={2}>
+                      {[
+                        { name: "Agendamento", desc: "Cria compromissos e lembretes", icon: <EventNote style={{ opacity: 0.8 }} /> },
+                        { name: "Criar Lead", desc: "Gera leads na área de Vendas", icon: <PersonAdd style={{ opacity: 0.8 }} /> },
+                        { name: "Criar Empresa", desc: "Registra empresas no CRM", icon: <Business style={{ opacity: 0.8 }} /> },
+                        { name: "Consultar Pedidos", desc: "Busca pedidos no sistema", icon: <Assignment style={{ opacity: 0.8 }} /> },
+                      ].map((a) => (
+                        <Grid key={a.name} item xs={12} md={6}>
+                          <div className={classes.actionItem} onClick={() => setActionsState(prev => ({ ...prev, selected: a.name }))}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <span>{a.icon}</span>
+                              <div>
+                                <Typography style={{ fontWeight: 600 }}>{a.name}</Typography>
+                                <Typography variant="caption" color="textSecondary">{a.desc}</Typography>
+                              </div>
+                            </div>
+                            <Switch
+                              checked={actionsState.enabled.includes(a.name)}
+                              onChange={(e) => {
+                                const set = new Set(actionsState.enabled);
+                                if (e.target.checked) set.add(a.name); else set.delete(a.name);
+                                setActionsState(prev => ({ ...prev, enabled: Array.from(set) }));
+                              }}
+                              color="primary"
+                            />
+                          </div>
+                        </Grid>
+                      ))}
+                    </Grid>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={12}>
                     <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
                         <TextField
@@ -1314,15 +1409,13 @@ const Prompts = () => {
                         </Select>
                       </Grid>
                       <Grid item xs={12} md={6}>
-                        <TextField
+                        <ExpandableField
                           label="Regras (palavras-chave, formatos)"
-                          fullWidth
-                          variant="outlined"
-                          multiline
-                          rows={3}
                           value={actionsState.draft?.regras || ""}
                           onChange={(e) => setActionsState(prev => ({ ...prev, draft: { ...(prev.draft || {}), regras: e.target.value } }))}
                           className={classes.inputDense}
+                          minRows={3}
+                          maxRows={14}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1375,52 +1468,39 @@ const Prompts = () => {
                       {(advancedState.examples || [{ user: "", assistant: "" }]).map((ex, idx) => (
                         <>
                           <Grid item xs={12}>
-                            <TextField
-                              placeholder="Mensagem do usuário"
-                              value={ex.user}
-                              onChange={(e) => {
+                          <ExpandableField
+                            placeholder="Mensagem do usuário"
+                            label={null}
+                            value={ex.user}
+                            onChange={(e) => {
                                 const arr = [...(advancedState.examples || [])];
                                 arr[idx] = { ...(arr[idx] || {}), user: e.target.value };
                                 setAdvancedState(prev => ({ ...prev, examples: arr }));
                               }}
-                              fullWidth
-                              variant="outlined"
-                              className={classes.inputDense}
-                              multiline
-                              rows={3}
-                            />
+                            className={classes.inputDense}
+                            minRows={3}
+                            maxRows={16}
+                          />
                           </Grid>
                           <Grid item xs={12}>
-                            <TextField
-                              placeholder="Resposta do assistente"
-                              value={ex.assistant}
-                              onChange={(e) => {
+                          <ExpandableField
+                            placeholder="Resposta do assistente"
+                            label={null}
+                            value={ex.assistant}
+                            onChange={(e) => {
                                 const arr = [...(advancedState.examples || [])];
                                 arr[idx] = { ...(arr[idx] || {}), assistant: e.target.value };
                                 setAdvancedState(prev => ({ ...prev, examples: arr }));
                               }}
-                              fullWidth
-                              variant="outlined"
-                              className={classes.inputDense}
-                              multiline
-                              rows={3}
-                            />
+                            className={classes.inputDense}
+                            minRows={3}
+                            maxRows={16}
+                          />
                           </Grid>
                         </>
                       ))}
                       <Grid item xs={12}>
                         <Button variant="outlined" onClick={() => setAdvancedState(prev => ({ ...prev, examples: [...(prev.examples || []), { user: "", assistant: "" }] }))}>+ Adicionar Exemplo</Button>
-                      </Grid>
-                      <Grid item xs={12} style={{ textAlign: 'left' }}>
-                        <Button
-                          variant="contained"
-                          color="primary"
-                          size="small"
-                          onClick={handleSaveAdvanced}
-                          style={{ marginTop: 4 }}
-                        >
-                          Salvar Avançado
-                        </Button>
                       </Grid>
                     </Grid>
                   </Grid>
@@ -1441,42 +1521,36 @@ const Prompts = () => {
                         />
                       </Grid>
                       <Grid item xs={12}>
-                        <TextField
+                        <ExpandableField
                           label="Mensagem de boas-vindas"
                           value={advancedState.welcomeMessage}
                           onChange={(e) => setAdvancedState(prev => ({ ...prev, welcomeMessage: e.target.value }))}
-                          fullWidth
-                          variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
-                          multiline
-                          rows={3}
+                          minRows={3}
+                          maxRows={16}
                         />
                       </Grid>
                       <Grid item xs={12}>
-                        <TextField
+                        <ExpandableField
                           label="Mensagem de despedida"
                           value={advancedState.farewellMessage}
                           onChange={(e) => setAdvancedState(prev => ({ ...prev, farewellMessage: e.target.value }))}
-                          fullWidth
-                          variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
-                          multiline
-                          rows={3}
+                          minRows={3}
+                          maxRows={16}
                         />
                       </Grid>
                       <Grid item xs={12}>
-                        <TextField
+                        <ExpandableField
                           label="Mensagem de transferência"
                           value={advancedState.transferMessage}
                           onChange={(e) => setAdvancedState(prev => ({ ...prev, transferMessage: e.target.value }))}
-                          fullWidth
-                          variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
-                          multiline
-                          rows={3}
+                          minRows={3}
+                          maxRows={16}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1516,6 +1590,16 @@ const Prompts = () => {
                         />
                       </Grid>
                     </Grid>
+                    <div style={{ marginTop: 8 }}>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        onClick={handleSaveAdvanced}
+                      >
+                        Salvar Avançado
+                      </Button>
+                    </div>
                   </Grid>
                 </Grid>
               </div>
