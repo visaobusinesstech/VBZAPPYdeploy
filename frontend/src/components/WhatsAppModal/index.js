@@ -413,9 +413,13 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
         setWhatsApp(data);
         setAttachmentName(data.greetingMediaAttachment);
         setAutoToken(data.token);
-        data.promptId
-          ? setSelectedPrompt(data.promptId)
-          : setSelectedPrompt(null);
+        if (data.useAgentSettings) {
+          setSelectedPrompt("__agent_settings__");
+        } else if (data.promptId) {
+          setSelectedPrompt(data.promptId);
+        } else {
+          setSelectedPrompt(null);
+        }
         const whatsQueueIds = data.queues?.map((queue) => queue.id);
         setSelectedQueueIds(whatsQueueIds);
         setIsOficial(channel === "whatsapp_oficial");
@@ -528,7 +532,6 @@ const WhatsAppModal = ({ open, onClose, whatsAppId, channel }) => {
       token: autoToken ? autoToken : null,
       schedules,
       promptId: useAgentSettings ? null : (selectedPrompt ? selectedPrompt : null),
-      useAgentSettings: useAgentSettings ? true : undefined,
       channel,
       triggerIntegrationOnClose: triggerIntegrationOnClose,
       integrationTypeId: triggerIntegrationOnClose ? integrationTypeId : null,

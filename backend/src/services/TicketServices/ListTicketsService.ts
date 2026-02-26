@@ -84,11 +84,20 @@ const ListTicketsService = async ({
       : false;
     let whereCondition: Filterable["where"];
 
-  whereCondition = {
-    [Op.or]: [{ userId }, { status: "pending" }],
-    queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] },
-    companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
-  };
+  // Regra: A aba Aguardando deve sempre listar todas as conversas pendentes,
+  // independente de filtros de fila/usuário. Para os demais status, mantém filtros.
+  if (status === "pending") {
+    whereCondition = {
+      status: "pending",
+      companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
+    };
+  } else {
+    whereCondition = {
+      [Op.or]: [{ userId }, { status: "pending" }],
+      queueId: showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : { [Op.or]: [queueIds] },
+      companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
+    };
+  }
 
 
   let includeCondition: Includeable[];
@@ -259,7 +268,8 @@ const ListTicketsService = async ({
               };
             }
 
-  if (user.profile === "user" && !user.super) {
+  // Para Aguardando não restringir por userId; para os demais, manter regra atual
+  if (user.profile === "user" && !user.super && status !== "pending") {
     whereCondition = {
       ...whereCondition,
       userId

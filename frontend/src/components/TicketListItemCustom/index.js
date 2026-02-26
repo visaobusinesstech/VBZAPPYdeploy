@@ -414,6 +414,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
         status:
           ticket.isGroup && ticket.channel === "whatsapp" ? "group" : "open",
         userId: user?.id,
+        isBot: false
       });
 
       if (otherTicket.data.id !== ticket.id) {
@@ -893,7 +894,35 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
                     loading={loading}
                     onClick={(e) => handleAcepptTicket(ticket.id)}
                   >
-                    <Tooltip title={`${i18n.t("ticketsList.buttons.accept")}`}>
+                    <Tooltip title="Assumir Humano">
+                      <Done />
+                    </Tooltip>
+                  </ButtonWithSpinner>
+                )}
+              </span>
+              <span className={classes.secondaryContentSecond}>
+                {ticket.status === "open" && ticket.isBot === true && (
+                  <ButtonWithSpinner
+                    style={{
+                      backgroundColor: "transparent",
+                      boxShadow: "none",
+                      border: "none",
+                      color: theme.mode === "light" ? "green" : "#FFF",
+                      padding: "0px",
+                      borderRadius: "50%",
+                      right: "51px",
+                      fontSize: "0.6rem",
+                      bottom: "-30px",
+                      minWidth: "2em",
+                      width: "auto",
+                    }}
+                    variant="contained"
+                    className={classes.acceptButton}
+                    size="small"
+                    loading={loading}
+                    onClick={(e) => handleAcepptTicket(ticket.id)}
+                  >
+                    <Tooltip title="Assumir Humano">
                       <Done />
                     </Tooltip>
                   </ButtonWithSpinner>

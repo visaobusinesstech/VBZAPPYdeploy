@@ -299,6 +299,9 @@ class Whatsapp extends Model<Whatsapp> {
 
   @Column
   wavoip: string;
+
+  @Column(DataType.VIRTUAL)
+  useAgentSettings: boolean;
 }
 
 export default Whatsapp;

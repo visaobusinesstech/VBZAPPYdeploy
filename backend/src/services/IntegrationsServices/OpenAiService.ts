@@ -25,6 +25,9 @@ import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne";
 import CreateScheduleService from "../ScheduleServices/CreateService";
 import { getIO } from "../../libs/socket";
 import { format } from "date-fns";
+import Queue from "../../models/Queue";
+import User from "../../models/User";
+import Whatsapp from "../../models/Whatsapp";
 
 type Session = WASocket & {
   id?: number;
@@ -192,7 +195,7 @@ const returnToFlow = async (ticket: Ticket, reason: string): Promise<void> => {
     const sentMessage = await wbot.sendMessage(getJidOf(ticket.contact), {
       text: transitionMessage
     });
-    await verifyMessage(sentMessage!, ticket, ticket.contact);
+    await verifyMessage(sentMessage!, ticket, ticket.contact, undefined, true);
 
     // Restaurar estado do fluxo
     await ticket.update({
@@ -303,8 +306,7 @@ const processResponse = async (
     const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
       text: `\u200e ${transferMessage}`,
     });
-
-    await verifyMessage(sentMessage!, ticket, contact);
+    await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
 
     if (aiSettings.queueId && aiSettings.queueId > 0) {
       await transferQueue(aiSettings.queueId, ticket, contact);
@@ -348,7 +350,22 @@ const processResponse = async (
     const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
       text: `\u200e ${response}`,
     });
-    await verifyMessage(sentMessage!, ticket, contact);
+    await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+    await ticket.update({ status: "open", isBot: true });
+    await ticket.reload({
+      include: [
+        { model: Queue, as: "queue", attributes: ["id", "name", "color"] },
+        { model: User, as: "user", attributes: ["id", "name"] },
+        { model: Contact, as: "contact" },
+        { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "color"] }
+      ]
+    } as any);
+    const io = getIO();
+    io.of(String(ticket.companyId)).emit(`company-${ticket.companyId}-ticket`, {
+      action: "update",
+      ticket,
+      ticketId: ticket.id
+    });
   } else {
     // Apenas OpenAI pode usar voz
     const fileNameWithOutExtension = `${ticket.id}_${Date.now()}`;
@@ -367,6 +384,21 @@ const processResponse = async (
         ptt: true,
       });
       await verifyMediaMessage(sendMessage!, ticket, contact, ticketTraking, false, false, wbot);
+      await ticket.update({ status: "open", isBot: true });
+      await ticket.reload({
+        include: [
+          { model: Queue, as: "queue", attributes: ["id", "name", "color"] },
+          { model: User, as: "user", attributes: ["id", "name"] },
+          { model: Contact, as: "contact" },
+          { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "color"] }
+        ]
+      } as any);
+      const io = getIO();
+      io.of(String(ticket.companyId)).emit(`company-${ticket.companyId}-ticket`, {
+        action: "update",
+        ticket,
+        ticketId: ticket.id
+      });
       deleteFileSync(`${publicFolder}/${fileNameWithOutExtension}.mp3`);
       deleteFileSync(`${publicFolder}/${fileNameWithOutExtension}.wav`);
     } catch (error) {
@@ -375,7 +407,22 @@ const processResponse = async (
       const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
         text: `\u200e ${response}`,
       });
-      await verifyMessage(sentMessage!, ticket, contact);
+      await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+      await ticket.update({ status: "open", isBot: true });
+      await ticket.reload({
+        include: [
+          { model: Queue, as: "queue", attributes: ["id", "name", "color"] },
+          { model: User, as: "user", attributes: ["id", "name"] },
+          { model: Contact, as: "contact" },
+          { model: Whatsapp, as: "whatsapp", attributes: ["id", "name", "color"] }
+        ]
+      } as any);
+      const io = getIO();
+      io.of(String(ticket.companyId)).emit(`company-${ticket.companyId}-ticket`, {
+        action: "update",
+        ticket,
+        ticketId: ticket.id
+      });
     }
   }
 };
@@ -387,19 +434,16 @@ const parseDateTimeFromText = (text: string): { date: Date | null; matched: bool
   if (!hasIntent || !dateMatch) return { date: null, matched: false };
   const day = parseInt(dateMatch[1], 10);
   const month = parseInt(dateMatch[2], 10);
+  // Assumir SEMPRE o ano atual quando não informado
   let year = dateMatch[3] ? parseInt(dateMatch[3], 10) : new Date().getFullYear();
   if (year < 100) year += 2000;
   let hours = 9;
   let minutes = 0;
-  const timeMatch = t.match(/às\s*(\d{1,2})(?::|h)?(\d{2})?|(\d{1,2})\s*h/);
+  // Suportar variações: "às 19h", "as 19h", "19h", "19:30", "19.30"
+  const timeMatch = t.match(/(?:às|as)?\s*(\d{1,2})(?::|\.|h|hs)?(\d{2})?\s*(?:h|hs|horas)?/);
   if (timeMatch) {
-    if (timeMatch[1]) {
-      hours = parseInt(timeMatch[1], 10);
-      minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
-    } else if (timeMatch[3]) {
-      hours = parseInt(timeMatch[3], 10);
-      minutes = 0;
-    }
+    hours = parseInt(timeMatch[1], 10);
+    minutes = timeMatch[2] ? parseInt(timeMatch[2], 10) : 0;
   }
   const dt = new Date(year, month - 1, day, hours, minutes, 0);
   return { date: isNaN(dt.getTime()) ? null : dt, matched: true };
@@ -687,7 +731,7 @@ ${aiSettings.prompt}`;
         const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
           text: text
         });
-        await verifyMessage(sentMessage!, ticket, contact);
+        await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
         return;
       }
       const messagesAI = prepareMessagesAI(messages, isGeminiModel, promptSystem);
@@ -740,14 +784,14 @@ ${aiSettings.prompt}`;
           text: errorMessage
         });
 
-        await verifyMessage(sentMessage!, ticket, contact);
+        await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
       }
     }
     // Processar áudio (apenas para OpenAI)
     else if (msg.message?.audioMessage && mediaSent && isOpenAIModel) {
       if (!openai) {
         logger.error("[AI SERVICE] Sessão OpenAI necessária para transcrição mas não inicializada");
-        await wbot.sendMessage(msg.key.remoteJid!, {
+      await wbot.sendMessage(msg.key.remoteJid!, {
           text: "Desculpe, a transcrição de áudio não está configurada corretamente."
         });
         return;
@@ -785,7 +829,7 @@ ${aiSettings.prompt}`;
         const sentTranscriptMessage = await wbot.sendMessage(msg.key.remoteJid!, {
           text: `🎤 *Sua mensagem de voz:* ${transcription}`,
         });
-        await verifyMessage(sentTranscriptMessage!, ticket, contact);
+        await verifyMessage(sentTranscriptMessage!, ticket, contact, ticketTraking, true);
 
         // Obter resposta da IA para a transcrição
         const messagesAI = prepareMessagesAI(messages, isGeminiModel, promptSystem);
@@ -808,14 +852,69 @@ ${aiSettings.prompt}`;
         const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
           text: `Desculpe, houve um erro ao processar seu áudio: ${errorMessage}`,
         });
-        await verifyMessage(sentMessage!, ticket, contact);
+        await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+      }
+    } else if (msg.message?.imageMessage && mediaSent) {
+      try {
+        if (isGeminiModel && gemini) {
+          const model = gemini.getGenerativeModel({
+            model: aiSettings.model,
+            systemInstruction: promptSystem,
+          });
+
+          const geminiHistory: Content[] = (prepareMessagesAI(messages, isGeminiModel, promptSystem)).map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }],
+          }));
+
+          const fileName = typeof mediaSent.mediaUrl === "string" ? mediaSent.mediaUrl.split("/").pop() : null;
+          const publicFolder: string = path.resolve(__dirname, "..", "..", "..", "public", `company${ticket.companyId}`);
+          const filePath = fileName ? path.join(publicFolder, fileName) : null;
+
+          if (!filePath || !fs.existsSync(filePath)) {
+            const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+              text: "Recebi uma imagem, mas não consegui acessá-la para análise. Por favor, tente reenviar."
+            });
+            await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+            return;
+          }
+
+          const fileBuffer = fs.readFileSync(filePath);
+          const imagePart: Part = {
+            inlineData: {
+              data: fileBuffer.toString("base64"),
+              mimeType: "image/jpeg"
+            }
+          };
+
+          const chat = model.startChat({ history: geminiHistory });
+          const promptText = "Descreva a imagem e responda ao usuário considerando o contexto da conversa.";
+          const result = await chat.sendMessage([ { text: promptText }, imagePart ]);
+          const responseText = result.response.text();
+
+          if (responseText) {
+            const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, { text: `\u200e ${responseText}` });
+            await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+          }
+        } else {
+          const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+            text: "Ainda não consigo analisar imagens com este provedor de IA. Por favor, descreva em texto."
+          });
+          await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
+        }
+      } catch (error: any) {
+        logger.error("[AI SERVICE] Erro ao processar imagem:", error);
+        const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+          text: "Houve um erro ao analisar sua imagem. Por favor, tente novamente."
+        });
+        await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
       }
     } else if (msg.message?.audioMessage && isGeminiModel) {
       // Gemini não suporta áudio, apenas texto
       const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
         text: "Desculpe, no momento só posso processar mensagens de texto. Por favor, envie sua pergunta por escrito.",
       });
-      await verifyMessage(sentMessage!, ticket, contact);
+      await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
     }
 
   } catch (error) {
@@ -825,7 +924,7 @@ ${aiSettings.prompt}`;
       const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
         text: "Desculpe, ocorreu um erro interno. Por favor, tente novamente mais tarde.",
       });
-      await verifyMessage(sentMessage!, ticket, contact);
+      await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
     } catch (sendError) {
       logger.error("[AI SERVICE] Erro ao enviar mensagem de erro:", sendError);
     }

@@ -222,7 +222,7 @@ const TicketsListCustom = (props) => {
     const { user, socket } = useContext(AuthContext);
 
     const { profile, queues } = user;
-    const showTicketWithoutQueue = user.allTicket === 'enable';
+    const showTicketWithoutQueue = (user.allTicket === 'enable' || user.allTicket === 'enabled');
     const companyId = user.companyId;
 
     useEffect(() => {
@@ -269,9 +269,13 @@ const TicketsListCustom = (props) => {
 
     useEffect(() => {
         const shouldUpdateTicket = ticket => {
+            // Regra: na aba Aguardando, sempre aceitar atualizações independente de fila/usuário
+            if (status === "pending") {
+                return true;
+            }
+            const noQueueFilter = !selectedQueueIds || selectedQueueIds.length === 0;
             return (!ticket?.userId || ticket?.userId === user?.id || showAll) &&
-                ((!ticket?.queueId && showTicketWithoutQueue) || selectedQueueIds.indexOf(ticket?.queueId) > -1)
-            // (!blockNonDefaultConnections || (ticket.status == 'group' && ignoreUserConnectionForGroups) || !user?.whatsappId || ticket.whatsappId == user?.whatsappId);
+                ((!ticket?.queueId && showTicketWithoutQueue) || noQueueFilter || selectedQueueIds.indexOf(ticket?.queueId) > -1)
         }
         // const shouldUpdateTicketUser = (ticket) =>
         //     selectedQueueIds.indexOf(ticket?.queueId) > -1 && (ticket?.userId === user?.id || !ticket?.userId);

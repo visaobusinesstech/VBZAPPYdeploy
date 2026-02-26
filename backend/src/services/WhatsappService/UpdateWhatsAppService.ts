@@ -149,9 +149,7 @@ const UpdateWhatsAppService = async ({
     throw new AppError(err.message);
   }
 
-  if (queueIds.length > 1 && !greetingMessage) {
-    throw new AppError("ERR_WAPP_GREETING_REQUIRED");
-  }
+  // Removida a obrigatoriedade de greetingMessage quando houver múltiplas filas
 
   let oldDefaultWhatsapp: Whatsapp | null = null;
 

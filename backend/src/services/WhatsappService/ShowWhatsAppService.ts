@@ -6,6 +6,7 @@ import { FindOptions } from "sequelize/types";
 import Prompt from "../../models/Prompt";
 import { FlowBuilderModel } from "../../models/FlowBuilder";
 import User from "../../models/User";
+import ListSettingsServiceOne from "../SettingServices/ListSettingsServiceOne";
 
 const ShowWhatsAppService = async (
   id: string | number,
@@ -59,6 +60,22 @@ const ShowWhatsAppService = async (
   if (!whatsapp) {
     throw new AppError("ERR_NO_WAPP_FOUND", 404);
   }
+
+  // Computar campo virtual useAgentSettings: quando não há Prompt mas existe configuração global de agente
+  try {
+    if (whatsapp && !whatsapp.getDataValue("promptId")) {
+      const agentIntegration = await ListSettingsServiceOne({ companyId: whatsapp.companyId, key: "agent_integration" });
+      const hasKey = !!agentIntegration?.value && (() => {
+        try {
+          const v = typeof agentIntegration.value === "string" ? JSON.parse(agentIntegration.value as any) : agentIntegration.value;
+          return !!v?.apiKey;
+        } catch {
+          return false;
+        }
+      })();
+      (whatsapp as any).setDataValue("useAgentSettings", hasKey);
+    }
+  } catch {}
 
   return whatsapp;
 };

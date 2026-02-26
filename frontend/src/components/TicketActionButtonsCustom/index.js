@@ -996,6 +996,22 @@ const TicketActionButtonsCustom = ({
             {i18n.t("messagesList.header.buttons.accept")}
           </ButtonWithSpinner>
         )}
+        {ticket.status === "open" && ticket.isBot === true && (
+          <ButtonWithSpinner
+            loading={loading}
+            size="small"
+            variant="contained"
+            onClick={async () => {
+              await handleUpdateTicketStatusWithData(
+                { status: "open", userId: user?.id, isBot: false },
+                false,
+                null
+              );
+            }}
+          >
+            Assumir Humano
+          </ButtonWithSpinner>
+        )}
         <IconButton
           aria-label="account of current user"
           aria-controls="menu-appbar"

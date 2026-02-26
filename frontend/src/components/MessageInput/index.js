@@ -64,6 +64,8 @@ import {
 import AddIcon from "@material-ui/icons/Add";
 import { CameraAlt } from "@material-ui/icons";
 import Stars from "@material-ui/icons/Stars";
+import Popover from "@material-ui/core/Popover";
+import Button from "@material-ui/core/Button";
 import MicRecorder from "mic-recorder-to-mp3";
 import clsx from "clsx";
 import { ReplyMessageContext } from "../../context/ReplyingMessage/ReplyingMessageContext";
@@ -472,6 +474,34 @@ const useStyles = makeStyles((theme) => ({
   aiIcon: {
     color: theme.palette.primary.main,
   },
+  aiPromptPaper: {
+    width: 320,
+    maxWidth: "calc(100% - 16px)",
+    borderRadius: 10,
+    padding: theme.spacing(1),
+    boxShadow: theme.shadows[6],
+    border: `1px solid ${theme.palette.divider}`,
+  },
+  aiPromptHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing(0.5, 1),
+    color: theme.palette.text.secondary,
+    fontSize: 12,
+  },
+  aiPromptInput: {
+    padding: theme.spacing(1),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: 8,
+    margin: theme.spacing(0.5, 0, 1),
+    backgroundColor: theme.palette.background.paper,
+  },
+  aiPromptActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: theme.spacing(1),
+  },
   flexContainer: {
     display: "flex",
     flex: 1,
@@ -553,6 +583,9 @@ const MessageInput = ({
   const [aiMenuAnchor, setAiMenuAnchor] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiConfig, setAiConfig] = useState({ apiKey: "", model: "gpt-4o-mini" });
+  const [aiPromptOpen, setAiPromptOpen] = useState(false);
+  const [aiPromptText, setAiPromptText] = useState("");
+  const newMessageBoxRef = useRef(null);
 
   const isTicketPending = () => {
     return ticketStatus === "pending";
@@ -611,6 +644,15 @@ const MessageInput = ({
 
   const handleOpenAIMenu = (e) => setAiMenuAnchor(e.currentTarget);
   const handleCloseAIMenu = () => setAiMenuAnchor(null);
+  const handleOpenAiPrompt = () => {
+    setAiPromptText("");
+    setAiPromptOpen(true);
+    handleCloseAIMenu();
+  };
+  const handleCloseAiPrompt = () => {
+    setAiPromptOpen(false);
+    setAiPromptText("");
+  };
 
   const callOpenAITransform = async (systemPrompt, userPrompt) => {
     if (!inputMessage || inputMessage.trim() === "") {
@@ -667,12 +709,18 @@ const MessageInput = ({
   };
 
   const handleCustomPrompt = () => {
-    const instr = window.prompt("Descreva o que deseja que a IA faça com o texto:");
-    if (!instr) return;
+    handleOpenAiPrompt();
+  };
+  const handleRunAiPrompt = () => {
+    if (!aiPromptText || aiPromptText.trim() === "") {
+      setAiPromptOpen(false);
+      return;
+    }
     callOpenAITransform(
       "Siga estritamente as instruções do usuário para transformar o texto. Responda somente com o resultado final, sem explicações.",
-      `Instruções: ${instr}\n\nTexto original:\n${inputMessage}`
+      `Instruções: ${aiPromptText}\n\nTexto original:\n${inputMessage}`
     );
+    setAiPromptOpen(false);
   };
 
   const handleTranslate = () => {
@@ -1936,7 +1984,7 @@ const MessageInput = ({
 
           {(replyingMessage && renderReplyingMessage(replyingMessage)) ||
             (editingMessage && renderReplyingMessage(editingMessage))}
-          <div className={classes.newMessageBox}>
+          <div className={classes.newMessageBox} ref={newMessageBoxRef}>
             {!isTicketPending() && (
               <Hidden only={["sm", "xs"]}>
                 <IconButton
@@ -2101,6 +2149,34 @@ const MessageInput = ({
                     Traduzir
                   </MenuItem>
                 </Menu>
+                <Popover
+                  open={aiPromptOpen}
+                  onClose={handleCloseAiPrompt}
+                  anchorEl={newMessageBoxRef.current}
+                  container={newMessageBoxRef.current}
+                  anchorOrigin={{ vertical: "top", horizontal: "center" }}
+                  transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+                  PaperProps={{ className: classes.aiPromptPaper, style: { zIndex: 20 } }}
+                >
+                  <div className={classes.aiPromptHeader}>Prompt do Agente</div>
+                  <div>
+                    <InputBase
+                      className={classes.aiPromptInput}
+                      placeholder="Descreva o que a IA deve fazer..."
+                      value={aiPromptText}
+                      onChange={(e) => setAiPromptText(e.target.value)}
+                      autoFocus
+                      multiline
+                      rowsMax={4}
+                    />
+                    <div className={classes.aiPromptActions}>
+                      <Button size="small" onClick={handleCloseAiPrompt}>Cancelar</Button>
+                      <Button size="small" color="primary" variant="contained" onClick={handleRunAiPrompt} disabled={aiLoading}>
+                        Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </Popover>
 
                 {/* NOVO ÍCONE DE TRIGGER FLOW - APENAS EM TICKETS OPEN */}
                 {ticketStatus === "open" && (

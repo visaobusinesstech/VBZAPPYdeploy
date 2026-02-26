@@ -1008,7 +1008,7 @@ export const verifyMediaMessage = async (
 
     console.log(`[DEBUG 2026] Mensagem criada no DB: ${newMessage.id} para Ticket: ${ticket.id}`);
 
-    if (!msg.key.fromMe && ticket.status === "closed") {
+    if (!msg.key.fromMe && ["closed", "open", "group", "chatbot"].includes(String(ticket.status))) {
       await ticket.update({ status: "pending" });
       await ticket.reload({
         attributes: [
@@ -1044,16 +1044,6 @@ export const verifyMediaMessage = async (
       });
 
       io.of(String(companyId))
-        // .to("closed")
-        .emit(`company-${companyId}-ticket`, {
-          action: "delete",
-          ticket,
-          ticketId: ticket.id
-        });
-      // console.log("emitiu socket 902", ticket.id)
-      io.of(String(companyId))
-        // .to(ticket.status)
-        //   .to(ticket.id.toString())
         .emit(`company-${companyId}-ticket`, {
           action: "update",
           ticket,
@@ -1081,6 +1071,16 @@ export const verifyMessage = async (
   const body = getBodyMessage(msg);
   const companyId = ticket.companyId;
 
+  const ts = getTimestampMessage(msg.messageTimestamp);
+  const createdAtIso = (() => {
+    try {
+      const epochMs = isNaN(ts) ? Date.now() : Math.floor(ts * 1000);
+      return new Date(epochMs).toISOString();
+    } catch {
+      return new Date().toISOString();
+    }
+  })();
+
   const messageData = {
     wid: msg.key.id,
     ticketId: ticket.id,
@@ -1098,9 +1098,7 @@ export const verifyMessage = async (
     dataJson: JSON.stringify(msg),
     ticketTrakingId: ticketTraking?.id,
     isPrivate,
-    createdAt: new Date(
-      Math.floor(getTimestampMessage(msg.messageTimestamp) * 1000)
-    ).toISOString(),
+    createdAt: createdAtIso,
     ticketImported: ticket.imported,
     isForwarded
   };
@@ -1134,7 +1132,7 @@ export const verifyMessage = async (
       contact: ticketToEmit.contact
     });
 
-  if (!msg.key.fromMe && ticket.status === "closed") {
+  if (!msg.key.fromMe && ["closed", "open", "group", "chatbot"].includes(String(ticket.status))) {
     await ticket.update({ status: "pending" });
     await ticket.reload({
       include: [
@@ -1153,8 +1151,6 @@ export const verifyMessage = async (
 
     if (!ticket.imported) {
       io.of(String(companyId))
-        // .to(ticket.status)
-        // .to(ticket.id.toString())
         .emit(`company-${companyId}-ticket`, {
           action: "update",
           ticket,
@@ -3544,8 +3540,47 @@ const handleOpenAi = async (
   // console.log("GETTING WHATSAPP HANDLE OPENAI", ticket.whatsappId, ticket.id)
   const { prompt } = await ShowWhatsAppService(wbot.id, ticket.companyId);
 
+  // Fallback: quando não há Prompt vinculado à conexão, usar configurações globais do agente de integração
+  if (!prompt) {
+    try {
+      const integ = await ListSettingsServiceOne({ companyId: ticket.companyId, key: "agent_integration" });
+      const integValue = integ?.value ? (typeof integ.value === "string" ? JSON.parse(integ.value as any) : integ.value) : null;
+      if (integValue?.apiKey && (integValue?.model || integValue?.provider)) {
+        const aiSettings = {
+          name: integValue?.name || "Agente de IA",
+          prompt: "", // prompt de sistema será montado com base em role/brain dentro do fluxo
+          voice: "texto",
+          voiceKey: "",
+          voiceRegion: "",
+          maxTokens: Number(integValue?.maxTokens) || 1000,
+          temperature: typeof integValue?.temperature === "number" ? integValue.temperature : 0.7,
+          apiKey: String(integValue.apiKey),
+          queueId: Number(integValue?.queueId) || 0,
+          maxMessages: Number(integValue?.maxMessages) || 10,
+          model: String(integValue?.model || "gpt-4.1-mini"),
+          provider: (integValue?.provider === "gemini" ? "gemini" : "openai") as any,
+          // avançado
+          topP: typeof integValue?.topP === "number" ? integValue.topP : undefined,
+          presencePenalty: typeof integValue?.presencePenalty === "number" ? integValue.presencePenalty : undefined,
+          frequencyPenalty: typeof integValue?.frequencyPenalty === "number" ? integValue.frequencyPenalty : undefined,
+          stop: integValue?.stopSequences
+        } as any;
 
-  if (!prompt) return;
+        await handleOpenAiFlow(
+          aiSettings,
+          msg,
+          wbot,
+          ticket,
+          contact,
+          mediaSent,
+          ticketTraking
+        );
+      }
+    } catch (e) {
+      logger.error("[AI SERVICE] Falha ao usar agente de integração quando não há Prompt:", e);
+    }
+    return;
+  }
 
   if (msg.messageStubType) return;
 
@@ -3652,10 +3687,10 @@ const handleOpenAi = async (
     }
 
     if (prompt.voice === "texto") {
-      const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
+    const sentMessage = await wbot.sendMessage(msg.key.remoteJid!, {
         text: `\u200e ${response!}`
       });
-      await verifyMessage(sentMessage!, ticket, contact);
+    await verifyMessage(sentMessage!, ticket, contact, ticketTraking, true);
     } else {
       const fileNameWithOutExtension = `${ticket.id}_${Date.now()}`;
       convertTextToSpeechAndSaveToFile(
@@ -4824,16 +4859,40 @@ const handleMessage = async (
 
 
     //openai na conexao
+    logger.info(`[AI-CONNECTION] evaluating: ticket=${ticket.id} status=${ticket.status} imported=${!!ticket.imported} isGroup=${isGroup} fromMe=${msg.key.fromMe} promptId=${whatsapp.promptId} useAgentSettings=${(whatsapp as any)?.useAgentSettings === true}`);
     if (
       ticket.status !== "open" &&
       !ticket.imported &&
-      !ticket.queue &&
       !isGroup &&
       !msg.key.fromMe &&
-      !ticket.userId &&
-      !isNil(whatsapp.promptId)
+      (!isNil(whatsapp.promptId) || ((whatsapp as any)?.useAgentSettings === true))
     ) {
+      // Desabilita fila e atendimento humano enquanto a IA estiver ativa
+      if (ticket.queueId !== null || ticket.userId !== null || ticket.status !== "pending") {
+        await UpdateTicketService({
+          ticketData: {
+            status: "pending",
+            queueId: null,
+            userId: null,
+            isBot: true
+          },
+          ticketId: ticket.id,
+          companyId
+        });
+        await ticket.reload();
+      }
+      logger.info(`[AI-CONNECTION] triggering handleOpenAi for ticket ${ticket.id}`);
       await handleOpenAi(msg, wbot, ticket, contact, mediaSent, ticketTraking);
+      // Garantir que a mensagem da IA apareça: fallback de emissão quando não houver update imediato
+      try {
+        const io = getIO();
+        const refreshed = await ShowTicketService(ticket.id, companyId);
+        io.of(String(companyId)).emit(`company-${companyId}-ticket`, {
+          action: "update",
+          ticket: refreshed,
+          ticketId: refreshed.id
+        });
+      } catch {}
     }
 
     //integração na conexão: iniciar APENAS apos CPF no caso de SGP
@@ -4929,6 +4988,9 @@ const handleMessage = async (
       !msg.key.fromMe &&
       !ticket.userId &&
       whatsapp.queues.length >= 1 &&
+      // Não encaminhar para fila quando IA na conexão está ativa
+      isNil(whatsapp.promptId) &&
+      !((whatsapp as any)?.useAgentSettings === true) &&
       !ticket.useIntegration
     ) {
       // console.log("antes do verifyqueue")
