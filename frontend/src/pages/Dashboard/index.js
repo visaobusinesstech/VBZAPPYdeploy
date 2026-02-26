@@ -65,8 +65,8 @@ import {
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import MenuIcon from "@mui/icons-material/Menu";
+import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { i18n } from "../../translate/i18n";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import ForbiddenPage from "../../components/ForbiddenPage";
@@ -124,16 +124,6 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     gap: theme.spacing(1),
   },
-  miniTopbarButton: {
-    color: "#000",
-    backgroundColor: "transparent",
-    opacity: 1,
-    padding: 6,
-    marginRight: 96,
-    [theme.breakpoints.down("sm")]: {
-      marginRight: 28,
-    },
-  },
   miniTopbarIconSmall: {
     width: 16,
     height: 16,
@@ -149,15 +139,15 @@ const useStyles = makeStyles((theme) => ({
     margin: "0 auto",
   },
   blockPaper: {
-    padding: theme.spacing(2),
+    padding: theme.spacing(1.5),
     borderRadius: 8,
     backgroundColor: theme.palette.background.paper,
     boxShadow:
       theme.palette.mode === "light"
         ? "0 10px 30px rgba(2, 6, 23, 0.08)"
         : theme.shadows[4],
-    aspectRatio: "1 / 1",
-    minHeight: 200,
+    aspectRatio: "1 / 0.9",
+    minHeight: 180,
     width: "100%",
     margin: 0,
     display: "flex",
@@ -174,7 +164,15 @@ const useStyles = makeStyles((theme) => ({
     "&:hover $dragHandleBtn": {
       visibility: "visible",
     },
-    [theme.breakpoints.down("sm")]: {},
+    [theme.breakpoints.down("sm")]: {
+      minHeight: 160,
+    },
+    [theme.breakpoints.up("lg")]: {
+      minHeight: 200,
+    },
+    [theme.breakpoints.up("xl")]: {
+      minHeight: 220,
+    },
   },
   blockHeader: {
     display: "flex",
@@ -361,6 +359,8 @@ const useStyles = makeStyles((theme) => ({
   container: {
     paddingTop: theme.spacing(1),
     paddingBottom: theme.spacing(1),
+    paddingLeft: theme.spacing(1.5),
+    paddingRight: theme.spacing(1.5),
   },
   nps: {
     paddingTop: theme.spacing(1),
@@ -885,6 +885,15 @@ const Dashboard = () => {
     );
   }, [schedulesToday, activities, projects]);
 
+  const getProjectStatusLabel = (status) => {
+    const s = String(status || "").toLowerCase().replace("-", "_");
+    if (["in_progress", "em progresso", "em_progresso", "active", "ativo"].includes(s)) return "Em progresso";
+    if (["completed", "concluído", "concluido", "finalizado", "finalizada", "done"].includes(s)) return "Concluído";
+    if (["pending", "pendente", "a fazer", "a_fazer", "todo", "to_do"].includes(s)) return "Pendente";
+    if (["backlog"].includes(s)) return "Backlog";
+    return status || "Backlog";
+  };
+
   const renderBlockContent = (id) => {
     if (id === "pendingActivities") {
       if (loadingActivities) {
@@ -1058,7 +1067,7 @@ const Dashboard = () => {
                   </Typography>
                 </div>
                 <Typography className={classes.blockItemMeta}>
-                  {(p.status ? (p.status.charAt(0).toUpperCase() + p.status.slice(1)) : "Backlog")}
+                  {getProjectStatusLabel(p.status)}
                 </Typography>
               </li>
             );
@@ -1246,15 +1255,6 @@ const Dashboard = () => {
                 <Typography variant="h4" className={classes.greetingTitle}>
                   {greetingText}
                 </Typography>
-                <IconButton
-                  size="small"
-                  className={classes.miniTopbarButton}
-                  onClick={handleOpenSettings}
-                  aria-label="Opções"
-                  title="Opções do painel"
-                >
-                  <MoreHorizIcon style={{ fontSize: 20, color: "#000" }} />
-                </IconButton>
               </div>
               <div className={classes.blocksWrapper}>
                 <DragDropContext onDragEnd={handleDragEnd}>

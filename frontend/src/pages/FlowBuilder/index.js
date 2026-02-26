@@ -53,10 +53,7 @@ import ConfirmationModal from "../../components/ConfirmationModal";
 import FlowBuilderModal from "../../components/FlowBuilderModal";
 
 import { i18n } from "../../translate/i18n";
-import MainHeader from "../../components/MainHeader";
-import Title from "../../components/Title";
-import MainHeaderButtonsWrapper from "../../components/MainHeaderButtonsWrapper";
-import MainContainer from "../../components/MainContainer";
+import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
 import toastError from "../../errors/toastError";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import { Can } from "../../components/Can";
@@ -661,7 +658,7 @@ const FlowBuilder = () => {
   );
 
   return (
-    <MainContainer className={classes.mainContainer}>
+    <>
       {/* Modais - mantendo todos originais */}
       <NewTicketModal
         modalOpen={newTicketModalOpen}
@@ -717,108 +714,80 @@ const FlowBuilder = () => {
           ? `Uma cópia do fluxo será criada para você editar.`
           : `${i18n.t("contacts.confirmationModal.importMessage")}`}
       </ConfirmationModal>
-
-      {/* Header seguindo padrão da página Tags */}
-      <MainHeader>
-        <Title>Fluxos de Conversa ({webhooks.length})</Title>
-        <MainHeaderButtonsWrapper>
-          <TextField
-            className={classes.searchField}
-            placeholder="Buscar fluxos..."
-            type="search"
-            value={searchParam}
-            onChange={handleSearch}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon style={{ color: theme.palette.text.secondary }} />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </MainHeaderButtonsWrapper>
-      </MainHeader>
-
-      <Paper
-        className={classes.mainPaper}
-        variant="outlined"
-        onScroll={handleScroll}
+      
+      <ActivitiesStyleLayout
+        viewModes={[{ value: "automations", label: "Automações" }]}
+        currentViewMode={"automations"}
+        searchPlaceholder="Buscar fluxos..."
+        searchValue={searchParam}
+        onSearchChange={(v) => setSearchParam(v.toLowerCase())}
+        hideDefaultRightFilters
+        hideLeftIcon
+        onCreateClick={handleOpenContactModal}
       >
-        {loading && !webhooks.length ? (
-          <div className={classes.loadingContainer}>
-            <CircularProgress style={{ color: theme.palette.primary.main }} />
-          </div>
-        ) : filteredWebhooks.length === 0 ? (
-          <div className={classes.emptyState}>
-            <DevicesFold className={classes.emptyIcon} />
-            <Typography className={classes.emptyTitle}>
-              {searchParam ? 'Nenhum fluxo encontrado' : 'Nenhum fluxo criado ainda'}
-            </Typography>
-            <Typography className={classes.emptyDescription}>
-              {searchParam 
-                ? 'Tente usar outros termos de pesquisa'
-                : 'Crie seu primeiro fluxo de conversa para automatizar atendimentos'
-              }
-            </Typography>
-            
-            {!searchParam && (
-              <Button
-                className={classes.addButton}
-                onClick={handleOpenContactModal}
-                startIcon={<AddCircle />}
-                style={{ marginTop: 24 }}
-              >
-                Criar Primeiro Fluxo
-              </Button>
-            )}
-          </div>
-        ) : (
-          <Stack spacing={2}>
-            {filteredWebhooks.map((flow) => (
-              <FlowCard
-                key={flow.id}
-                flow={flow}
-                classes={classes}
-                onEdit={() => handleEditContact(flow)}
-                onDuplicate={() => {
-                  setDeletingContact(flow);
-                  setConfirmDuplicateOpen(true);
-                }}
-                onDelete={() => {
-                  setDeletingContact(flow);
-                  setConfirmOpen(true);
-                }}
-                onNavigate={(id) => history.push(`/flowbuilder/${id}`)}
-              />
-            ))}
+        <Paper
+          className={classes.mainPaper}
+          variant="outlined"
+          onScroll={handleScroll}
+        >
+          {loading && !webhooks.length ? (
+            <div className={classes.loadingContainer}>
+              <CircularProgress style={{ color: theme.palette.primary.main }} />
+            </div>
+          ) : filteredWebhooks.length === 0 ? (
+            <div className={classes.emptyState}>
+              <DevicesFold className={classes.emptyIcon} />
+              <Typography className={classes.emptyTitle}>
+                {searchParam ? 'Nenhum fluxo encontrado' : 'Nenhum fluxo criado ainda'}
+              </Typography>
+              <Typography className={classes.emptyDescription}>
+                {searchParam 
+                  ? 'Tente usar outros termos de pesquisa'
+                  : 'Crie seu primeiro fluxo de conversa para automatizar atendimentos'
+                }
+              </Typography>
+              
+              {!searchParam && (
+                <Button
+                  className={classes.addButton}
+                  onClick={handleOpenContactModal}
+                  startIcon={<AddCircle />}
+                  style={{ marginTop: 24 }}
+                >
+                  Criar Primeiro Fluxo
+                </Button>
+              )}
+            </div>
+          ) : (
+            <Stack spacing={2}>
+              {filteredWebhooks.map((flow) => (
+                <FlowCard
+                  key={flow.id}
+                  flow={flow}
+                  classes={classes}
+                  onEdit={() => handleEditContact(flow)}
+                  onDuplicate={() => {
+                    setDeletingContact(flow);
+                    setConfirmDuplicateOpen(true);
+                  }}
+                  onDelete={() => {
+                    setDeletingContact(flow);
+                    setConfirmOpen(true);
+                  }}
+                  onNavigate={(id) => history.push(`/flowbuilder/${id}`)}
+                />
+              ))}
 
-            {loading && webhooks.length > 0 && (
-              <Box display="flex" justifyContent="center" p={3}>
-                <CircularProgress size={24} style={{ color: theme.palette.primary.main }} />
-              </Box>
-            )}
-          </Stack>
-        )}
-      </Paper>
-      <IconButton
-        className={classes.fab}
-        onClick={handleOpenContactModal}
-        aria-label="Criar fluxo"
-        style={{
-          backgroundColor: '#131B2D',
-          color: '#ffffff',
-          position: 'fixed',
-          bottom: 32,
-          right: 32,
-          width: 56,
-          height: 56,
-          borderRadius: '50%',
-          zIndex: 99999
-        }}
-      >
-        <AddIcon style={{ color: "#fff", fontSize: 32 }} />
-      </IconButton>
-    </MainContainer>
+              {loading && webhooks.length > 0 && (
+                <Box display="flex" justifyContent="center" p={3}>
+                  <CircularProgress size={24} style={{ color: theme.palette.primary.main }} />
+                </Box>
+              )}
+            </Stack>
+          )}
+        </Paper>
+      </ActivitiesStyleLayout>
+    </>
   );
 };
 
