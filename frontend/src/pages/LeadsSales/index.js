@@ -65,6 +65,8 @@ import {
   Filler
 } from "chart.js";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import { useTheme } from "@material-ui/core/styles";
 
 ChartJS.register(
   CategoryScale,
@@ -76,7 +78,8 @@ ChartJS.register(
   ChartTitle,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  ChartDataLabels
 );
 
 const localizer = momentLocalizer(moment);
@@ -738,6 +741,9 @@ const LeadsList = ({ leads }) => {
 
 const LeadsSales = () => {
   const classes = useStyles();
+  const theme = useTheme();
+  const isDark = (theme && theme.mode === "dark");
+  const labelColor = isDark ? "#FFFFFF" : "#0F172A";
   const [viewMode, setViewMode] = useState("board");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [chartCols, setChartCols] = useState(2);
@@ -757,6 +763,7 @@ const LeadsSales = () => {
   const kanbanRef = useRef(null);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dash, setDash] = useState(null);
+  const [hoveredKpi, setHoveredKpi] = useState(null);
 
   const [anchorResp, setAnchorResp] = useState(null);
   const [anchorContact, setAnchorContact] = useState(null);
@@ -1138,14 +1145,36 @@ const LeadsSales = () => {
                 border: "#E2E8F0",
                 shadow: "0 2px 8px rgba(2,6,23,0.06)",
                 blue: "#3B82F6",
+                blueLight: "#60A5FA",
+                blueDark: "#2563EB",
                 green: "#10B981",
                 red: "#EF4444",
                 amber: "#F59E0B",
-                indigo: "#6366F1"
+                indigo: "#2563EB"
               };
-              const summary = dash?.summary || { totalLeads: leadsState.length, leadsWon: 0, leadsLost: 0, totalSales: 0, efficiency: 0 };
+              const fallbackSummary = (() => {
+                const totalLeads = (leadsState || []).length;
+                let leadsWon = 0;
+                let leadsLost = 0;
+                let totalSales = 0;
+                (leadsState || []).forEach((l) => {
+                  const st = String(l.status || "").toLowerCase();
+                  const val = Number(l.value || 0) || 0;
+                  const isWon = /(won|converted|fechado|ganho)/i.test(st);
+                  const isLost = /(lost|perdido)/i.test(st);
+                  if (isWon) {
+                    leadsWon += 1;
+                    totalSales += val;
+                  } else if (isLost) {
+                    leadsLost += 1;
+                  }
+                });
+                const efficiency = (leadsWon + leadsLost) ? Math.round((leadsWon / (leadsWon + leadsLost)) * 100) : 0;
+                return { totalLeads, leadsWon, leadsLost, totalSales, efficiency };
+              })();
+              const summary = dash?.summary || fallbackSummary;
               const kpi = [
-                { label: "Total de Leads", value: summary.totalLeads, color: palette.indigo, icon: <PersonOutlineIcon style={{ color: palette.indigo }} /> },
+                { label: "Total de Leads", value: summary.totalLeads, color: palette.blueDark, icon: <PersonOutlineIcon style={{ color: palette.blueDark }} /> },
                 { label: "Total de Vendas", value: (summary.totalSales || 0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"}), color: palette.green, icon: <BusinessCenterIcon style={{ color: palette.green }} /> },
                 { label: "Eficiência", value: `${summary.efficiency?.toFixed ? summary.efficiency.toFixed(0) : summary.efficiency}%`, sub: "Conversão relativa entre leads e vendas", color: palette.amber, icon: <CheckCircleOutlineIcon style={{ color: palette.amber }} /> },
                 { label: "Leads Ganhos", value: summary.leadsWon || 0, color: palette.green, icon: <CheckCircleOutlineIcon style={{ color: palette.green }} /> },
@@ -1160,6 +1189,22 @@ const LeadsSales = () => {
                 plugins: { legend: { display: false }, tooltip: { enabled: false } },
                 scales: { x: { display: false }, y: { display: false } },
                 elements: { point: { radius: 0 } }
+              };
+              const computeDelta = (arr) => {
+                if (!Array.isArray(arr) || arr.length < 2) return null;
+                const last = Number(arr[arr.length - 1] || 0);
+                const prev = Number(arr[arr.length - 2] || 0);
+                const diff = last - prev;
+                const pct = prev === 0 ? 0 : (diff / prev) * 100;
+                return { pct, up: diff >= 0 };
+              };
+              const lastOf = (arr) => (Array.isArray(arr) && arr.length ? Number(arr[arr.length - 1] || 0) : 0);
+              const avgLast = (arr, n = 7) => {
+                if (!Array.isArray(arr) || arr.length === 0) return 0;
+                const slice = arr.slice(-n);
+                const vals = slice.map(v => Number(v || 0)).filter(v => !isNaN(v));
+                if (!vals.length) return 0;
+                return vals.reduce((a, b) => a + b, 0) / vals.length;
               };
               let labelsRevenue = (dash?.revenuePerDay || []).map(d => d.date);
               let dataRevenue = (dash?.revenuePerDay || []).map(d => d.revenue);
@@ -1231,13 +1276,31 @@ const LeadsSales = () => {
               const funnelLabels = statusOrder.map(k => LABEL_BY_KEY[k] || k.toUpperCase());
 
               const chartHeight = 180;
+              const maxRevenueVal = Math.max(0, ...dataRevenue.map(v => Number(v || 0)));
               const lineOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                layout: { padding: { top: 24, right: 8, left: 4, bottom: 8 } },
+                plugins: { 
+                  legend: { display: false },
+                  datalabels: {
+                    display: true,
+                    color: labelColor,
+                    backgroundColor: (ctx) => (isDark ? "rgba(17,24,39,0.7)" : "rgba(255,255,255,0.85)"),
+                    borderRadius: 4,
+                    padding: { left: 4, right: 4, top: 2, bottom: 2 },
+                    anchor: "end",
+                    align: "top",
+                    offset: 6,
+                    clamp: true,
+                    clip: false,
+                    formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                    font: { weight: "700", size: 10 }
+                  }
+                },
                 scales: {
                   x: { ticks: { maxRotation: 0, color: palette.sub }, grid: { display: false } },
-                  y: { ticks: { color: palette.sub }, grid: { color: "#eef2f7" }, beginAtZero: true }
+                  y: { ticks: { color: palette.sub }, grid: { color: "#E6F0FF" }, beginAtZero: true, grace: "15%", suggestedMax: maxRevenueVal * 1.12 }
                 }
               };
               const lineData = {
@@ -1246,114 +1309,162 @@ const LeadsSales = () => {
                   label: "Receita",
                   data: dataRevenue,
                   fill: true,
-                  borderColor: palette.indigo,
-                  backgroundColor: "rgba(99,102,241,0.12)",
+                  borderColor: palette.blueDark,
+                  backgroundColor: "rgba(37,99,235,0.10)",
                   tension: 0.35
                 }]
               };
               const barOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { position: "bottom" } },
+                layout: { padding: { top: 18, right: 12, left: 4, bottom: 8 } },
+                plugins: { 
+                  legend: { position: "bottom" },
+                  datalabels: {
+                    display: true,
+                    color: labelColor,
+                    anchor: "end",
+                    align: "top",
+                    offset: 4,
+                    clamp: true,
+                    clip: false,
+                    formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                    font: { weight: "600", size: 10 }
+                  }
+                },
                 scales: {
                   x: { stacked: false, ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
-                  y: { stacked: false, ticks: { color: palette.sub }, grid: { color: "#eef2f7" } }
+                  y: { stacked: false, ticks: { color: palette.sub, padding: 6 }, grid: { color: "#E6F0FF" } }
                 }
               };
               const barData = {
                 labels: labelsClients,
                 datasets: [
-                  { type: "bar", label: "Leads", data: dataClients, backgroundColor: palette.indigo, borderRadius: 6, maxBarThickness: 22 },
-                  { type: "bar", label: "Valor", data: dataValues, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 22, yAxisID: "y1" }
+                  { type: "bar", label: "Leads", data: dataClients, backgroundColor: palette.blueLight, borderRadius: 6, maxBarThickness: 20 },
+                  { type: "bar", label: "Valor", data: dataValues, backgroundColor: palette.blueDark, borderRadius: 6, maxBarThickness: 20, yAxisID: "y1" }
                 ]
               };
               const barRanking = {
                 labels: rankingLabels,
-                datasets: [{ label: "Valor", data: rankingValues, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 22 }]
+                datasets: [{ label: "Valor", data: rankingValues, backgroundColor: palette.blueDark, borderRadius: 6, maxBarThickness: 20 }]
               };
               const funnelBar = {
                 labels: funnelLabels,
-                datasets: [{ label: "Quantidade", data: funnelCounts, backgroundColor: palette.indigo, borderRadius: 6, maxBarThickness: 22 }]
+                datasets: [{ label: "Quantidade", data: funnelCounts, backgroundColor: palette.blue, borderRadius: 6, maxBarThickness: 20 }]
               };
 
               return (
                 <div style={{ padding: 4, overflowX: "hidden", overflowY: "visible", width: "100%", height: "auto" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
                     {kpi.map((c) => (
-                      <Paper key={c.label} style={{
+                      <Paper key={c.label} onMouseEnter={() => setHoveredKpi(c.label)} onMouseLeave={() => setHoveredKpi(null)} style={{
                         borderRadius: 12,
                         padding: 12,
                         border: `1px solid ${palette.border}`,
-                        boxShadow: palette.shadow,
+                        boxShadow: hoveredKpi === c.label ? "0 12px 24px rgba(2,6,23,0.16)" : palette.shadow,
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "space-between",
-                        gap: 8,
+                        gap: 6,
                         minHeight: 110,
-                        background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`
+                        background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`,
+                        overflow: "hidden",
+                        transition: "transform 150ms ease, box-shadow 150ms ease",
+                        transform: hoveredKpi === c.label ? "translateY(-4px) scale(1.01)" : "none",
+                        transformStyle: "preserve-3d",
                       }}>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                           <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 400 }}>{c.label}</div>
-                          <div style={{ fontWeight: 700, fontSize: 18, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
-                        </div>
-                        {c.sub && <div style={{ fontSize: 11, color: palette.sub }}>{c.sub}</div>}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                          <div style={{
-                            width: 32, height: 32, borderRadius: 10, background: `${c.color}15`,
-                            display: "grid", placeItems: "center", marginRight: 8
-                          }}>
-                            {c.icon}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ width: "100%", height: 18 }}>
-                              {(() => {
-                                let data = seriesLeads;
-                                if (c.label === "Total de Vendas") data = seriesRevenue;
-                                if (c.label === "Leads Ganhos") data = seriesRevenue.map(v => (v > 0 ? 1 : 0));
-                                if (c.label === "Leads Perdidos") data = seriesLeads.map(() => 0);
-                                const sparkData = {
-                                  labels: data.map((_, i) => i + 1),
-                                  datasets: [{
-                                    data,
-                                    borderColor: c.color,
-                                    backgroundColor: `${c.color}20`,
-                                    fill: true,
-                                    tension: 0.35
-                                  }]
-                                };
-                                return <Line height={18} options={sparkOptions} data={sparkData} />;
-                              })()}
-                            </div>
+                          <div style={{ width: 28, height: 28, borderRadius: 10, background: `${c.color}18`, display: "grid", placeItems: "center" }}>
+                            <div style={{ transform: "scale(0.9)" }}>{c.icon}</div>
                           </div>
                         </div>
-                        {(c.label === "Total de Leads" || c.label === "Total de Vendas") && (
-                          <div style={{ width: "100%", height: 10, marginTop: 6 }}>
-                            {(() => {
-                              const isSales = c.label === "Total de Vendas";
-                              const data = isSales ? seriesRevenue : seriesLeads;
-                              const lineColor = isSales ? palette.blue : palette.indigo;
-                              const bottomSparkOptions = {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                                scales: { x: { display: false }, y: { display: false } },
-                                elements: { point: { radius: 0 } }
-                              };
-                              const bottomSparkData = {
-                                labels: data.map((_, i) => i + 1),
-                                datasets: [{
-                                  data,
-                                  borderColor: lineColor,
-                                  backgroundColor: `${lineColor}00`,
-                                  fill: false,
-                                  tension: 0.45,
-                                  borderWidth: 2
-                                }]
-                              };
-                              return <Line height={10} options={bottomSparkOptions} data={bottomSparkData} />;
-                            })()}
-                          </div>
-                        )}
+                        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontWeight: 700, fontSize: 20, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
+                          {(() => {
+                            let delta = null;
+                            if (c.label === "Total de Leads") delta = computeDelta(seriesLeads);
+                            if (c.label === "Total de Vendas") delta = computeDelta(seriesRevenue);
+                            const effVal = Number(String(c.value).replace("%",""));
+                            if (c.label === "Eficiência") {
+                              if (effVal >= 70) {
+                                return <span style={{ fontSize: 10, fontWeight: 700, color: "#065F46", background: "#D1FAE5", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>SAUDÁVEL</span>;
+                              }
+                              if (effVal < 40) {
+                                return <span style={{ fontSize: 10, fontWeight: 700, color: "#B91C1C", background: "#FEE2E2", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>ATENÇÃO</span>;
+                              }
+                              return null;
+                            }
+                            if (delta) {
+                              if (delta.up && Math.abs(delta.pct) >= 5) {
+                                return <span style={{ fontSize: 10, fontWeight: 700, color: "#065F46", background: "#D1FAE5", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>EM ALTA</span>;
+                              }
+                              if (!delta.up && Math.abs(delta.pct) >= 5) {
+                                return <span style={{ fontSize: 10, fontWeight: 700, color: "#B91C1C", background: "#FEE2E2", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>ATENÇÃO</span>;
+                              }
+                            }
+                            if (c.label === "Leads Perdidos") {
+                              const won = Number(summary.leadsWon || 0);
+                              const lost = Number(summary.leadsLost || 0);
+                              const lostRate = (won + lost) ? (lost / (won + lost)) * 100 : 0;
+                              if (lostRate >= 30) {
+                                return <span style={{ fontSize: 10, fontWeight: 700, color: "#B91C1C", background: "#FEE2E2", borderRadius: 6, padding: "2px 6px", whiteSpace: "nowrap" }}>ATENÇÃO</span>;
+                              }
+                            }
+                            return null;
+                          })()}
+                        </div>
+                        <div style={{ fontSize: 11, color: palette.sub }}>
+                          {(() => {
+                            // Primeira linha estratégica
+                            if (c.label === "Total de Leads") {
+                              const today = lastOf(seriesLeads);
+                              return <span>Hoje: {today}</span>;
+                            }
+                            if (c.label === "Total de Vendas") {
+                              const today = lastOf(seriesRevenue);
+                              return <span>Hoje: {today.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>;
+                            }
+                            if (c.label === "Eficiência") {
+                              return <span>Ganhos: {Number(summary.leadsWon || 0)}</span>;
+                            }
+                            if (c.label === "Leads Ganhos") {
+                              const eff = Number(summary.efficiency || 0);
+                              return <span>Taxa: {eff}%</span>;
+                            }
+                            if (c.label === "Leads Perdidos") {
+                              const won = Number(summary.leadsWon || 0);
+                              const lost = Number(summary.leadsLost || 0);
+                              const lostRate = (won + lost) ? (lost / (won + lost)) * 100 : 0;
+                              return <span>Perda: {lostRate.toFixed(0)}%</span>;
+                            }
+                            return null;
+                          })()}
+                        </div>
+                        <div style={{ fontSize: 11, color: palette.sub }}>
+                          {(() => {
+                            // Segunda linha estratégica
+                            if (c.label === "Total de Leads") {
+                              const avg = avgLast(seriesLeads, 7);
+                              return <span>Média 7d: {avg.toFixed(1)}</span>;
+                            }
+                            if (c.label === "Total de Vendas") {
+                              const avg = avgLast(seriesRevenue, 7);
+                              return <span>Média 7d: {avg.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>;
+                            }
+                            if (c.label === "Eficiência") {
+                              return <span>Perdas: {Number(summary.leadsLost || 0)}</span>;
+                            }
+                            if (c.label === "Leads Ganhos") {
+                              const total = Number(summary.totalSales || 0);
+                              return <span>Receita: {total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>;
+                            }
+                            if (c.label === "Leads Perdidos") {
+                              return <span>Ganhos: {Number(summary.leadsWon || 0)}</span>;
+                            }
+                            return null;
+                          })()}
+                        </div>
                       </Paper>
                     ))}
                   </div>
@@ -1366,28 +1477,42 @@ const LeadsSales = () => {
                       return (
                         <>
                           {/* Gráfico 1 */}
-                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH, background: "#FFFFFF" }}>
                             <div style={titleStyle}>Receita por Dia</div>
                             <div style={{ height: chartH }}>
                               <Line options={lineOptions} data={lineData} />
                             </div>
                           </Paper>
                           {/* Gráfico 2 */}
-                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH, background: "#FFFFFF" }}>
                             <div style={titleStyle}>Clientes x Valor</div>
                             <div style={{ height: chartH }}>
                               <Bar options={barOptions} data={barData} />
                             </div>
                           </Paper>
                           {/* Gráfico 3 */}
-                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH, background: "#FFFFFF" }}>
                             <div style={titleStyle}>Ranking de Responsáveis</div>
                             <div style={{ height: chartH }}>
                               <Bar
                                 options={{
                                   responsive: true,
                                   maintainAspectRatio: false,
-                                  plugins: { legend: { display: false } },
+                                  layout: { padding: { right: 16, left: 8, top: 4, bottom: 8 } },
+                                  plugins: { 
+                                    legend: { display: false },
+                                    datalabels: {
+                                      display: true,
+                                      color: labelColor,
+                                      anchor: "end",
+                                      align: "right",
+                                      offset: 6,
+                                      clamp: true,
+                                      clip: false,
+                                      formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                                      font: { weight: "600", size: 10 }
+                                    }
+                                  },
                                   indexAxis: "y",
                                   scales: {
                                     x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
@@ -1399,13 +1524,27 @@ const LeadsSales = () => {
                             </div>
                           </Paper>
                           {/* Gráfico 4 */}
-                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH }}>
+                          <Paper style={{ borderRadius: 12, padding: 16, border: `1px solid ${palette.border}`, boxShadow: palette.shadow, height: boxH, background: "#FFFFFF" }}>
                             <div style={titleStyle}>Funil de Vendas (Barras)</div>
                             <Bar
                               options={{
                                 responsive: true,
                                 maintainAspectRatio: false,
-                                plugins: { legend: { display: false } },
+                                layout: { padding: { right: 16, left: 8, top: 4, bottom: 8 } },
+                                plugins: { 
+                                  legend: { display: false },
+                                  datalabels: {
+                                    display: true,
+                                    color: labelColor,
+                                    anchor: "end",
+                                    align: "right",
+                                    offset: 6,
+                                    clamp: true,
+                                    clip: false,
+                                    formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                                    font: { weight: "600", size: 10 }
+                                  }
+                                },
                                 indexAxis: "y",
                                 scales: {
                                   x: { ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },

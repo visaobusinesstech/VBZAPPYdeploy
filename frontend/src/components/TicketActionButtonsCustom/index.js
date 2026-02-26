@@ -1059,20 +1059,10 @@ const TicketActionButtonsCustom = ({
           <MenuItem onClick={handleOpenScheduleModal}>
             Criar Agendamento
           </MenuItem>
-          <MenuItem onClick={handleOpenConfirmationModal}>
-            <Can
-              role={user.profile}
-              perform="ticket-options:deleteTicket"
-              yes={() => i18n.t("tickets.buttons.deleteTicket")}
-            />
-          </MenuItem>
           <MenuItem onClick={handleEnableIntegration}>
             {enableIntegration === true
               ? i18n.t("messagesList.header.buttons.disableIntegration")
               : i18n.t("messagesList.header.buttons.enableIntegration")}
-          </MenuItem>
-          <MenuItem onClick={handleShowLogTicket}>
-            {i18n.t("messagesList.header.buttons.logTicket")}
           </MenuItem>
           <MenuItem onClick={handleExportPDF}>
             {i18n.t("ticketsList.buttons.exportAsPDF")}

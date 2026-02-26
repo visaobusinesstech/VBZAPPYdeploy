@@ -193,6 +193,27 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 0,
     background: "transparent"
   },
+  actionItem: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 10,
+    border: "1px solid #e5e7eb",
+    background: "#fff",
+    borderRadius: 10,
+    marginBottom: 8,
+    cursor: "pointer"
+  },
+  uploadBox: {
+    border: "1px dashed #cbd5e1",
+    background: "#F8FAFC",
+    borderRadius: 10,
+    padding: 12
+  },
+  helperText: {
+    fontSize: 12,
+    color: "#6b7280"
+  },
   summaryRow: {
     display: "flex",
     flexWrap: "wrap",
@@ -1037,7 +1058,7 @@ const Prompts = () => {
                       variant="outlined"
                       size="small"
                       multiline
-                      rows={3}
+                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Business color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
@@ -1052,7 +1073,7 @@ const Prompts = () => {
                       variant="outlined"
                       size="small"
                       multiline
-                      rows={3}
+                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Flag color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
@@ -1067,7 +1088,7 @@ const Prompts = () => {
                       variant="outlined"
                       size="small"
                       multiline
-                      rows={3}
+                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><Gavel color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
@@ -1081,6 +1102,8 @@ const Prompts = () => {
                       fullWidth
                       variant="outlined"
                       size="small"
+                      multiline
+                      rows={5}
                       InputProps={{ startAdornment: <InputAdornment position="start"><CategoryIcon color="action" /></InputAdornment> }}
                       InputLabelProps={{ shrink: true }}
                       className={classes.inputDense}
@@ -1102,21 +1125,14 @@ const Prompts = () => {
                     <div className={classes.cardTitle}>Arquivos e Sites</div>
                     <div className={`${classes.section} ${classes.brainWrapper}`}>
                       <Typography variant="subtitle1">Arquivos</Typography>
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) => setBrainFiles(Array.from(e.target.files || []))}
-                        style={{ marginTop: 8, marginBottom: 8 }}
-                      />
-                      <div>
-                        <Button
-                          color="primary"
-                          variant="contained"
-                          onClick={handleSendBrainFiles}
-                          disabled={!brainFiles || brainFiles.length === 0}
-                        >
-                          Enviar Arquivos
-                        </Button>
+                      <div className={classes.uploadBox}>
+                        <div className={classes.helperText}>Selecione um ou mais arquivos para treinar o agente.</div>
+                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                          <input id="brain-file-input" type="file" multiple style={{ display: "none" }} onChange={(e) => setBrainFiles(Array.from(e.target.files || []))} />
+                          <Button variant="outlined" onClick={() => document.getElementById("brain-file-input").click()}>Selecionar arquivos</Button>
+                          <Button color="primary" variant="contained" onClick={handleSendBrainFiles} disabled={!brainFiles || brainFiles.length === 0}>Enviar Arquivos</Button>
+                        </div>
+                        <div className={classes.helperText} style={{ marginTop: 6 }}>{brainFiles?.length ? `${brainFiles.length} arquivo(s) selecionado(s)` : "Nenhum arquivo selecionado"}</div>
                       </div>
                     </div>
                     <div className={`${classes.section} ${classes.brainWrapper}`}>
@@ -1217,7 +1233,7 @@ const Prompts = () => {
                       { name: "Criar Empresa", desc: "Registra empresas no CRM" },
                       { name: "Consultar Pedidos", desc: "Busca pedidos no sistema" },
                     ].map((a) => (
-                      <div key={a.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 10, border: "1px solid #e5e7eb", borderRadius: 10, marginBottom: 8, cursor: "pointer" }} onClick={() => setActionsState(prev => ({ ...prev, selected: a.name }))}>
+                      <div key={a.name} className={classes.actionItem} onClick={() => setActionsState(prev => ({ ...prev, selected: a.name }))}>
                         <div>
                           <Typography style={{ fontWeight: 600 }}>{a.name}</Typography>
                           <Typography variant="caption" color="textSecondary">{a.desc}</Typography>
@@ -1352,8 +1368,9 @@ const Prompts = () => {
             {activeTab === "avancado" && (
               <div className={`${classes.mainPaper} ${classes.mainPaperTight}`}>
                 <Grid container spacing={2} className={classes.formRow}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <div className={classes.cardTitle}>Exemplos de Conversação</div>
+                    <div className={classes.tipBox}>Adicione pares de mensagens que representem o tom desejado.</div>
                     <Grid container spacing={1}>
                       {(advancedState.examples || [{ user: "", assistant: "" }]).map((ex, idx) => (
                         <>
@@ -1369,6 +1386,8 @@ const Prompts = () => {
                               fullWidth
                               variant="outlined"
                               className={classes.inputDense}
+                              multiline
+                              rows={3}
                             />
                           </Grid>
                           <Grid item xs={12}>
@@ -1383,6 +1402,8 @@ const Prompts = () => {
                               fullWidth
                               variant="outlined"
                               className={classes.inputDense}
+                              multiline
+                              rows={3}
                             />
                           </Grid>
                         </>
@@ -1403,8 +1424,9 @@ const Prompts = () => {
                       </Grid>
                     </Grid>
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12}>
                     <div className={classes.cardTitle}>Configurações</div>
+                    <div className={classes.tipBox}>Ajuste tempo de inatividade, mensagens padrões e voz de leitura, sem alterar os campos existentes.</div>
                     <Grid container spacing={1}>
                       <Grid item xs={12}>
                         <TextField
@@ -1427,6 +1449,8 @@ const Prompts = () => {
                           variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
+                          multiline
+                          rows={3}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1438,6 +1462,8 @@ const Prompts = () => {
                           variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
+                          multiline
+                          rows={3}
                         />
                       </Grid>
                       <Grid item xs={12}>
@@ -1449,6 +1475,8 @@ const Prompts = () => {
                           variant="outlined"
                           InputLabelProps={{ shrink: true }}
                           className={classes.inputDense}
+                          multiline
+                          rows={3}
                         />
                       </Grid>
                       <Grid item xs={12}>

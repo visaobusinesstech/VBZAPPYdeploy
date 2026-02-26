@@ -36,6 +36,7 @@ import PersonOutlineIcon from "@material-ui/icons/PersonOutline";
 
 import { Doughnut } from "react-chartjs-2";
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from "chart.js";
+import ChartDataLabels from "chartjs-plugin-datalabels";
 
 import "./Schedules.css"; // Importe o arquivo CSS
 import CreateEventDrawer from "../../components/CreateEventDrawer";
@@ -51,7 +52,7 @@ function getUrlParam(paramName) {
   return searchParams.get(paramName);
 }
 
-ChartJS.register(ArcElement, Tooltip, Legend);
+ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
 const MiniMonth = ({ value, onChange }) => {
   const m = moment(value);
@@ -431,7 +432,15 @@ const Schedules = () => {
     cutout: "70%",
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: true }
+      tooltip: { enabled: true },
+      datalabels: {
+        display: true,
+        color: "#0F172A",
+        formatter: (v) => (v > 0 ? v : ""),
+        font: { weight: "700", size: 11 },
+        anchor: "center",
+        align: "center",
+      }
     },
     responsive: true,
     maintainAspectRatio: false
@@ -558,6 +567,21 @@ const Schedules = () => {
           open={eventDetailsOpen}
           onClose={handleCloseEventDetails}
           event={selectedEvent}
+          onEditSchedule={(schedule) => {
+            setSelectedSchedule(schedule);
+            setScheduleModalOpen(true);
+          }}
+          onDeleteSchedule={(id) => {
+            handleDeleteSchedule(id);
+          }}
+          onActivityUpdated={(updated) => {
+            setActivities((prev) =>
+              prev.map((a) => (String(a.id) === String(updated.id) ? { ...a, ...updated } : a))
+            );
+          }}
+          onActivityDeleted={(id) => {
+            setActivities((prev) => prev.filter((a) => String(a.id) !== String(id)));
+          }}
         />
         <ActivitiesStyleLayout
           title={i18n.t("schedules.title")}

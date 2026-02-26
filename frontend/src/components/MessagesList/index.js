@@ -215,6 +215,9 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "pre-wrap",
     backgroundColor: "#0cb7f2",
     color: "#FFFFFF",
+    "& $timestamp": {
+      color: "#FFFFFF",
+    },
     alignSelf: "flex-end",
     borderTopLeftRadius: 8,
     borderTopRightRadius: 8,
