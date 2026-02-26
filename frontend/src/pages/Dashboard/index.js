@@ -86,7 +86,7 @@ const useStyles = makeStyles((theme) => ({
   },
   greetingContainer: {
     marginBottom: theme.spacing(2),
-    marginLeft: theme.spacing(4),
+    marginLeft: theme.spacing(2),
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
@@ -146,8 +146,8 @@ const useStyles = makeStyles((theme) => ({
       theme.palette.mode === "light"
         ? "0 10px 30px rgba(2, 6, 23, 0.08)"
         : theme.shadows[4],
-    aspectRatio: "1 / 0.9",
-    minHeight: 180,
+    aspectRatio: "1 / 0.75",
+    minHeight: 150,
     width: "100%",
     margin: 0,
     display: "flex",
@@ -165,13 +165,13 @@ const useStyles = makeStyles((theme) => ({
       visibility: "visible",
     },
     [theme.breakpoints.down("sm")]: {
-      minHeight: 160,
+      minHeight: 140,
     },
     [theme.breakpoints.up("lg")]: {
-      minHeight: 200,
+      minHeight: 170,
     },
     [theme.breakpoints.up("xl")]: {
-      minHeight: 220,
+      minHeight: 190,
     },
   },
   blockHeader: {
@@ -471,7 +471,7 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(1),
   },
   settingsDialogPaper: {
-    borderRadius: 16,
+    borderRadius: 18,
     padding: theme.spacing(1),
   },
   settingsDialogTitle: {
@@ -482,6 +482,27 @@ const useStyles = makeStyles((theme) => ({
     borderRadius: 10,
     textTransform: "none",
     fontWeight: 600,
+  },
+  dialogCancelButton: {
+    borderRadius: 10,
+    textTransform: "none",
+    fontWeight: 700,
+    borderColor: "#131B2D",
+    color: "#131B2D",
+    "&:hover": {
+      backgroundColor: "rgba(19, 27, 45, 0.06)",
+      borderColor: "#131B2D",
+    },
+  },
+  dialogAddButton: {
+    borderRadius: 10,
+    textTransform: "none",
+    fontWeight: 700,
+    backgroundColor: "#131B2D",
+    color: "#FFFFFF",
+    "&:hover": {
+      backgroundColor: "#0f1525",
+    },
   },
 }));
 
@@ -1228,7 +1249,7 @@ const Dashboard = () => {
               }}
             >
               <div className={classes.miniTopbar}>
-                {drawerCtx && drawerCtx.setDrawerOpen && (
+                {drawerCtx && drawerCtx.setDrawerOpen && !drawerOpen && (
                   <IconButton
                     size="small"
                     onClick={toggleDrawer}
@@ -1356,10 +1377,10 @@ const Dashboard = () => {
               </FormGroup>
             </DialogContent>
             <DialogActions>
-              <Button variant="outlined" color="primary" onClick={handleCloseSettings} className={classes.dialogButton}>
+              <Button variant="outlined" color="primary" onClick={handleCloseSettings} className={classes.dialogCancelButton}>
                 Cancelar
               </Button>
-              <Button variant="contained" color="primary" onClick={handleApplySettings} className={classes.dialogButton}>
+              <Button variant="contained" color="primary" onClick={handleApplySettings} className={classes.dialogAddButton}>
                 Adicionar
               </Button>
             </DialogActions>
