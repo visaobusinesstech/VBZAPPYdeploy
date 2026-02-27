@@ -19,7 +19,7 @@ const messages = {
           email: "Email",
           password: "Senha",
           company: "Nome da Organização",
-          phone: "Whatsapp (DDD + NÚMERO)",
+          phone: "WhatsApp (DDD + NÚMERO)",
         },
         buttons: {
           submit: "Cadastrar",
@@ -296,7 +296,7 @@ const messages = {
           default: "Padrão",
           actions: "Ações",
           session: "Sessão",
-          number: "Número do Whatsapp",
+          number: "Número do WhatsApp",
           color: "Cor",
         },
       },
@@ -524,7 +524,7 @@ const messages = {
           mainInfo: "Dados do contato",
           extraInfo: "Informações adicionais",
           name: "Nome",
-          number: "Número do Whatsapp",
+          number: "Número do WhatsApp",
           email: "Email",
           extraName: "Nome do campo",
           extraValue: "Valor",
@@ -899,7 +899,7 @@ const messages = {
         fieldLabel: "Digite para buscar usuários",
         fieldQueueLabel: "Transferir para fila",
         fieldQueuePlaceholder: "Selecione uma fila",
-        fieldWhatsapp: "Selecione um whatsapp",
+        fieldWhatsapp: "Selecione um WhatsApp",
         noOptions: "Nenhum usuário encontrado com esse nome",
         msgTransfer: "Observações - mensagem interna, não vai para o cliente",
         buttons: {
@@ -1160,7 +1160,7 @@ const messages = {
         dialog: {
           name: "Nome",
           number: "Número",
-          whatsapp: "Whatsapp",
+          whatsapp: "WhatsApp",
           email: "E-mail",
           okEdit: "Editar",
           okAdd: "Adicionar",
@@ -1171,7 +1171,7 @@ const messages = {
         table: {
           name: "Nome",
           number: "Número",
-          whatsapp: "Whatsapp",
+          whatsapp: "WhatsApp",
           email: "E-mail",
           actions: "Ações",
         },
@@ -1481,7 +1481,7 @@ const messages = {
           useExternalApi: "Rest API",
           useFacebook: "Facebook",
           useInstagram: "Instagram",
-          useWhatsapp: "Whatsapp",
+          useWhatsapp: "WhatsApp",
           useInternalChat: "Chat Interno",
           useSchedules: "Agendamento",
           createdAt: "Criada Em",
@@ -1696,7 +1696,7 @@ const messages = {
             chatBotType: "Tipo do Bot",
             userRandom: "Escolher atendente aleatório",
             buttons: "Botões",
-            acceptCallWhatsapp: "Informar que não aceita ligação no whatsapp?",
+            acceptCallWhatsapp: "Informar que não aceita ligação no WhatsApp?",
             sendSignMessage: "Permite atendente escolher ENVIAR Assinatura",
             sendGreetingMessageOneQueues:
               "Enviar saudação quando houver somente 1 fila",
@@ -1874,7 +1874,7 @@ const messages = {
           "Esta sessão do WhatsApp não foi inicializada. Verifique a página de conexões.",
         ERR_WAPP_CHECK_CONTACT:
           "Não foi possível verificar o contato do WhatsApp. Verifique a página de conexões",
-        ERR_WAPP_INVALID_CONTACT: "Este não é um número de Whatsapp válido.",
+        ERR_WAPP_INVALID_CONTACT: "Este não é um número de WhatsApp válido.",
         ERR_WAPP_DOWNLOAD_MEDIA:
           "Não foi possível baixar mídia do WhatsApp. Verifique a página de conexões.",
         ERR_INVALID_CREDENTIALS:

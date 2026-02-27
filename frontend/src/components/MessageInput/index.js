@@ -9,9 +9,7 @@ import "emoji-mart/css/emoji-mart.css";
 import { Picker } from "emoji-mart";
 import { useMediaQuery, useTheme } from "@material-ui/core";
 import { isNil } from "lodash";
-import {
-  Fade
-} from "@material-ui/core";
+import { Fade } from "@material-ui/core";
 import {
   CircularProgress,
   ClickAwayListener,
@@ -27,6 +25,15 @@ import {
   Chip,
   Box,
 } from "@material-ui/core";
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogActions from "@material-ui/core/DialogActions";
+import TextField from "@material-ui/core/TextField";
+import FormControl from "@material-ui/core/FormControl";
+import InputLabel from "@material-ui/core/InputLabel";
+import Select from "@material-ui/core/Select";
+import Popover from "@material-ui/core/Popover";
 import { blue, green, pink, grey } from "@material-ui/core/colors";
 import {
   AttachFile,
@@ -63,7 +70,6 @@ import {
 
 import AddIcon from "@material-ui/icons/Add";
 import { CameraAlt } from "@material-ui/icons";
-import Popover from "@material-ui/core/Popover";
 import Button from "@material-ui/core/Button";
 import MicRecorder from "mic-recorder-to-mp3";
 import clsx from "clsx";
@@ -474,7 +480,7 @@ const useStyles = makeStyles((theme) => ({
     color: theme.palette.primary.main,
   },
   aiPromptPaper: {
-    width: 320,
+    width: 280,
     maxWidth: "calc(100% - 16px)",
     borderRadius: 10,
     padding: theme.spacing(1),
@@ -491,7 +497,6 @@ const useStyles = makeStyles((theme) => ({
   },
   aiPromptInput: {
     padding: theme.spacing(1),
-    border: `1px solid ${theme.palette.divider}`,
     borderRadius: 8,
     margin: theme.spacing(0.5, 0, 1),
     backgroundColor: theme.palette.background.paper,
@@ -583,7 +588,11 @@ const MessageInput = ({
   const [aiLoading, setAiLoading] = useState(false);
   const [aiConfig, setAiConfig] = useState({ apiKey: "", model: "gpt-4o-mini" });
   const [aiPromptOpen, setAiPromptOpen] = useState(false);
+  const [aiPromptAnchorEl, setAiPromptAnchorEl] = useState(null);
   const [aiPromptText, setAiPromptText] = useState("");
+  const aiPromptInputRef = useRef(null);
+  const [aiTranslateOpen, setAiTranslateOpen] = useState(false);
+  const [aiTranslateLang, setAiTranslateLang] = useState("pt-BR");
   const newMessageBoxRef = useRef(null);
 
   const isTicketPending = () => {
@@ -645,6 +654,7 @@ const MessageInput = ({
   const handleCloseAIMenu = () => setAiMenuAnchor(null);
   const handleOpenAiPrompt = () => {
     setAiPromptText("");
+    setAiPromptAnchorEl(aiMenuAnchor);
     setAiPromptOpen(true);
     handleCloseAIMenu();
   };
@@ -652,6 +662,18 @@ const MessageInput = ({
     setAiPromptOpen(false);
     setAiPromptText("");
   };
+
+  useEffect(() => {
+    if (aiPromptOpen) {
+      // Força foco estável no campo do balão
+      const t = setTimeout(() => {
+        if (aiPromptInputRef.current) {
+          aiPromptInputRef.current.focus();
+        }
+      }, 0);
+      return () => clearTimeout(t);
+    }
+  }, [aiPromptOpen]);
 
   const callOpenAITransform = async (systemPrompt, userPrompt) => {
     if (!inputMessage || inputMessage.trim() === "") {
@@ -723,12 +745,20 @@ const MessageInput = ({
   };
 
   const handleTranslate = () => {
-    const lang = window.prompt("Traduzir para qual idioma? Ex.: pt-BR, en, es");
-    if (!lang) return;
+    setAiPromptAnchorEl(aiMenuAnchor);
+    setAiTranslateOpen(true);
+    handleCloseAIMenu();
+  };
+  const handleConfirmTranslate = () => {
+    if (!aiTranslateLang) {
+      setAiTranslateOpen(false);
+      return;
+    }
     callOpenAITransform(
-      `Traduza o texto para ${lang}. Preserve o sentido e o tom. Responda apenas com o texto traduzido.`,
+      `Traduza o texto para ${aiTranslateLang}. Preserve o sentido e o tom. Responda apenas com o texto traduzido.`,
       `Texto:\n${inputMessage}`
     );
+    setAiTranslateOpen(false);
   };
 
   useEffect(() => {
@@ -2153,27 +2183,142 @@ const MessageInput = ({
                 <Popover
                   open={aiPromptOpen}
                   onClose={handleCloseAiPrompt}
-                  anchorEl={newMessageBoxRef.current}
-                  container={newMessageBoxRef.current}
+                  anchorEl={aiPromptAnchorEl || newMessageBoxRef.current}
                   anchorOrigin={{ vertical: "top", horizontal: "center" }}
                   transformOrigin={{ vertical: "bottom", horizontal: "center" }}
                   PaperProps={{ className: classes.aiPromptPaper, style: { zIndex: 20 } }}
+                  ModalProps={{ keepMounted: true, disableEnforceFocus: true, disableAutoFocus: true, disableRestoreFocus: true }}
+                  keepMounted
+                  onEntering={() => {
+                    if (aiPromptInputRef.current) {
+                      aiPromptInputRef.current.focus();
+                    }
+                  }}
+                  onKeyDownCapture={(e) => e.stopPropagation()}
+                  onKeyUpCapture={(e) => e.stopPropagation()}
+                  onMouseDownCapture={(e) => e.stopPropagation()}
                 >
                   <div className={classes.aiPromptHeader}>Prompt do Agente</div>
-                  <div>
-                    <InputBase
-                      className={classes.aiPromptInput}
+                  <div style={{ padding: 8 }}>
+                    <textarea
+                      ref={aiPromptInputRef}
                       placeholder="Descreva o que a IA deve fazer..."
                       value={aiPromptText}
                       onChange={(e) => setAiPromptText(e.target.value)}
+                      rows={3}
+                      style={{
+                        width: "100%",
+                        minHeight: 72,
+                        padding: 8,
+                        borderRadius: 8,
+                        border: "1px solid rgba(0,0,0,0.12)",
+                        outline: "none",
+                        resize: "vertical",
+                        background: "transparent",
+                        color: "inherit",
+                        font: "inherit",
+                      }}
                       autoFocus
-                      multiline
-                      rowsMax={4}
+                      onKeyDownCapture={(e) => e.stopPropagation()}
+                      onKeyUpCapture={(e) => e.stopPropagation()}
+                      onKeyPressCapture={(e) => e.stopPropagation()}
+                      onFocusCapture={(e) => e.stopPropagation()}
+                      onMouseDownCapture={(e) => e.stopPropagation()}
+                      onBlur={() => {
+                        if (aiPromptOpen && aiPromptInputRef.current) {
+                          setTimeout(() => {
+                            aiPromptInputRef.current && aiPromptInputRef.current.focus();
+                          }, 0);
+                        }
+                      }}
                     />
                     <div className={classes.aiPromptActions}>
                       <Button size="small" onClick={handleCloseAiPrompt}>Cancelar</Button>
                       <Button size="small" color="primary" variant="contained" onClick={handleRunAiPrompt} disabled={aiLoading}>
                         Aplicar
+                      </Button>
+                    </div>
+                  </div>
+                </Popover>
+
+                <Popover
+                  open={aiTranslateOpen}
+                  onClose={() => setAiTranslateOpen(false)}
+                  anchorEl={aiPromptAnchorEl || newMessageBoxRef.current}
+                  anchorOrigin={{ vertical: "top", horizontal: "center" }}
+                  transformOrigin={{ vertical: "bottom", horizontal: "center" }}
+                  PaperProps={{ className: classes.aiPromptPaper, style: { zIndex: 20 } }}
+                  ModalProps={{ keepMounted: true, disableEnforceFocus: true, disableAutoFocus: true, disableRestoreFocus: true }}
+                  keepMounted
+                  onKeyDownCapture={(e) => e.stopPropagation()}
+                  onKeyUpCapture={(e) => e.stopPropagation()}
+                >
+                  <div className={classes.aiPromptHeader}>Traduzir</div>
+                  <div style={{ padding: 8 }}>
+                    <FormControl fullWidth variant="outlined" size="small">
+                      <InputLabel id="translate-select-label">Idioma</InputLabel>
+                      <Select
+                        labelId="translate-select-label"
+                        label="Idioma"
+                        value={aiTranslateLang}
+                        onChange={(e) => setAiTranslateLang(e.target.value)}
+                        MenuProps={{
+                          anchorOrigin: { vertical: "bottom", horizontal: "left" },
+                          transformOrigin: { vertical: "top", horizontal: "left" },
+                          getContentAnchorEl: null,
+                          disablePortal: true,
+                          PaperProps: {
+                            style: { maxHeight: 280, width: "100%", overflowY: "auto" }
+                          },
+                          MenuListProps: {
+                            onKeyDown: (e) => e.stopPropagation()
+                          }
+                        }}
+                      >
+                        <MenuItem value="pt-BR">Português (Brasil)</MenuItem>
+                        <MenuItem value="en">Inglês</MenuItem>
+                        <MenuItem value="es">Espanhol</MenuItem>
+                        <MenuItem value="fr">Francês</MenuItem>
+                        <MenuItem value="de">Alemão</MenuItem>
+                        <MenuItem value="it">Italiano</MenuItem>
+                        <MenuItem value="ru">Russo</MenuItem>
+                        <MenuItem value="zh-CN">Chinês (Simplificado)</MenuItem>
+                        <MenuItem value="zh-TW">Chinês (Tradicional)</MenuItem>
+                        <MenuItem value="ja">Japonês</MenuItem>
+                        <MenuItem value="ko">Coreano</MenuItem>
+                        <MenuItem value="ar">Árabe</MenuItem>
+                        <MenuItem value="hi">Hindi</MenuItem>
+                        <MenuItem value="tr">Turco</MenuItem>
+                        <MenuItem value="nl">Holandês</MenuItem>
+                        <MenuItem value="pl">Polonês</MenuItem>
+                        <MenuItem value="sv">Sueco</MenuItem>
+                        <MenuItem value="no">Norueguês</MenuItem>
+                        <MenuItem value="da">Dinamarquês</MenuItem>
+                        <MenuItem value="fi">Finlandês</MenuItem>
+                        <MenuItem value="he">Hebraico</MenuItem>
+                        <MenuItem value="el">Grego</MenuItem>
+                        <MenuItem value="id">Indonésio</MenuItem>
+                        <MenuItem value="th">Tailandês</MenuItem>
+                        <MenuItem value="vi">Vietnamita</MenuItem>
+                        <MenuItem value="uk">Ucraniano</MenuItem>
+                        <MenuItem value="ro">Romeno</MenuItem>
+                        <MenuItem value="cs">Tcheco</MenuItem>
+                        <MenuItem value="hu">Húngaro</MenuItem>
+                        <MenuItem value="sk">Eslovaco</MenuItem>
+                        <MenuItem value="bg">Búlgaro</MenuItem>
+                        <MenuItem value="hr">Croata</MenuItem>
+                        <MenuItem value="sr">Sérvio</MenuItem>
+                        <MenuItem value="ms">Malaio</MenuItem>
+                        <MenuItem value="fa">Persa</MenuItem>
+                        <MenuItem value="ur">Urdu</MenuItem>
+                        <MenuItem value="bn">Bengali</MenuItem>
+                        <MenuItem value="ta">Tâmil</MenuItem>
+                      </Select>
+                    </FormControl>
+                    <div className={classes.aiPromptActions} style={{ marginTop: 8 }}>
+                      <Button size="small" onClick={() => setAiTranslateOpen(false)}>Cancelar</Button>
+                      <Button size="small" color="primary" variant="contained" onClick={handleConfirmTranslate} disabled={aiLoading}>
+                        Traduzir
                       </Button>
                     </div>
                   </div>
@@ -2191,7 +2336,7 @@ const MessageInput = ({
                       <AccountTree
                         style={{
                           color: theme.mode === "light"
-                            ? theme.palette.secondary.main
+                            ? "grey"
                             : "#EEE"
                         }}
                       />
@@ -2391,7 +2536,7 @@ const MessageInput = ({
                         <AccountTree
                           style={{
                             color: theme.mode === "light"
-                              ? theme.palette.secondary.main
+                              ? "grey"
                               : "#EEE"
                           }}
                         />
@@ -2434,7 +2579,7 @@ const MessageInput = ({
                       inputRef={(input) => {
                         if (input) {
                           inputRef.current = input;
-                          if (!disableAutoFocus) {
+                          if (!disableAutoFocus && !aiPromptOpen) {
                             input.focus();
                           }
                         }

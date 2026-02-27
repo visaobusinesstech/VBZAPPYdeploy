@@ -4,7 +4,7 @@ const usePlans = () => {
 
     const getPlanList = async (params) => {
         const { data } = await openApi.request({
-            url: '/plans/list',
+            url: '/public/plans',
             method: 'GET',
             params
         });

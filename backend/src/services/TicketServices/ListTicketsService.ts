@@ -148,9 +148,15 @@ const ListTicketsService = async ({
 
   if (status === "open") {
     whereCondition = {
-      ...whereCondition,
-      userId,
-      queueId: { [Op.in]: queueIds }
+      companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
+      status: "open",
+      [Op.or]: [
+        { userId },                         // tickets atribuídos ao usuário atual
+        { userId: null },                   // tickets abertos ainda sem atendente
+        { isBot: true },                    // tickets sob Agente IA
+        { useIntegration: true }            // tickets em integração ativa
+      ],
+      queueId: { [Op.or]: [queueIds, null] } // Atendendo deve exibir SEM FILA também
     };
   } else
     if (status === "group" && user.allowGroup && user.whatsappId) {
@@ -552,7 +558,7 @@ const ListTicketsService = async ({
   const { count, rows: tickets } = await Ticket.findAndCountAll({
     where: whereCondition,
     include: includeCondition,
-    attributes: ["id", "uuid", "userId", "queueId", "isGroup", "channel", "status", "contactId", "useIntegration", "lastMessage", "updatedAt", "unreadMessages"],
+    attributes: ["id", "uuid", "userId", "queueId", "isGroup", "channel", "status", "contactId", "useIntegration", "isBot", "lastMessage", "updatedAt", "unreadMessages"],
     distinct: true,
     limit,
     offset,

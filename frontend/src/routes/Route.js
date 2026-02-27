@@ -6,7 +6,7 @@ import { AuthContext } from "../context/Auth/AuthContext";
 import { PageTitleContext } from "../context/PageTitleContext";
 import BackdropLoading from "../components/BackdropLoading";
 
-const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
+const Route = ({ component: Component, isPrivate = false, title, allowWhenAuth = false, ...rest }) => {
 	const { isAuth, loading, user } = useContext(AuthContext);
 	const { setPageTitle } = useContext(PageTitleContext);
 
@@ -52,7 +52,7 @@ const Route = ({ component: Component, isPrivate = false, title, ...rest }) => {
 		);
 	}
 
-	if (isAuth && !isPrivate) {
+	if (isAuth && !isPrivate && !allowWhenAuth) {
 		return (
 			<>
 				{loading && <BackdropLoading />}

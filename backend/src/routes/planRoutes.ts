@@ -14,4 +14,7 @@ planRoutes.post("/plans", isAuth, isSpecificAdmin, PlanController.store);
 planRoutes.put("/plans/:id", isAuth, isSpecificAdmin, PlanController.update);
 planRoutes.delete("/plans/:id", isAuth, isSpecificAdmin, PlanController.remove);
 
+// Public endpoint for registration (no auth). Returns public plans when listPublic === "false"
+planRoutes.get("/public/plans", PlanController.list);
+
 export default planRoutes;

@@ -37,6 +37,7 @@ import { Done, HighlightOff, SwapHoriz, Add } from "@material-ui/icons";
 import VisibilityIcon from "@material-ui/icons/Visibility"; // Ícone de spy
 import useCompanySettings from "../../hooks/useSettings/companySettings";
 import NewTicketModal from "../NewTicketModal";
+import { SiOpenai } from "react-icons/si";
 import {
   Avatar,
   Badge,
@@ -50,6 +51,7 @@ import {
   DialogActions,
   Button,
   DialogContent,
+  Divider,
 } from "@material-ui/core";
 
 const useStyles = makeStyles((theme) => ({
@@ -87,6 +89,22 @@ const useStyles = makeStyles((theme) => ({
     fontWeight: "bold",
     marginRight: "10px",
     borderRadius: 0,
+  },
+  unreadWithIcon: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    verticalAlign: "middle",
+  },
+  aiFloatingIcon: {
+    position: "absolute",
+    right: 8,
+    top: -12,
+    color: "#0A84FF",
+    display: "inline-flex",
+    alignItems: "center",
+    pointerEvents: "none",
+    zIndex: 2
   },
   noTicketsText: {
     textAlign: "center",
@@ -184,6 +202,8 @@ const useStyles = makeStyles((theme) => ({
     color: "inherit"
   },
 
+  
+
   acceptButton: {
     position: "absolute",
     right: "1px",
@@ -253,7 +273,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   aiAgent: {
-    borderLeft: "4px solid #0cb7f2",
+    borderLeft: "2px solid #0A84FF",
   }
 }));
 
@@ -290,10 +310,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
 
   const { get: getSetting } = useCompanySettings();
 
-  const isAI =
-    !!(ticket?.lastMessage &&
-      ticket?.lastMessage?.fromMe &&
-      ticket?.lastMessage?.isPrivate);
+  const isAI = ticket?.isBot === true || ticket?.useIntegration === true;
 
   useEffect(() => {
     return () => {
@@ -440,12 +457,16 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
   const handleAcepptTicket = async (id) => {
     setLoading(true);
     try {
-      const otherTicket = await api.put(`/tickets/${id}`, {
-        status:
-          ticket.isGroup && ticket.channel === "whatsapp" ? "group" : "open",
+      const payload = {
         userId: user?.id,
-        isBot: false
-      });
+        isBot: false,
+        useIntegration: false,
+        status:
+          ticket.status === "pending"
+            ? (ticket.isGroup && ticket.channel === "whatsapp" ? "group" : "open")
+            : ticket.status
+      };
+      const otherTicket = await api.put(`/tickets/${id}`, payload);
 
       if (otherTicket.data.id !== ticket.id) {
         if (otherTicket.data.userId !== user?.id) {
@@ -736,6 +757,7 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
                     ? classes.contactLastMessageUnread
                     : classes.contactLastMessage
                 }
+                style={isAI ? { color: "#0A84FF" } : undefined}
                 noWrap
                 component="span"
                 variant="body2"
@@ -804,19 +826,21 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
                 </span>
               </Typography>
 
-              <Badge
-                className={classes.newMessagesCount}
-                badgeContent={shouldBlurMessages ? "?" : ticket.unreadMessages}
-                classes={{
-                  badge: classes.badgeStyle,
-                }}
-              />
+              <span className={classes.unreadWithIcon}>
+                <Badge
+                  className={classes.newMessagesCount}
+                  badgeContent={shouldBlurMessages ? "?" : ticket.unreadMessages}
+                  classes={{
+                    badge: classes.badgeStyle,
+                  }}
+                />
+              </span>
             </span>
           }
         />
         <ListItemSecondaryAction>
           {ticket.lastMessage && (
-            <>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "flex-end" }}>
               <Typography
                 className={
                   Number(ticket.unreadMessages) > 0
@@ -832,12 +856,15 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
                   <>{format(parseISO(ticket.updatedAt), "dd/MM/yyyy")}</>
                 )}
               </Typography>
-
-              <br />
-            </>
+            </div>
           )}
         </ListItemSecondaryAction>
         <ListItemSecondaryAction>
+          {isAI && (
+            <span className={classes.aiFloatingIcon} title="Agente IA">
+              <SiOpenai size={14} />
+            </span>
+          )}
           {/* Para tickets com status chatbot, mostrar apenas o ícone de spy */}
           {ticket.status === "chatbot" && (
             <span className={classes.secondaryContentSecond}>
@@ -1086,6 +1113,18 @@ const TicketListItemCustom = ({ setTabOpen, ticket }) => {
           )}
         </ListItemSecondaryAction>
       </ListItem>
+      <Divider
+        variant="fullWidth"
+        style={{
+          marginTop: 0,
+          marginBottom: 0,
+          marginLeft: 0,
+          width: "100%",
+          height: 1,
+          backgroundColor:
+            theme.mode === "light" ? "rgba(60,60,67,0.06)" : "rgba(255,255,255,0.04)",
+        }}
+      />
 
       {/* Modal de Finalização de Venda */}
       {openFinalizacaoVenda && (

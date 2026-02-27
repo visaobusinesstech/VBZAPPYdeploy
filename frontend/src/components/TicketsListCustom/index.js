@@ -273,6 +273,10 @@ const TicketsListCustom = (props) => {
             if (status === "pending") {
                 return true;
             }
+            // Regra: em Atendendo (open), aceitar atualizações de tickets do Bot/Integração
+            if (status === "open" && (ticket?.isBot === true || ticket?.useIntegration === true)) {
+                return true;
+            }
             const noQueueFilter = !selectedQueueIds || selectedQueueIds.length === 0;
             return (!ticket?.userId || ticket?.userId === user?.id || showAll) &&
                 ((!ticket?.queueId && showTicketWithoutQueue) || noQueueFilter || selectedQueueIds.indexOf(ticket?.queueId) > -1)
@@ -294,14 +298,22 @@ const TicketsListCustom = (props) => {
                 });
             }
             // console.log(shouldUpdateTicket(data.ticket))
-            if (data.action === "update" &&
-                shouldUpdateTicket(data.ticket) && data.ticket.status === status) {
-                dispatch({
-                    type: "UPDATE_TICKET",
-                    payload: data.ticket,
-                    status: status,
-                    sortDir: sortTickets
-                });
+            if (data.action === "update") {
+                if (data.ticket.status === status && shouldUpdateTicket(data.ticket)) {
+                    dispatch({
+                        type: "UPDATE_TICKET",
+                        payload: data.ticket,
+                        status: status,
+                        sortDir: sortTickets
+                    });
+                } else {
+                    dispatch({
+                        type: "DELETE_TICKET",
+                        payload: data.ticket?.id,
+                        status: status,
+                        sortDir: sortTickets
+                    });
+                }
             }
             if (data.action === "create" &&
                 shouldUpdateTicket(data.ticket) && data.ticket.status === status) {
@@ -336,14 +348,22 @@ const TicketsListCustom = (props) => {
         };
 
         const onCompanyAppMessageTicketsList = (data) => {
-            if (data.action === "create" &&
-                shouldUpdateTicket(data.ticket) && data.ticket.status === status) {
-                dispatch({
-                    type: "UPDATE_TICKET_UNREAD_MESSAGES",
-                    payload: data.ticket,
-                    status: status,
-                    sortDir: sortTickets
-                });
+            if (data.action === "create") {
+                if (data.ticket.status === status && shouldUpdateTicket(data.ticket)) {
+                    dispatch({
+                        type: "UPDATE_TICKET_UNREAD_MESSAGES",
+                        payload: data.ticket,
+                        status: status,
+                        sortDir: sortTickets
+                    });
+                } else {
+                    dispatch({
+                        type: "DELETE_TICKET",
+                        payload: data.ticket?.id,
+                        status: status,
+                        sortDir: sortTickets
+                    });
+                }
             }
             // else if (data.action === "create" && shouldUpdateTicketUser(data.ticket) && data.ticket.status === status) {
             //     dispatch({

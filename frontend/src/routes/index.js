@@ -7,6 +7,7 @@ import LoggedInLayout from "../layout";
 import Dashboard from "../pages/Dashboard/";
 import TicketResponsiveContainer from "../pages/TicketResponsiveContainer";
 import Signup from "../pages/Signup";
+import Register from "../pages/Register";
 import Login from "../pages/Login/";
 import Connections from "../pages/Connections/";
 import Settings from "../pages/SettingsCustom/";
@@ -96,7 +97,8 @@ const RoutesContent = () => {
     <TicketsContextProvider>
       <Switch>
         <Route exact path="/login" component={Login} title="Login" />
-        <Route exact path="/signup" component={Signup} title="Cadastro" />
+        <Route exact path="/signup" component={Signup} title="Cadastro" allowWhenAuth />
+        <Route exact path="/register" component={Register} title="Registrar" allowWhenAuth />
         <WhatsAppsProvider>
           <LoggedInLayout hideMenu={isCompanyExpired()}>
                 <Route
@@ -265,7 +267,7 @@ const RoutesContent = () => {
                 />
                 
                 <Route exact path="/activities" component={Activities} isPrivate title="Atividades" />
-                <Route exact path="/whatsapp-dashboard" component={WhatsappDashboard} isPrivate title="Dashboard Whatsapp" />
+                <Route exact path="/whatsapp-dashboard" component={WhatsappDashboard} isPrivate title="Dashboard WhatsApp" />
                 <Route exact path="/leads-convertidos" component={LeadsConvertidos} isPrivate title="Leads Convertidos" />
                 <Route exact path="/projects" component={Projects} isPrivate title="Projetos" />
                 <Route exact path="/leads-sales" component={LeadsSales} isPrivate title="Leads e Vendas" />
