@@ -263,9 +263,12 @@ const useStyles = makeStyles((theme) => ({
     width: 420,
     maxWidth: "100%",
     padding: theme.spacing(2),
-    marginTop: theme.spacing(4),
-    marginBottom: theme.spacing(4),
-    borderRadius: "16px 0 0 16px",
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    marginRight: theme.spacing(2),
+    height: "calc(100% - 32px)",
+    borderRadius: 16,
+    overflow: "hidden",
   },
   drawerContainer: {
     display: "flex",
@@ -275,11 +278,19 @@ const useStyles = makeStyles((theme) => ({
   drawerHeader: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    position: "relative",
+    paddingBottom: theme.spacing(2),
     marginBottom: theme.spacing(2),
+    borderBottom: "1px solid #eee",
   },
   drawerTitle: {
     fontWeight: 600,
+    textAlign: "center",
+  },
+  drawerClose: {
+    position: "absolute",
+    right: 0,
   },
   drawerContent: {
     flex: 1,
@@ -590,7 +601,7 @@ const Inventory = () => {
             <Typography variant="h6" className={classes.drawerTitle}>
               {editItem ? "Editar Produto" : "Novo Produto"}
             </Typography>
-            <IconButton onClick={handleClose} aria-label="fechar">
+            <IconButton onClick={handleClose} aria-label="fechar" className={classes.drawerClose}>
               <CloseIcon />
             </IconButton>
           </div>

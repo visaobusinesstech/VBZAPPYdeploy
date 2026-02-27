@@ -29,9 +29,13 @@ const SimpleListService = async ({ name, companyId, userId }: SearchContactParam
   let whereCondition: any = { companyId };
 
   if (name) {
-    whereCondition.name = {
-      [Op.like]: `%${name}%`
-    }
+    whereCondition[Op.or as any] = [
+      {
+        name: {
+          [Op.iLike]: `%${name}%`
+        }
+      }
+    ];
   }
 
   // Aplicar regra de carteira se o usuário tem perfil "user" e a configuração está ativa

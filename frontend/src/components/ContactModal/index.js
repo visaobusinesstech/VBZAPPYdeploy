@@ -8,15 +8,13 @@ import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
+import Drawer from "@material-ui/core/Drawer";
 import Typography from "@material-ui/core/Typography";
 import IconButton from "@material-ui/core/IconButton";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Switch from "@material-ui/core/Switch";
+import CloseIcon from "@material-ui/icons/Close";
 
 
 import Grid from '@mui/material/Grid';
@@ -38,6 +36,75 @@ const useStyles = makeStyles(theme => ({
 	root: {
 		display: "flex",
 		flexWrap: "wrap",
+	},
+	drawerPaper: {
+		width: 420,
+		maxWidth: "100%",
+		padding: theme.spacing(2),
+		marginTop: theme.spacing(2),
+		marginBottom: theme.spacing(2),
+		marginRight: theme.spacing(2),
+		height: "calc(100% - 32px)",
+		borderRadius: 16,
+		overflow: "hidden",
+	},
+	drawerContainer: {
+		display: "flex",
+		flexDirection: "column",
+		height: "100%",
+	},
+	drawerHeader: {
+		display: "flex",
+		alignItems: "center",
+		justifyContent: "center",
+		position: "relative",
+		paddingBottom: theme.spacing(2),
+		marginBottom: theme.spacing(2),
+		borderBottom: "1px solid #eee",
+	},
+	drawerTitle: {
+		fontWeight: 600,
+		textAlign: "center",
+	},
+	drawerClose: {
+		position: "absolute",
+		right: 0,
+	},
+	drawerContent: {
+		flex: 1,
+		minHeight: 0,
+		display: "flex",
+		flexDirection: "column",
+		gap: theme.spacing(2),
+		overflowY: "auto",
+		WebkitOverflowScrolling: "touch",
+		paddingRight: theme.spacing(1),
+		paddingBottom: theme.spacing(1),
+		'&::-webkit-scrollbar': {
+			width: '6px',
+		},
+		'&::-webkit-scrollbar-thumb': {
+			backgroundColor: 'rgba(0,0,0,0.1)',
+			borderRadius: '3px',
+		}
+	},
+	drawerForm: {
+		display: "flex",
+		flexDirection: "column",
+		height: "100%",
+		minHeight: 0,
+	},
+	drawerActions: {
+		display: "flex",
+		justifyContent: "space-between",
+		width: "100%",
+		marginTop: 0,
+		gap: theme.spacing(1),
+		paddingTop: theme.spacing(2),
+		borderTop: "1px solid #eee",
+		backgroundColor: "#fff",
+		position: "sticky",
+		bottom: 0
 	},
 	textField: {
 		marginRight: theme.spacing(1),
@@ -304,12 +371,23 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 
 	return (
 		<div className={classes.root}>
-			<Dialog open={open} onClose={handleClose} maxWidth="lg" scroll="paper">
-				<DialogTitle id="form-dialog-title">
-					{contactId
-						? `${i18n.t("contactModal.title.edit")}`
-						: `${i18n.t("contactModal.title.add")}`}
-				</DialogTitle>
+			<Drawer
+				anchor="right"
+				open={open}
+				onClose={handleClose}
+				classes={{ paper: classes.drawerPaper }}
+			>
+				<div className={classes.drawerContainer}>
+					<div className={classes.drawerHeader}>
+						<Typography variant="h6" className={classes.drawerTitle}>
+							{contactId
+								? `${i18n.t("contactModal.title.edit")}`
+								: `${i18n.t("contactModal.title.add")}`}
+						</Typography>
+						<IconButton onClick={handleClose} aria-label="fechar" className={classes.drawerClose}>
+							<CloseIcon />
+						</IconButton>
+					</div>
 				<Formik
 					initialValues={contact}
 					enableReinitialize={true}
@@ -322,11 +400,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 					}}
 				>
 					{({ values, errors, touched, isSubmitting, setFieldValue }) => (
-						<Form>
-							<DialogContent dividers>
-								<Typography variant="subtitle1" gutterBottom>
-									{i18n.t("contactModal.form.mainInfo")}
-								</Typography>
+						<Form className={classes.drawerForm}>
+							<div className={classes.drawerContent}>
 								<Field
 									as={TextField}
 									label={i18n.t("contactModal.form.name")}
@@ -454,7 +529,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 											renderInput={(params) => (
 												<TextField
 													{...params}
-													label={i18n.t("transferTicketModal.fieldLabel")}
+													label="Buscar"
+													placeholder="Buscar"
 													variant="outlined"
 													onChange={(e) => setSearchParam(e.target.value)}
 													InputProps={{
@@ -508,18 +584,6 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										name="disableBot"
 									/>
 									{i18n.t("contactModal.form.chatBotContact")}
-								</Typography>
-								<Typography
-									style={{ marginBottom: 8, marginTop: 12 }}
-									variant="subtitle1"
-								>
-									{i18n.t("contactModal.form.whatsapp")} {contact?.whatsapp ? contact?.whatsapp.name : ""}
-								</Typography>
-								<Typography
-									style={{ marginBottom: 8, marginTop: 12 }}
-									variant="subtitle1"
-								>
-									{i18n.t("contactModal.form.termsLGDP")} {contact?.lgpdAcceptedAt ? format(new Date(contact?.lgpdAcceptedAt), "dd/MM/yyyy 'às' HH:mm") : ""}
 								</Typography>
 
 								{/* <Typography variant="subtitle1" gutterBottom>{i18n.t("contactModal.form.customer_portfolio")}</Typography> */}
@@ -587,8 +651,8 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										</>
 									)}
 								</FieldArray>
-							</DialogContent>
-							<DialogActions>
+							</div>
+							<div className={classes.drawerActions}>
 								<Button
 									onClick={handleClose}
 									color="secondary"
@@ -614,11 +678,12 @@ const ContactModal = ({ open, onClose, contactId, initialValues, onSave }) => {
 										/>
 									)}
 								</Button>
-							</DialogActions>
+							</div>
 						</Form>
 					)}
 				</Formik>
-			</Dialog>
+				</div>
+			</Drawer>
 		</div>
 	);
 };

@@ -76,7 +76,7 @@ function SchedulesForm(props) {
             name="schedules"
             render={(arrayHelpers) => (
               <Grid spacing={4} container>
-                {values.schedules.map((item, index) => {
+                {(Array.isArray(values.schedules) ? values.schedules : []).map((item, index) => {
                   return (
                     <Grid key={index} xs={12} md={4} item>
                       <Grid container>

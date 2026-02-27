@@ -282,20 +282,38 @@ const App = () => {
             },
 
             // Inputs melhorados
+            MuiOutlinedInput: {
+              root: {
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#E5E7EB',
+                  borderWidth: 1,
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#E5E7EB',
+                  borderWidth: 1,
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#E5E7EB',
+                },
+                outline: 'none',
+              },
+            },
             MuiTextField: {
               root: {
                 '& .MuiOutlinedInput-root': {
                   borderRadius: 8,
                   transition: 'all 0.3s ease',
+                  outline: 'none',
                   '&:hover': {
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: mode === "light" ? "#ccc" : "#555",
                     }
                   },
                   '&.Mui-focused': {
+                    outline: 'none',
                     '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: mode === "light" ? primaryColorLight : primaryColorDark,
-                      borderWidth: 2,
+                      borderColor: "#E5E7EB",
+                      borderWidth: 1,
                     }
                   }
                 }

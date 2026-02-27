@@ -8,16 +8,14 @@ import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
+import Drawer from "@material-ui/core/Drawer";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import AttachFileIcon from "@material-ui/icons/AttachFile";
 import MicIcon from "@material-ui/icons/Mic";
 import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import EditIcon from "@material-ui/icons/Edit";
 import IconButton from "@material-ui/core/IconButton";
+import CloseIcon from "@material-ui/icons/Close";
 import { i18n } from "../../translate/i18n";
 import { head } from "lodash";
 import api from "../../services/api";
@@ -33,8 +31,6 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Tab,
-  Tabs,
   Box,
   Typography,
   Chip,
@@ -48,6 +44,62 @@ const useStyles = makeStyles((theme) => ({
   root: {
     display: "flex",
     flexWrap: "wrap",
+  },
+  drawerPaper: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: 420,
+    maxWidth: '100%',
+    padding: theme.spacing(2),
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: 'calc(100% - 32px)',
+    marginRight: theme.spacing(2),
+    overflow: 'hidden'
+  },
+  formContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    minHeight: 0
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    borderBottom: '1px solid #eee',
+    paddingBottom: theme.spacing(2),
+    marginBottom: theme.spacing(2)
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 0,
+  },
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    overflowY: 'auto',
+    flex: 1,
+    minHeight: 0,
+    paddingRight: theme.spacing(1),
+    '&::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'rgba(0,0,0,0.1)',
+      borderRadius: '3px',
+    },
+  },
+  footer: {
+    borderTop: '1px solid #eee',
+    backgroundColor: '#fff',
+    paddingTop: theme.spacing(2),
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: theme.spacing(1)
   },
   multFieldLine: {
     display: "flex",
@@ -142,13 +194,13 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
     language: "",
     category: "",
     metaID: "",
+    components: [],
   };
 
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [quickemessage, setQuickemessage] = useState(initialState);
   const [attachment, setAttachment] = useState(null);
   const [audioBlob, setAudioBlob] = useState(null);
-  const [tabIndex, setTabIndex] = useState(0);
   const [mediaMode, setMediaMode] = useState(null); // 'file', 'audio', 'edit', null
   const [isEditingMedia, setIsEditingMedia] = useState(false);
   const attachmentFile = useRef(null);
@@ -161,7 +213,7 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
         const { data } = await api.get(`/quick-messages/${quickemessageId}`);
 
         setQuickemessage((prevState) => {
-          return { ...prevState, ...data };
+          return { ...prevState, ...data, components: Array.isArray(data?.components) ? data.components : [] };
         });
 
         // Reset media editing state when loading existing message
@@ -304,7 +356,7 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
     handleClose();
   };
 
-  const rowsWithIds = (quickemessage?.components || []).map((component, index) => ({
+  const rowsWithIds = (Array.isArray(quickemessage?.components) ? quickemessage.components : []).map((component, index) => ({
     id: index,
     ...component,
   }));
@@ -349,9 +401,7 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
     messageInputRef.current.setSelectionRange(newCursorPos, newCursorPos);
   };
 
-  const handleTabChange = (event, newValue) => {
-    setTabIndex(newValue);
-  };
+  // Tabs removidos; conteúdo consolidado em uma única visualização
 
   const getMediaTypeIcon = (mediaType) => {
     switch (mediaType) {
@@ -422,18 +472,24 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
       >
         {i18n.t("quickMessages.confirmationModal.deleteMessage")}
       </ConfirmationModal>
-      <Dialog
+      <Drawer
+        anchor="right"
         open={open}
         onClose={handleClose}
-        maxWidth="xl"
-        fullWidth
-        scroll="paper"
+        classes={{ paper: classes.drawerPaper }}
+        ModalProps={{ keepMounted: true }}
       >
-        <DialogTitle id="form-dialog-title">
-          {quickemessageId
-            ? `${i18n.t("quickMessages.dialog.edit")}`
-            : `${i18n.t("quickMessages.dialog.add")}`}
-        </DialogTitle>
+        <Box className={classes.header}>
+          <IconButton onClick={handleClose} size="small" className={classes.closeButton}>
+            <CloseIcon />
+          </IconButton>
+          <Typography variant="h6">
+            {quickemessageId
+              ? `${i18n.t("quickMessages.dialog.edit")}`
+              : `${i18n.t("quickMessages.dialog.add")}`}
+          </Typography>
+          <div style={{ width: 30 }} />
+        </Box>
         <div style={{ display: "none" }}>
           <input
             type="file"
@@ -446,6 +502,7 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
           initialValues={{
             ...quickemessage,
             isStarter: quickemessage?.isStarter || false,
+            components: Array.isArray(quickemessage?.components) ? quickemessage.components : [],
           }}
           enableReinitialize={true}
           validationSchema={QuickeMessageSchema}
@@ -464,20 +521,9 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
               values.userId !== user.id;
 
             return (
-              <Form>
-                <DialogContent dividers>
-                  <Tabs
-                    value={tabIndex}
-                    onChange={handleTabChange}
-                    indicatorColor="primary"
-                    textColor="primary"
-                    centered
-                  >
-                    <Tab label={i18n.t("quickMessages.dialog.general")} />
-                    {values.isOficial && <Tab label="Oficial" />}
-                  </Tabs>
-                  {tabIndex === 0 && (
-                    <Grid spacing={2} container>
+              <Form className={classes.formContainer}>
+                <Box className={classes.content}>
+                  <Grid spacing={2} container>
                       <Grid xs={12} item>
                         <Field
                           as={TextField}
@@ -486,7 +532,10 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
                           name="shortcode"
                           disabled={isDisabled}
                           error={touched.shortcode && Boolean(errors.shortcode)}
-                          helperText={touched.shortcode && errors.shortcode}
+                          helperText={
+                            (touched.shortcode && errors.shortcode) ||
+                            "Atalho para usar a resposta rapidamente: digite /atalho no chat ou pesquise por ele. Ex.: /boasvindas"
+                          }
                           variant="outlined"
                           margin="dense"
                           fullWidth
@@ -740,60 +789,58 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
                         )}
                       </Grid>
                     </Grid>
-                  )}
-                  {tabIndex === 1 && (
+                  {values.isOficial && (
                     <>
-                      {values.isOficial && (
-                        <Grid container spacing={2}>
-                          <Grid xs={12} item>
-                            <FormControlLabel
-                              control={
-                                <Field
-                                  name="isStarter"
-                                  type="checkbox"
-                                  as={Checkbox}
-                                  color="primary"
-                                />
-                              }
-                              label="Template inicia conversa com o cliente"
+                      <Divider />
+                      <Typography variant="subtitle1">Template Oficial</Typography>
+                      <Grid container spacing={2}>
+                        <Grid xs={12} item>
+                          <FormControlLabel
+                            control={
+                              <Field
+                                name="isStarter"
+                                type="checkbox"
+                                as={Checkbox}
+                                color="primary"
+                              />
+                            }
+                            label="Template inicia conversa com o cliente"
+                          />
+                        </Grid>
+                      </Grid>
+                      {Array.isArray(values.components) && (
+                        <Grid xs={12} item>
+                          <DataGrid
+                            rows={rowsWithIds}
+                            columns={[
+                              { field: "type", headerName: "Tipo", width: 150 },
+                              { field: "text", headerName: "Valor", width: 400 },
+                            ]}
+                            pageSize={5}
+                            disableSelectionOnClick
+                            autoHeight={true}
+                          />
+                        </Grid>
+                      )}
+                      <Grid container spacing={2}>
+                        {Array.isArray(values.components) && values.components.map((comp, idx) => (
+                          <Grid key={comp.id || idx} xs={12} item>
+                            <Box display="flex" alignItems="center" gap={8}>
+                              <Chip size="small" label={comp.type || "component"} />
+                            </Box>
+                            <Field
+                              as={TextField}
+                              label={`Texto (${comp.type || 'component'})`}
+                              name={`components.${idx}.text`}
+                              variant="outlined"
+                              margin="dense"
+                              fullWidth
+                              error={Boolean(getIn(touched, `components.${idx}.text`) && getIn(errors, `components.${idx}.text`))}
+                              helperText={getIn(touched, `components.${idx}.text`) && getIn(errors, `components.${idx}.text`)}
                             />
                           </Grid>
-                        </Grid>
-                      )}
-                      <Grid xs={12} item>
-                        <DataGrid
-                          rows={rowsWithIds || []}
-                          columns={[
-                            { field: "type", headerName: "Tipo", width: 150 },
-                            { field: "text", headerName: "Valor", width: 400 },
-                          ]}
-                          pageSize={5}
-                          disableSelectionOnClick
-                          autoHeight={true}
-                        />
+                        ))}
                       </Grid>
-                      {/* Edição dos textos do template (Oficial) */}
-                      {values.isOficial && (
-                        <Grid container spacing={2}>
-                          {(values.components || []).map((comp, idx) => (
-                            <Grid key={comp.id || idx} xs={12} item>
-                              <Box display="flex" alignItems="center" gap={8}>
-                                <Chip size="small" label={comp.type || "component"} />
-                              </Box>
-                              <Field
-                                as={TextField}
-                                label={`Texto (${comp.type || 'component'})`}
-                                name={`components.${idx}.text`}
-                                variant="outlined"
-                                margin="dense"
-                                fullWidth
-                                error={Boolean(getIn(touched, `components.${idx}.text`) && getIn(errors, `components.${idx}.text`))}
-                                helperText={getIn(touched, `components.${idx}.text`) && getIn(errors, `components.${idx}.text`)}
-                              />
-                            </Grid>
-                          ))}
-                        </Grid>
-                      )}
                       <Grid container spacing={2}>
                         <Grid xl={6} md={6} sm={12} xs={12} item>
                           <Field
@@ -854,8 +901,8 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
                       </Grid>
                     </>
                   )}
-                </DialogContent>
-                <DialogActions>
+                </Box>
+                <Box className={classes.footer}>
                   <Button
                     onClick={handleClose}
                     color="secondary"
@@ -881,12 +928,12 @@ const QuickMessageDialog = ({ open, onClose, quickemessageId, reload }) => {
                       />
                     )}
                   </Button>
-                </DialogActions>
+                </Box>
               </Form>
             );
           }}
         </Formik>
-      </Dialog>
+      </Drawer>
     </div>
   );
 };

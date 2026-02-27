@@ -26,6 +26,7 @@ import AppError from "../errors/AppError";
 import { CancelService } from "../services/CampaignService/CancelService";
 import { RestartService } from "../services/CampaignService/RestartService";
 import RecurrenceService from "../services/CampaignService/RecurrenceService";
+import { campaignQueue } from "../queues";
 
 type IndexQuery = {
   searchParam: string;
@@ -499,6 +500,41 @@ export const remove = async (
   return res.status(200).json({ message: "Campaign deleted" });
 };
 
+export const sendNow = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const { id } = req.params as any;
+    const { companyId } = req.user as any;
+    const campaign = await Campaign.findByPk(id);
+    if (!campaign) {
+      throw new AppError("ERR_NO_CAMPAIGN_FOUND", 404);
+    }
+    if (campaign.companyId !== +companyId) {
+      throw new AppError("ERR_NO_PERMISSION", 403);
+    }
+    await campaign.update({
+      status: "EM_ANDAMENTO",
+      scheduledAt: new Date(),
+      nextScheduledAt: null
+    });
+    await campaignQueue.add(
+      "ProcessCampaign",
+      { id: campaign.id },
+      {
+        priority: 1,
+        removeOnComplete: { age: 3600, count: 10 },
+        removeOnFail: { age: 3600, count: 10 }
+      }
+    );
+    const io = getIO();
+    io.of(String(companyId)).emit(`company-${companyId}-campaign`, {
+      action: "update",
+      record: campaign
+    });
+    return res.status(200).json({ ok: true });
+  } catch (err: any) {
+    throw new AppError(err.message);
+  }
+};
 export const findList = async (
   req: Request,
   res: Response

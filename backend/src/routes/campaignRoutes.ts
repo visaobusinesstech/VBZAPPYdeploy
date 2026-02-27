@@ -10,6 +10,7 @@ const upload = multer(uploadConfig);
 const routes = express.Router();
 routes.get("/campaigns/:id/recurrence-preview", isAuth, CampaignController.previewRecurrence);
 routes.post("/campaigns/:id/stop-recurrence", isAuth, CampaignController.stopRecurrence);
+routes.post("/campaigns/:id/send-now", isAuth, CampaignController.sendNow);
 routes.get("/campaigns/list", isAuth, CampaignController.findList);
 routes.get("/campaigns", isAuth, CampaignController.index);
 routes.get("/campaigns/:id", isAuth, CampaignController.show);

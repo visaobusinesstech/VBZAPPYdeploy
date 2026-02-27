@@ -20,6 +20,7 @@ import DeleteOutlineIcon from "@material-ui/icons/DeleteOutline";
 import Chip from '@material-ui/core/Chip';
 import RepeatIcon from '@material-ui/icons/Repeat';
 import VisibilityIcon from '@material-ui/icons/Visibility';
+import MicIcon from "@material-ui/icons/Mic";
 import { isNil } from "lodash";
 import { i18n } from "../../translate/i18n";
 import moment from "moment";
@@ -47,12 +48,16 @@ import {
   CardContent,
   Checkbox,
   FormGroup,
+  Stepper,
+  Step,
+  StepLabel,
 } from "@material-ui/core";
 import { AuthContext } from "../../context/Auth/AuthContext";
 import ConfirmationModal from "../ConfirmationModal";
 import UserStatusIcon from "../UserModal/statusIcon";
 import Autocomplete, { createFilterOptions } from "@material-ui/lab/Autocomplete";
 import useQueues from "../../hooks/useQueues";
+import AudioRecorder from "../AudioRecorder";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -89,10 +94,67 @@ const useStyles = makeStyles((theme) => ({
     maxHeight: 200,
     overflow: 'auto',
   },
+  messageTabs: {
+    width: '100%',
+    background: "#f2f2f2",
+    border: "1px solid #e6e6e6",
+    borderRadius: 8,
+  },
+  tabItem: {
+    minWidth: 0,
+    maxWidth: 'none',
+    flex: '1 1 0',
+    padding: theme.spacing(1, 0.5),
+    fontSize: 13
+  },
   recurrenceIcon: {
     marginRight: theme.spacing(1),
     color: theme.palette.primary.main,
   },
+  mediaContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    padding: theme.spacing(2),
+    border: `1px solid ${theme.palette.divider}`,
+    borderRadius: theme.shape.borderRadius,
+    marginTop: theme.spacing(1)
+  },
+  mediaOptions: {
+    display: 'flex',
+    gap: theme.spacing(1),
+    justifyContent: 'flex-start',
+    flexWrap: 'wrap'
+  },
+  mediaInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: theme.spacing(1),
+    backgroundColor: theme.palette.grey[100],
+    borderRadius: theme.shape.borderRadius
+  },
+  footerStepper: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%'
+  },
+  dialogPaperSmall: {
+    width: 640,
+    maxWidth: '85vw',
+    margin: '0 auto',
+    borderRadius: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    overflow: 'hidden'
+  },
+  dialogContentScrollable: {
+    maxHeight: '60vh',
+    overflowY: 'auto'
+  }
 }));
 
 
@@ -188,11 +250,13 @@ const CampaignModal = ({
   const [tagLists, setTagLists] = useState([]);
   const [messageTab, setMessageTab] = useState(0);
   const [attachment, setAttachment] = useState(null);
+  const [audioBlob, setAudioBlob] = useState(null);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [campaignEditable, setCampaignEditable] = useState(true);
   const [previewExecutions, setPreviewExecutions] = useState([]);
   const [showPreview, setShowPreview] = useState(false);
   const attachmentFile = useRef(null);
+  const [activeStep, setActiveStep] = useState(0);
 
   const [options, setOptions] = useState([]);
   const [queues, setQueues] = useState([]);
@@ -202,6 +266,11 @@ const CampaignModal = ({
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedQueue, setSelectedQueue] = useState(null);
   const { findAll: findAllQueues } = useQueues();
+  // Seleção direta de contatos
+  const [contactsOptions, setContactsOptions] = useState([]);
+  const [contactsLoading, setContactsLoading] = useState(false);
+  const [contactsSearch, setContactsSearch] = useState("");
+  const [selectedContacts, setSelectedContacts] = useState([]);
 
   // Opções para dias da semana
   const daysOfWeekOptions = [
@@ -407,14 +476,40 @@ const CampaignModal = ({
     setCampaign(initialState);
     setPreviewExecutions([]);
     setShowPreview(false);
+    setAttachment(null);
+    setAudioBlob(null);
+    setActiveStep(0);
   };
 
   const handleAttachmentFile = (e) => {
     const file = head(e.target.files);
     if (file) {
       setAttachment(file);
+      setAudioBlob(null);
     }
   };
+
+  // Busca de contatos para seleção direta
+  useEffect(() => {
+    if (contactsSearch.length < 3) {
+      setContactsLoading(false);
+      return;
+    }
+    const delay = setTimeout(async () => {
+      try {
+        setContactsLoading(true);
+        const { data } = await api.get("/contacts/list", {
+          params: { name: contactsSearch }
+        });
+        setContactsOptions(data || []);
+      } catch (err) {
+        toastError(err);
+      } finally {
+        setContactsLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(delay);
+  }, [contactsSearch]);
 
 const handleSaveCampaign = async (values) => {
   try {
@@ -450,11 +545,44 @@ const handleSaveCampaign = async (values) => {
       dataValues.maxExecutions = null;
     }
 
+    // Se o usuário selecionou contatos manualmente, criar uma lista temporária
+    if ((!values.contactListId || values.contactListId === "") && selectedContacts.length > 0) {
+      try {
+        const listName = `Campanha - ${values.name || "Sem nome"} - ${moment().format("DD/MM HH:mm")}`;
+        const { data: createdList } = await api.post("/contact-lists", { name: listName });
+        const newListId = createdList?.id;
+        if (newListId) {
+          // Inserir contatos selecionados como itens da lista
+          for (const c of selectedContacts) {
+            try {
+              await api.post("/contact-list-items", {
+                name: c.name || c.number,
+                number: c.number,
+                email: c.email || "",
+                contactListId: newListId
+              });
+            } catch (e) {
+              // Continua mesmo se algum contato falhar
+              // Evitamos logs verbosos aqui
+            }
+          }
+          dataValues.contactListId = newListId;
+          dataValues.tagListId = null;
+        }
+      } catch (e) {
+        // Se falhar a criação da lista, prossegue com o fluxo normal
+      }
+    }
+
     if (campaignId) {
       await api.put(`/campaigns/${campaignId}`, dataValues);
       if (attachment != null) {
         const formData = new FormData();
         formData.append("file", attachment);
+        await api.post(`/campaigns/${campaignId}/media-upload`, formData);
+      } else if (audioBlob) {
+        const formData = new FormData();
+        formData.append("file", audioBlob, `audio_${Date.now()}.webm`);
         await api.post(`/campaigns/${campaignId}/media-upload`, formData);
       }
       handleClose();
@@ -463,6 +591,10 @@ const handleSaveCampaign = async (values) => {
       if (attachment != null) {
         const formData = new FormData();
         formData.append("file", attachment);
+        await api.post(`/campaigns/${data.id}/media-upload`, formData);
+      } else if (audioBlob) {
+        const formData = new FormData();
+        formData.append("file", audioBlob, `audio_${Date.now()}.webm`);
         await api.post(`/campaigns/${data.id}/media-upload`, formData);
       }
       if (onSave) {
@@ -477,10 +609,93 @@ const handleSaveCampaign = async (values) => {
   }
 };
 
+  const handleSendNow = async (values) => {
+    try {
+      const dataValues = {
+        ...values,
+        whatsappId: whatsappId,
+        userId: selectedUser?.id || null,
+        queueId: selectedQueue || null,
+        recurrenceDaysOfWeek: (values.isRecurring && values.recurrenceDaysOfWeek && values.recurrenceDaysOfWeek.length > 0)
+          ? values.recurrenceDaysOfWeek
+          : null,
+      };
+
+      Object.entries(values).forEach(([key, value]) => {
+        if (key === "scheduledAt" && value !== "" && value !== null) {
+          dataValues[key] = moment(value).format("YYYY-MM-DD HH:mm:ss");
+        } else if (key === "recurrenceEndDate" && value !== "" && value !== null) {
+          dataValues[key] = moment(value).format("YYYY-MM-DD HH:mm:ss");
+        } else if (key !== "recurrenceDaysOfWeek") {
+          dataValues[key] = value === "" ? null : value;
+        }
+      });
+
+      if (!values.isRecurring) {
+        dataValues.recurrenceType = null;
+        dataValues.recurrenceInterval = null;
+        dataValues.recurrenceDaysOfWeek = null;
+        dataValues.recurrenceDayOfMonth = null;
+        dataValues.recurrenceEndDate = null;
+        dataValues.maxExecutions = null;
+      }
+
+      if ((!values.contactListId || values.contactListId === "") && selectedContacts.length > 0) {
+        try {
+          const listName = `Campanha - ${values.name || "Sem nome"} - ${moment().format("DD/MM HH:mm")}`;
+          const { data: createdList } = await api.post("/contact-lists", { name: listName });
+          const newListId = createdList?.id;
+          if (newListId) {
+            for (const c of selectedContacts) {
+              try {
+                await api.post("/contact-list-items", {
+                  name: c.name || c.number,
+                  number: c.number,
+                  email: c.email || "",
+                  contactListId: newListId
+                });
+              } catch (e) {}
+            }
+            dataValues.contactListId = newListId;
+            dataValues.tagListId = null;
+          }
+        } catch (e) {}
+      }
+
+      let id = campaignId;
+      if (campaignId) {
+        await api.put(`/campaigns/${campaignId}`, dataValues);
+      } else {
+        const { data } = await api.post("/campaigns", dataValues);
+        id = data.id;
+      }
+
+      if (attachment != null) {
+        const formData = new FormData();
+        formData.append("file", attachment);
+        await api.post(`/campaigns/${id}/media-upload`, formData);
+      } else if (audioBlob) {
+        const formData = new FormData();
+        formData.append("file", audioBlob, `audio_${Date.now()}.webm`);
+        await api.post(`/campaigns/${id}/media-upload`, formData);
+      }
+
+      await api.post(`/campaigns/${id}/send-now`);
+      toast.success("Campanha enviada agora");
+      handleClose();
+    } catch (err) {
+      console.log(err);
+      toastError(err);
+    }
+  };
   const deleteMedia = async () => {
     if (attachment) {
       setAttachment(null);
       attachmentFile.current.value = null;
+    }
+
+    if (audioBlob) {
+      setAudioBlob(null);
     }
 
     if (campaign.mediaPath) {
@@ -564,8 +779,8 @@ const handleSaveCampaign = async (values) => {
       <Dialog
         open={open}
         onClose={handleClose}
-        fullWidth
-        maxWidth="lg"
+        maxWidth="md"
+        classes={{ paper: classes.dialogPaperSmall }}
         scroll="paper"
       >
         <DialogTitle id="form-dialog-title">
@@ -582,6 +797,7 @@ const handleSaveCampaign = async (values) => {
         <div style={{ display: "none" }}>
           <input
             type="file"
+            accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt"
             ref={attachmentFile}
             onChange={(e) => handleAttachmentFile(e)}
           />
@@ -599,9 +815,18 @@ const handleSaveCampaign = async (values) => {
         >
           {({ values, errors, touched, isSubmitting, setFieldValue }) => (
             <Form>
-              <DialogContent dividers>
+              <DialogContent dividers className={classes.dialogContentScrollable}>
+                <Box mb={2}>
+                  <Stepper activeStep={activeStep} alternativeLabel>
+                    <Step><StepLabel>Template</StepLabel></Step>
+                    <Step><StepLabel>Destinatários</StepLabel></Step>
+                    <Step><StepLabel>Data e Hora</StepLabel></Step>
+                  </Stepper>
+                </Box>
                 <Grid spacing={2} container>
-                  <Grid xs={12} md={4} item>
+                  {activeStep === 0 && (
+                  <>
+                  <Grid xs={12} md={6} item>
                     <Field
                       as={TextField}
                       label={i18n.t("campaigns.dialog.form.name")}
@@ -616,7 +841,7 @@ const handleSaveCampaign = async (values) => {
                     />
                   </Grid>
                   
-                  <Grid xs={12} md={4} item>
+                  <Grid xs={12} md={6} item>
                     <FormControl
                       variant="outlined"
                       margin="dense"
@@ -641,491 +866,6 @@ const handleSaveCampaign = async (values) => {
                       </Field>
                     </FormControl>
                   </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel id="contactList-selection-label">
-                        {i18n.t("campaigns.dialog.form.contactList")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.contactList")}
-                        placeholder={i18n.t("campaigns.dialog.form.contactList")}
-                        labelId="contactList-selection-label"
-                        id="contactListId"
-                        name="contactListId"
-                        error={touched.contactListId && Boolean(errors.contactListId)}
-                        disabled={!campaignEditable}
-                      >
-                        <MenuItem value="">Nenhuma</MenuItem>
-                        {contactLists &&
-                          contactLists.map((contactList) => (
-                            <MenuItem key={contactList.id} value={contactList.id}>
-                              {contactList.name}
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel id="tagList-selection-label">
-                        {i18n.t("campaigns.dialog.form.tagList")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.tagList")}
-                        placeholder={i18n.t("campaigns.dialog.form.tagList")}
-                        labelId="tagList-selection-label"
-                        id="tagListId"
-                        name="tagListId"
-                        error={touched.tagListId && Boolean(errors.tagListId)}
-                        disabled={!campaignEditable}
-                      >
-                        {Array.isArray(tagLists) &&
-                          tagLists.map((tagList) => (
-                            <MenuItem key={tagList.id} value={tagList.id}>
-                              {tagList.name}
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel id="whatsapp-selection-label">
-                        {i18n.t("campaigns.dialog.form.whatsapp")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.whatsapp")}
-                        placeholder={i18n.t("campaigns.dialog.form.whatsapp")}
-                        labelId="whatsapp-selection-label"
-                        id="whatsappIds"
-                        name="whatsappIds"
-                        required
-                        error={touched.whatsappId && Boolean(errors.whatsappId)}
-                        disabled={!campaignEditable}
-                        value={whatsappId}
-                        onChange={(event) => {
-                          setWhatsappId(event.target.value)
-                        }}
-                      >
-                        {whatsapps &&
-                          whatsapps.map((whatsapp) => (
-                            <MenuItem key={whatsapp.id} value={whatsapp.id}>
-                              {whatsapp.name}
-                            </MenuItem>
-                          ))}
-                      </Field>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <Field
-                      as={TextField}
-                      label={i18n.t("campaigns.dialog.form.scheduledAt")}
-                      name="scheduledAt"
-                      error={touched.scheduledAt && Boolean(errors.scheduledAt)}
-                      helperText={touched.scheduledAt && errors.scheduledAt}
-                      variant="outlined"
-                      margin="dense"
-                      type="datetime-local"
-                      InputLabelProps={{
-                        shrink: true,
-                      }}
-                      fullWidth
-                      className={classes.textField}
-                      disabled={!campaignEditable}
-                    />
-                  </Grid>
-
-                  {/* SEÇÃO DE RECORRÊNCIA */}
-                  <Grid xs={12} item>
-                    <Card className={classes.recurrenceCard}>
-                      <CardContent>
-                        <Box display="flex" alignItems="center" mb={2}>
-                          <RepeatIcon className={classes.recurrenceIcon} />
-                          <Typography variant="h6">
-                            Configuração de Recorrência
-                          </Typography>
-                        </Box>
-                        
-                        <Grid spacing={2} container>
-                          <Grid xs={12} item>
-                            <FormControlLabel
-                              control={
-                                <Field
-                                  as={Switch}
-                                  name="isRecurring"
-                                  checked={values.isRecurring}
-                                  onChange={(e) => {
-                                    setFieldValue('isRecurring', e.target.checked);
-                                    if (!e.target.checked) {
-                                      setPreviewExecutions([]);
-                                      setShowPreview(false);
-                                    }
-                                  }}
-                                  disabled={!campaignEditable}
-                                />
-                              }
-                              label="Habilitar recorrência"
-                            />
-                          </Grid>
-
-                          <Collapse in={values.isRecurring}>
-                            <Grid spacing={2} container>
-                              <Grid xs={12} md={3} item>
-                                <FormControl
-                                  variant="outlined"
-                                  margin="dense"
-                                  fullWidth
-                                  error={touched.recurrenceType && Boolean(errors.recurrenceType)}
-                                >
-                                  <InputLabel>Tipo de Recorrência</InputLabel>
-                                  <Field
-                                    as={Select}
-                                    name="recurrenceType"
-                                    label="Tipo de Recorrência"
-                                    disabled={!campaignEditable}
-                                    onChange={(e) => {
-                                      setFieldValue('recurrenceType', e.target.value);
-                                      // Reset outros campos quando mudar tipo
-                                      setFieldValue('recurrenceDaysOfWeek', []);
-                                      setFieldValue('recurrenceDayOfMonth', 1);
-                                    }}
-                                  >
-                                    <MenuItem value="minutely">Por Minuto</MenuItem>
-                                    <MenuItem value="hourly">Por Hora</MenuItem>
-                                    <MenuItem value="daily">Diário</MenuItem>
-                                    <MenuItem value="weekly">Semanal</MenuItem>
-                                    <MenuItem value="biweekly">Quinzenal</MenuItem>
-                                    <MenuItem value="monthly">Mensal</MenuItem>
-                                    <MenuItem value="yearly">Anual</MenuItem>
-                                  </Field>
-                                  {touched.recurrenceType && errors.recurrenceType && (
-                                    <FormHelperText error>{errors.recurrenceType}</FormHelperText>
-                                  )}
-                                </FormControl>
-                              </Grid>
-
-                              <Grid xs={12} md={3} item>
-                                <Field
-                                  as={TextField}
-                                  name="recurrenceInterval"
-                                  label="Intervalo"
-                                  type="number"
-                                  variant="outlined"
-                                  margin="dense"
-                                  fullWidth
-                                  inputProps={{ min: 1 }}
-                                  error={touched.recurrenceInterval && Boolean(errors.recurrenceInterval)}
-                                  helperText={
-                                    touched.recurrenceInterval && errors.recurrenceInterval ||
-                                    `A cada ${values.recurrenceInterval || 1} ${
-                                      values.recurrenceType === 'minutely' ? 'minuto(s)' :
-                                      values.recurrenceType === 'hourly' ? 'hora(s)' :
-                                      values.recurrenceType === 'daily' ? 'dia(s)' :
-                                      values.recurrenceType === 'weekly' ? 'semana(s)' :
-                                      values.recurrenceType === 'biweekly' ? 'quinzena(s)' :
-                                      values.recurrenceType === 'monthly' ? 'mês(es)' :
-                                      values.recurrenceType === 'yearly' ? 'ano(s)' : ''
-                                    }`
-                                  }
-                                  disabled={!campaignEditable}
-                                />
-                              </Grid>
-
-                              {/* Dias da semana para recorrência semanal */}
-                              {values.recurrenceType === 'weekly' && (
-                                <Grid xs={12} md={6} item>
-                                  <Typography variant="subtitle2" gutterBottom>
-                                    Dias da Semana
-                                  </Typography>
-                                  <FormGroup row>
-                                    {daysOfWeekOptions.map((day) => (
-                                      <FormControlLabel
-                                        key={day.value}
-                                        control={
-                                          <Checkbox
-                                            checked={values.recurrenceDaysOfWeek.includes(day.value)}
-                                            onChange={(e) => {
-                                              const currentDays = values.recurrenceDaysOfWeek || [];
-                                              if (e.target.checked) {
-                                                setFieldValue('recurrenceDaysOfWeek', [...currentDays, day.value]);
-                                              } else {
-                                                setFieldValue('recurrenceDaysOfWeek', 
-                                                  currentDays.filter(d => d !== day.value)
-                                                );
-                                              }
-                                            }}
-                                            disabled={!campaignEditable}
-                                          />
-                                        }
-                                        label={day.label.substring(0, 3)}
-                                      />
-                                    ))}
-                                  </FormGroup>
-                                  {touched.recurrenceDaysOfWeek && errors.recurrenceDaysOfWeek && (
-                                    <FormHelperText error>{errors.recurrenceDaysOfWeek}</FormHelperText>
-                                  )}
-                                </Grid>
-                              )}
-
-                              {/* Dia do mês para recorrência mensal */}
-                              {values.recurrenceType === 'monthly' && (
-                                <Grid xs={12} md={3} item>
-                                  <Field
-                                    as={TextField}
-                                    name="recurrenceDayOfMonth"
-                                    label="Dia do Mês"
-                                    type="number"
-                                    variant="outlined"
-                                    margin="dense"
-                                    fullWidth
-                                    inputProps={{ min: 1, max: 31 }}
-                                    error={touched.recurrenceDayOfMonth && Boolean(errors.recurrenceDayOfMonth)}
-                                    helperText={
-                                      touched.recurrenceDayOfMonth && errors.recurrenceDayOfMonth ||
-                                      "Dia específico do mês (1-31)"
-                                    }
-                                    disabled={!campaignEditable}
-                                  />
-                                </Grid>
-                              )}
-
-                              <Grid xs={12} md={4} item>
-                                <Field
-                                  as={TextField}
-                                  name="recurrenceEndDate"
-                                  label="Data Final (opcional)"
-                                  type="date"
-                                  variant="outlined"
-                                  margin="dense"
-                                  fullWidth
-                                  InputLabelProps={{ shrink: true }}
-                                  error={touched.recurrenceEndDate && Boolean(errors.recurrenceEndDate)}
-                                  helperText={
-                                    touched.recurrenceEndDate && errors.recurrenceEndDate ||
-                                    "Deixe vazio para recorrência infinita"
-                                  }
-                                  disabled={!campaignEditable}
-                                />
-                              </Grid>
-
-                              <Grid xs={12} md={4} item>
-                                <Field
-                                  as={TextField}
-                                  name="maxExecutions"
-                                  label="Máximo de Execuções (opcional)"
-                                  type="number"
-                                  variant="outlined"
-                                  margin="dense"
-                                  fullWidth
-                                  inputProps={{ min: 1 }}
-                                  error={touched.maxExecutions && Boolean(errors.maxExecutions)}
-                                  helperText={
-                                    touched.maxExecutions && errors.maxExecutions ||
-                                    "Deixe vazio para recorrência infinita"
-                                  }
-                                  disabled={!campaignEditable}
-                                />
-                              </Grid>
-
-                              <Grid xs={12} md={4} item>
-                                <Button
-                                  variant="outlined"
-                                  startIcon={<VisibilityIcon />}
-                                  onClick={() => {
-                                    handlePreviewRecurrence(values);
-                                    setShowPreview(!showPreview);
-                                  }}
-                                  disabled={!values.recurrenceType || !values.scheduledAt}
-                                  fullWidth
-                                  style={{ marginTop: 8 }}
-                                >
-                                  {showPreview ? 'Ocultar' : 'Visualizar'} Próximas Execuções
-                                </Button>
-                              </Grid>
-
-                              {/* Preview das execuções */}
-                              <Collapse in={showPreview && previewExecutions.length > 0}>
-                                <Grid xs={12} item>
-                                  <Card className={classes.previewCard}>
-                                    <CardContent>
-                                      <Typography variant="subtitle2" gutterBottom>
-                                        Próximas 5 Execuções:
-                                      </Typography>
-                                      <List dense>
-                                        {previewExecutions.slice(0, 5).map((execution, index) => (
-                                          <ListItem key={index} divider>
-                                            <ListItemText
-                                              primary={`${index + 1}ª Execução`}
-                                              secondary={typeof execution === 'string' ? execution : moment(execution).format('DD/MM/YYYY HH:mm')}
-                                            />
-                                          </ListItem>
-                                        ))}
-                                      </List>
-                                    </CardContent>
-                                  </Card>
-                                </Grid>
-                              </Collapse>
-                            </Grid>
-                          </Collapse>
-                        </Grid>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel id="openTicket-selection-label">
-                        {i18n.t("campaigns.dialog.form.openTicket")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.openTicket")}
-                        placeholder={i18n.t("campaigns.dialog.form.openTicket")}
-                        labelId="openTicket-selection-label"
-                        id="openTicket"
-                        name="openTicket"
-                        error={touched.openTicket && Boolean(errors.openTicket)}
-                        disabled={!campaignEditable}
-                      >
-                        <MenuItem value={"enabled"}>{i18n.t("campaigns.dialog.form.enabledOpenTicket")}</MenuItem>
-                        <MenuItem value={"disabled"}>{i18n.t("campaigns.dialog.form.disabledOpenTicket")}</MenuItem>
-                      </Field>
-                    </FormControl>
-                  </Grid>
-
-                  {/* SELECIONAR USUARIO */}
-                  <Grid xs={12} md={4} item>
-                    <Autocomplete
-                      style={{ marginTop: '8px' }}
-                      variant="outlined"
-                      margin="dense"
-                      className={classes.formControl}
-                      getOptionLabel={(option) => `${option.name}`}
-                      value={selectedUser}
-                      size="small"
-                      onChange={(e, newValue) => {
-                        setSelectedUser(newValue);
-                        if (newValue != null && Array.isArray(newValue.queues)) {
-                          if (newValue.queues.length === 1) {
-                            setSelectedQueue(newValue.queues[0].id);
-                          }
-                          setQueues(newValue.queues);
-                        } else {
-                          setQueues(allQueues);
-                          setSelectedQueue("");
-                        }
-                      }}
-                      options={options}
-                      filterOptions={filterOptions}
-                      freeSolo
-                      fullWidth
-                      autoHighlight
-                      disabled={!campaignEditable || values.openTicket === 'disabled'}
-                      noOptionsText={i18n.t("transferTicketModal.noOptions")}
-                      loading={loading}
-                      renderOption={option => (<span> <UserStatusIcon user={option} /> {option.name}</span>)}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={i18n.t("transferTicketModal.fieldLabel")}
-                          variant="outlined"
-                          onChange={(e) => setSearchParam(e.target.value)}
-                          InputProps={{
-                            ...params.InputProps,
-                            endAdornment: (
-                              <React.Fragment>
-                                {loading ? (
-                                  <CircularProgress color="inherit" size={20} />
-                                ) : null}
-                                {params.InputProps.endAdornment}
-                              </React.Fragment>
-                            ),
-                          }}
-                        />
-                      )}
-                    />
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel>
-                        {i18n.t("transferTicketModal.fieldQueueLabel")}
-                      </InputLabel>
-                      <Select
-                        value={selectedQueue}
-                        onChange={(e) => setSelectedQueue(e.target.value)}
-                        label={i18n.t("transferTicketModal.fieldQueuePlaceholder")}
-                        required={!isNil(selectedUser)}
-                        disabled={!campaignEditable || values.openTicket === 'disabled'}
-                      >
-                        {queues.map((queue) => (
-                          <MenuItem key={queue.id} value={queue.id}>
-                            {queue.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid xs={12} md={4} item>
-                    <FormControl
-                      variant="outlined"
-                      margin="dense"
-                      fullWidth
-                      className={classes.formControl}
-                    >
-                      <InputLabel id="statusTicket-selection-label">
-                        {i18n.t("campaigns.dialog.form.statusTicket")}
-                      </InputLabel>
-                      <Field
-                        as={Select}
-                        label={i18n.t("campaigns.dialog.form.statusTicket")}
-                        placeholder={i18n.t("campaigns.dialog.form.statusTicket")}
-                        labelId="statusTicket-selection-label"
-                        id="statusTicket"
-                        name="statusTicket"
-                        error={touched.statusTicket && Boolean(errors.statusTicket)}
-                        disabled={!campaignEditable || values.openTicket === 'disabled'}
-                      >
-                        <MenuItem value={"closed"}>{i18n.t("campaigns.dialog.form.closedTicketStatus")}</MenuItem>
-                        <MenuItem value={"pending"}>{i18n.t("campaigns.dialog.form.pendingTicketStatus")}</MenuItem>
-                        <MenuItem value={"open"}>{i18n.t("campaigns.dialog.form.openTicketStatus")}</MenuItem>
-                      </Field>
-                    </FormControl>
-                  </Grid>
-
                   {/* SEÇÃO DE MENSAGENS */}
                   <Grid xs={12} item>
                     <Tabs
@@ -1133,19 +873,13 @@ const handleSaveCampaign = async (values) => {
                       indicatorColor="primary"
                       textColor="primary"
                       onChange={(e, v) => setMessageTab(v)}
-                      variant="fullWidth"
-                      centered
-                      style={{
-                        background: "#f2f2f2",
-                        border: "1px solid #e6e6e6",
-                        borderRadius: 2,
-                      }}
+                      className={classes.messageTabs}
                     >
-                      <Tab label="Msg. 1" index={0} />
-                      <Tab label="Msg. 2" index={1} />
-                      <Tab label="Msg. 3" index={2} />
-                      <Tab label="Msg. 4" index={3} />
-                      <Tab label="Msg. 5" index={4} />
+                      <Tab className={classes.tabItem} label="Msg. 1" index={0} />
+                      <Tab className={classes.tabItem} label="Msg. 2" index={1} />
+                      <Tab className={classes.tabItem} label="Msg. 3" index={2} />
+                      <Tab className={classes.tabItem} label="Msg. 4" index={3} />
+                      <Tab className={classes.tabItem} label="Msg. 5" index={4} />
                     </Tabs>
                     <Box style={{ paddingTop: 20, border: "none" }}>
                       {messageTab === 0 && (
@@ -1231,24 +965,571 @@ const handleSaveCampaign = async (values) => {
                     </Box>
                   </Grid>
 
-                  {(campaign.mediaPath || attachment) && (
-                    <Grid xs={12} item>
-                      <Button startIcon={<AttachFileIcon />}>
-                        {attachment != null ? attachment.name : campaign.mediaName}
-                      </Button>
-                      {campaignEditable && (
-                        <IconButton
-                          onClick={() => setConfirmationOpen(true)}
-                          color="primary"
-                        >
-                          <DeleteOutlineIcon color="secondary" />
-                        </IconButton>
+                  {/* Seção de Mídia com anexar arquivo e gravar áudio */}
+                  <Grid xs={12} item>
+                    <Box className={classes.mediaContainer}>
+                      <Typography variant="subtitle1">Anexar Mídia</Typography>
+                      {(campaign.mediaPath || attachment || audioBlob) && (
+                        <Box className={classes.mediaInfo}>
+                          <Box display="flex" alignItems="center" gap={8}>
+                            {audioBlob ? <MicIcon fontSize="small" /> : <AttachFileIcon fontSize="small" />}
+                            <Typography variant="body2">
+                              {audioBlob
+                                ? "Áudio gravado"
+                                : (attachment ? attachment.name : campaign.mediaName)}
+                            </Typography>
+                          </Box>
+                          {campaignEditable && (
+                            <IconButton
+                              onClick={() => setConfirmationOpen(true)}
+                              color="secondary"
+                              size="small"
+                            >
+                              <DeleteOutlineIcon />
+                            </IconButton>
+                          )}
+                        </Box>
                       )}
-                    </Grid>
+                      {audioBlob && (
+                        <AudioRecorder
+                          onAudioRecorded={(blob) => setAudioBlob(blob)}
+                          onAudioDeleted={() => setAudioBlob(null)}
+                          disabled={isSubmitting}
+                        />
+                      )}
+                      {!audioBlob && (
+                        <Box className={classes.mediaOptions}>
+                          <Button
+                            variant="outlined"
+                            startIcon={<AttachFileIcon />}
+                            onClick={() => attachmentFile.current.click()}
+                            disabled={isSubmitting}
+                          >
+                            Anexar Arquivo
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            startIcon={<MicIcon />}
+                            onClick={() => setAudioBlob(null)}
+                            disabled={isSubmitting}
+                          >
+                            Gravar Áudio
+                          </Button>
+                        </Box>
+                      )}
+                      {!audioBlob && (
+                        <AudioRecorder
+                          onAudioRecorded={(blob) => setAudioBlob(blob)}
+                          onAudioDeleted={() => setAudioBlob(null)}
+                          disabled={isSubmitting}
+                        />
+                      )}
+                    </Box>
+                  </Grid>
+                  </>
+                  )}
+
+                  {activeStep === 1 && (
+                  <>
+                  <Grid xs={12} md={6} item>
+                    <FormControl variant="outlined" margin="dense" fullWidth className={classes.formControl}>
+                      <Autocomplete
+                        multiple
+                        options={contactsOptions}
+                        loading={contactsLoading}
+                        value={selectedContacts}
+                        onChange={(e, contacts) => setSelectedContacts(contacts)}
+                        getOptionSelected={(option, value) => option.id === value.id}
+                        getOptionLabel={(option) => {
+                          if (!option) return "";
+                          const name = option.name || "";
+                          const number = option.number || "";
+                          return number ? `${name} - ${number}` : name;
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            variant="outlined"
+                            placeholder="Pesquisar e selecionar contatos"
+                            onChange={(e) => setContactsSearch(e.target.value)}
+                            InputProps={{
+                              ...params.InputProps,
+                              endAdornment: (
+                                <>
+                                  {contactsLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                                  {params.InputProps.endAdornment}
+                                </>
+                              ),
+                            }}
+                          />
+                        )}
+                      />
+                    </FormControl>
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <FormControl
+                      variant="outlined"
+                      margin="dense"
+                      fullWidth
+                      className={classes.formControl}
+                    >
+                      <InputLabel id="contactList-selection-label">
+                        {i18n.t("campaigns.dialog.form.contactList")}
+                      </InputLabel>
+                      <Field
+                        as={Select}
+                        label={i18n.t("campaigns.dialog.form.contactList")}
+                        placeholder={i18n.t("campaigns.dialog.form.contactList")}
+                        labelId="contactList-selection-label"
+                        id="contactListId"
+                        name="contactListId"
+                        error={touched.contactListId && Boolean(errors.contactListId)}
+                        disabled={!campaignEditable}
+                      >
+                        <MenuItem value="">Nenhuma</MenuItem>
+                        {contactLists &&
+                          contactLists.map((contactList) => (
+                            <MenuItem key={contactList.id} value={contactList.id}>
+                              {contactList.name}
+                            </MenuItem>
+                          ))}
+                      </Field>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <FormControl
+                      variant="outlined"
+                      margin="dense"
+                      fullWidth
+                      className={classes.formControl}
+                    >
+                      <InputLabel id="tagList-selection-label">
+                        {i18n.t("campaigns.dialog.form.tagList")}
+                      </InputLabel>
+                      <Field
+                        as={Select}
+                        label={i18n.t("campaigns.dialog.form.tagList")}
+                        placeholder={i18n.t("campaigns.dialog.form.tagList")}
+                        labelId="tagList-selection-label"
+                        id="tagListId"
+                        name="tagListId"
+                        error={touched.tagListId && Boolean(errors.tagListId)}
+                        disabled={!campaignEditable}
+                      >
+                        {Array.isArray(tagLists) &&
+                          tagLists.map((tagList) => (
+                            <MenuItem key={tagList.id} value={tagList.id}>
+                              {tagList.name}
+                            </MenuItem>
+                          ))}
+                      </Field>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <FormControl
+                      variant="outlined"
+                      margin="dense"
+                      fullWidth
+                      className={classes.formControl}
+                    >
+                      <InputLabel id="whatsapp-selection-label">
+                        {i18n.t("campaigns.dialog.form.whatsapp")}
+                      </InputLabel>
+                      <Field
+                        as={Select}
+                        label={i18n.t("campaigns.dialog.form.whatsapp")}
+                        placeholder={i18n.t("campaigns.dialog.form.whatsapp")}
+                        labelId="whatsapp-selection-label"
+                        id="whatsappIds"
+                        name="whatsappIds"
+                        required
+                        error={touched.whatsappId && Boolean(errors.whatsappId)}
+                        disabled={!campaignEditable}
+                        value={whatsappId}
+                        onChange={(event) => {
+                          setWhatsappId(event.target.value)
+                        }}
+                      >
+                        {whatsapps &&
+                          whatsapps.map((whatsapp) => (
+                            <MenuItem key={whatsapp.id} value={whatsapp.id}>
+                              {whatsapp.name}
+                            </MenuItem>
+                          ))}
+                      </Field>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <FormControl
+                      variant="outlined"
+                      margin="dense"
+                      fullWidth
+                      className={classes.formControl}
+                    >
+                      <InputLabel id="openTicket-selection-label">
+                        {i18n.t("campaigns.dialog.form.openTicket")}
+                      </InputLabel>
+                      <Field
+                        as={Select}
+                        label={i18n.t("campaigns.dialog.form.openTicket")}
+                        placeholder={i18n.t("campaigns.dialog.form.openTicket")}
+                        labelId="openTicket-selection-label"
+                        id="openTicket"
+                        name="openTicket"
+                        error={touched.openTicket && Boolean(errors.openTicket)}
+                        disabled={!campaignEditable}
+                      >
+                        <MenuItem value={"enabled"}>{i18n.t("campaigns.dialog.form.enabledOpenTicket")}</MenuItem>
+                        <MenuItem value={"disabled"}>{i18n.t("campaigns.dialog.form.disabledOpenTicket")}</MenuItem>
+                      </Field>
+                    </FormControl>
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <Autocomplete
+                      style={{ marginTop: '8px' }}
+                      variant="outlined"
+                      margin="dense"
+                      className={classes.formControl}
+                      getOptionLabel={(option) => `${option.name}`}
+                      value={selectedUser}
+                      size="small"
+                      onChange={(e, newValue) => {
+                        setSelectedUser(newValue);
+                        if (newValue != null && Array.isArray(newValue.queues)) {
+                          if (newValue.queues.length === 1) {
+                            setSelectedQueue(newValue.queues[0].id);
+                          }
+                          setQueues(newValue.queues);
+                        } else {
+                          setQueues(allQueues);
+                          setSelectedQueue("");
+                        }
+                      }}
+                      options={options}
+                      filterOptions={filterOptions}
+                      freeSolo
+                      fullWidth
+                      autoHighlight
+                      disabled={!campaignEditable || values.openTicket === 'disabled'}
+                      noOptionsText={i18n.t("transferTicketModal.noOptions")}
+                      loading={loading}
+                      renderOption={option => (<span> <UserStatusIcon user={option} /> {option.name}</span>)}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={i18n.t("transferTicketModal.fieldLabel")}
+                          variant="outlined"
+                          onChange={(e) => setSearchParam(e.target.value)}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <React.Fragment>
+                                {loading ? (
+                                  <CircularProgress color="inherit" size={20} />
+                                ) : null}
+                                {params.InputProps.endAdornment}
+                              </React.Fragment>
+                            ),
+                          }}
+                        />
+                      )}
+                    />
+                  </Grid>
+
+                  <Grid xs={12} md={6} item>
+                    <FormControl
+                      variant="outlined"
+                      margin="dense"
+                      fullWidth
+                      className={classes.formControl}
+                    >
+                      <InputLabel id="statusTicket-selection-label">
+                        {i18n.t("campaigns.dialog.form.statusTicket")}
+                      </InputLabel>
+                      <Field
+                        as={Select}
+                        label={i18n.t("campaigns.dialog.form.statusTicket")}
+                        placeholder={i18n.t("campaigns.dialog.form.statusTicket")}
+                        labelId="statusTicket-selection-label"
+                        id="statusTicket"
+                        name="statusTicket"
+                        error={touched.statusTicket && Boolean(errors.statusTicket)}
+                        disabled={!campaignEditable || values.openTicket === 'disabled'}
+                      >
+                        <MenuItem value={"closed"}>{i18n.t("campaigns.dialog.form.closedTicketStatus")}</MenuItem>
+                        <MenuItem value={"pending"}>{i18n.t("campaigns.dialog.form.pendingTicketStatus")}</MenuItem>
+                        <MenuItem value={"open"}>{i18n.t("campaigns.dialog.form.openTicketStatus")}</MenuItem>
+                      </Field>
+                    </FormControl>
+                  </Grid>
+                  </>
+                  )}
+
+                  {activeStep === 2 && (
+                  <>
+                  <Grid xs={12} md={6} item style={{ margin: "0 auto" }}>
+                    <Field
+                      as={TextField}
+                      label={i18n.t("campaigns.dialog.form.scheduledAt")}
+                      name="scheduledAt"
+                      error={touched.scheduledAt && Boolean(errors.scheduledAt)}
+                      helperText={touched.scheduledAt && errors.scheduledAt}
+                      variant="outlined"
+                      margin="dense"
+                      type="datetime-local"
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                      fullWidth
+                      className={classes.textField}
+                      disabled={!campaignEditable}
+                    />
+                  </Grid>
+
+                  {/* SEÇÃO DE RECORRÊNCIA */}
+                  <Grid xs={12} item>
+                    <Card className={classes.recurrenceCard}>
+                      <CardContent>
+                        <Box display="flex" alignItems="center" mb={2}>
+                          <RepeatIcon className={classes.recurrenceIcon} />
+                          <Typography variant="h6">
+                            Configuração de Recorrência
+                          </Typography>
+                        </Box>
+                        
+                        <Grid spacing={2} container>
+                          <Grid xs={12} item>
+                            <FormControlLabel
+                              control={
+                                <Field
+                                  as={Switch}
+                                  name="isRecurring"
+                                  checked={values.isRecurring}
+                                  onChange={(e) => {
+                                    setFieldValue('isRecurring', e.target.checked);
+                                    if (!e.target.checked) {
+                                      setPreviewExecutions([]);
+                                      setShowPreview(false);
+                                    }
+                                  }}
+                                  disabled={!campaignEditable}
+                                />
+                              }
+                              label="Habilitar recorrência"
+                            />
+                          </Grid>
+
+                          <Collapse in={values.isRecurring}>
+                            <Grid spacing={2} container>
+                              <Grid xs={12} md={3} item>
+                                <FormControl
+                                  variant="outlined"
+                                  margin="dense"
+                                  fullWidth
+                                  error={touched.recurrenceType && Boolean(errors.recurrenceType)}
+                                >
+                                  <InputLabel>Tipo de Recorrência</InputLabel>
+                                  <Field
+                                    as={Select}
+                                    name="recurrenceType"
+                                    label="Tipo de Recorrência"
+                                    disabled={!campaignEditable}
+                                    onChange={(e) => {
+                                      setFieldValue('recurrenceType', e.target.value);
+                                      setFieldValue('recurrenceDaysOfWeek', []);
+                                      setFieldValue('recurrenceDayOfMonth', 1);
+                                    }}
+                                  >
+                                    <MenuItem value="minutely">Por Minuto</MenuItem>
+                                    <MenuItem value="hourly">Por Hora</MenuItem>
+                                    <MenuItem value="daily">Diário</MenuItem>
+                                    <MenuItem value="weekly">Semanal</MenuItem>
+                                    <MenuItem value="biweekly">Quinzenal</MenuItem>
+                                    <MenuItem value="monthly">Mensal</MenuItem>
+                                    <MenuItem value="yearly">Anual</MenuItem>
+                                  </Field>
+                                  {touched.recurrenceType && errors.recurrenceType && (
+                                    <FormHelperText error>{errors.recurrenceType}</FormHelperText>
+                                  )}
+                                </FormControl>
+                              </Grid>
+
+                              <Grid xs={12} md={3} item>
+                                <Field
+                                  as={TextField}
+                                  name="recurrenceInterval"
+                                  label="Intervalo"
+                                  type="number"
+                                  variant="outlined"
+                                  margin="dense"
+                                  fullWidth
+                                  inputProps={{ min: 1 }}
+                                  error={touched.recurrenceInterval && Boolean(errors.recurrenceInterval)}
+                                  helperText={
+                                    touched.recurrenceInterval && errors.recurrenceInterval ||
+                                    `A cada ${values.recurrenceInterval || 1} ${
+                                      values.recurrenceType === 'minutely' ? 'minuto(s)' :
+                                      values.recurrenceType === 'hourly' ? 'hora(s)' :
+                                      values.recurrenceType === 'daily' ? 'dia(s)' :
+                                      values.recurrenceType === 'weekly' ? 'semana(s)' :
+                                      values.recurrenceType === 'biweekly' ? 'quinzena(s)' :
+                                      values.recurrenceType === 'monthly' ? 'mês(es)' :
+                                      values.recurrenceType === 'yearly' ? 'ano(s)' : ''
+                                    }`
+                                  }
+                                  disabled={!campaignEditable}
+                                />
+                              </Grid>
+
+                              {values.recurrenceType === 'weekly' && (
+                                <Grid xs={12} md={6} item>
+                                  <Typography variant="subtitle2" gutterBottom>
+                                    Dias da Semana
+                                  </Typography>
+                                  <FormGroup row>
+                                    {daysOfWeekOptions.map((day) => (
+                                      <FormControlLabel
+                                        key={day.value}
+                                        control={
+                                          <Checkbox
+                                            checked={values.recurrenceDaysOfWeek.includes(day.value)}
+                                            onChange={(e) => {
+                                              const currentDays = values.recurrenceDaysOfWeek || [];
+                                              if (e.target.checked) {
+                                                setFieldValue('recurrenceDaysOfWeek', [...currentDays, day.value]);
+                                              } else {
+                                                setFieldValue('recurrenceDaysOfWeek', 
+                                                  currentDays.filter(d => d !== day.value)
+                                                );
+                                              }
+                                            }}
+                                            disabled={!campaignEditable}
+                                          />
+                                        }
+                                        label={day.label.substring(0, 3)}
+                                      />
+                                    ))}
+                                  </FormGroup>
+                                  {touched.recurrenceDaysOfWeek && errors.recurrenceDaysOfWeek && (
+                                    <FormHelperText error>{errors.recurrenceDaysOfWeek}</FormHelperText>
+                                  )}
+                                </Grid>
+                              )}
+
+                              {values.recurrenceType === 'monthly' && (
+                                <Grid xs={12} md={3} item>
+                                  <Field
+                                    as={TextField}
+                                    name="recurrenceDayOfMonth"
+                                    label="Dia do Mês"
+                                    type="number"
+                                    variant="outlined"
+                                    margin="dense"
+                                    fullWidth
+                                    inputProps={{ min: 1, max: 31 }}
+                                    error={touched.recurrenceDayOfMonth && Boolean(errors.recurrenceDayOfMonth)}
+                                    helperText={
+                                      touched.recurrenceDayOfMonth && errors.recurrenceDayOfMonth ||
+                                      "Dia específico do mês (1-31)"
+                                    }
+                                    disabled={!campaignEditable}
+                                  />
+                                </Grid>
+                              )}
+
+                              <Grid xs={12} md={4} item>
+                                <Field
+                                  as={TextField}
+                                  name="recurrenceEndDate"
+                                  label="Data Final (opcional)"
+                                  type="date"
+                                  variant="outlined"
+                                  margin="dense"
+                                  fullWidth
+                                  InputLabelProps={{ shrink: true }}
+                                  error={touched.recurrenceEndDate && Boolean(errors.recurrenceEndDate)}
+                                  helperText={
+                                    touched.recurrenceEndDate && errors.recurrenceEndDate ||
+                                    "Deixe vazio para recorrência infinita"
+                                  }
+                                  disabled={!campaignEditable}
+                                />
+                              </Grid>
+
+                              <Grid xs={12} md={4} item>
+                                <Field
+                                  as={TextField}
+                                  name="maxExecutions"
+                                  label="Máximo de Execuções (opcional)"
+                                  type="number"
+                                  variant="outlined"
+                                  margin="dense"
+                                  fullWidth
+                                  inputProps={{ min: 1 }}
+                                  error={touched.maxExecutions && Boolean(errors.maxExecutions)}
+                                  helperText={
+                                    touched.maxExecutions && errors.maxExecutions ||
+                                    "Deixe vazio para recorrência infinita"
+                                  }
+                                  disabled={!campaignEditable}
+                                />
+                              </Grid>
+
+                              <Grid xs={12} md={4} item>
+                                <Button
+                                  variant="outlined"
+                                  startIcon={<VisibilityIcon />}
+                                  onClick={() => {
+                                    handlePreviewRecurrence(values);
+                                    setShowPreview(!showPreview);
+                                  }}
+                                  disabled={!values.recurrenceType || !values.scheduledAt}
+                                  fullWidth
+                                  style={{ marginTop: 8 }}
+                                >
+                                  {showPreview ? 'Ocultar' : 'Visualizar'} Próximas Execuções
+                                </Button>
+                              </Grid>
+
+                              <Collapse in={showPreview && previewExecutions.length > 0}>
+                                <Grid xs={12} item>
+                                  <Card className={classes.previewCard}>
+                                    <CardContent>
+                                      <Typography variant="subtitle2" gutterBottom>
+                                        Próximas 5 Execuções:
+                                      </Typography>
+                                      <List dense>
+                                        {previewExecutions.slice(0, 5).map((execution, index) => (
+                                          <ListItem key={index} divider>
+                                            <ListItemText
+                                              primary={`${index + 1}ª Execução`}
+                                              secondary={typeof execution === 'string' ? execution : moment(execution).format('DD/MM/YYYY HH:mm')}
+                                            />
+                                          </ListItem>
+                                        ))}
+                                      </List>
+                                    </CardContent>
+                                  </Card>
+                                </Grid>
+                              </Collapse>
+                            </Grid>
+                          </Collapse>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  </>
                   )}
                 </Grid>
               </DialogContent>
               <DialogActions>
+                <Box className={classes.footerStepper}>
+                  <Box>
                 {campaign.status === "CANCELADA" && (
                   <Button
                     color="primary"
@@ -1267,43 +1548,57 @@ const handleSaveCampaign = async (values) => {
                     {i18n.t("campaigns.dialog.buttons.cancel")}
                   </Button>
                 )}
-                {!attachment && !campaign.mediaPath && campaignEditable && (
-                  <Button
-                    color="primary"
-                    onClick={() => attachmentFile.current.click()}
-                    disabled={isSubmitting}
-                    variant="outlined"
-                  >
-                    {i18n.t("campaigns.dialog.buttons.attach")}
-                  </Button>
-                )}
-                <Button
-                  onClick={handleClose}
-                  color="primary"
-                  disabled={isSubmitting}
-                  variant="outlined"
-                >
-                  {i18n.t("campaigns.dialog.buttons.close")}
-                </Button>
-                {(campaignEditable || campaign.status === "CANCELADA") && (
-                  <Button
-                    type="submit"
-                    color="primary"
-                    disabled={isSubmitting}
-                    variant="contained"
-                    className={classes.btnWrapper}
-                  >
-                    {campaignId
-                      ? `${i18n.t("campaigns.dialog.buttons.edit")}`
-                      : `${i18n.t("campaigns.dialog.buttons.add")}`}
-                    {isSubmitting && (
-                      <CircularProgress
-                        size={24}
-                        className={classes.buttonProgress}
-                      />
+                  </Box>
+                  <Box display="flex" alignItems="center" gap={8}>
+                    {activeStep > 0 && (
+                      <Button onClick={() => setActiveStep((s) => s - 1)} disabled={isSubmitting}>
+                        Voltar
+                      </Button>
                     )}
-                  </Button>
-                )}
+                    <Button
+                      onClick={handleClose}
+                      color="primary"
+                      disabled={isSubmitting}
+                      variant="outlined"
+                    >
+                      {i18n.t("campaigns.dialog.buttons.close")}
+                    </Button>
+                    {activeStep < 2 && (
+                      <Button color="primary" variant="contained" onClick={() => setActiveStep((s) => s + 1)} disabled={isSubmitting}>
+                        Próximo
+                      </Button>
+                    )}
+                    {activeStep === 2 && (campaignEditable || campaign.status === "CANCELADA") && (
+                      <>
+                        <Button
+                          onClick={() => handleSendNow(values)}
+                          disabled={isSubmitting}
+                          variant="outlined"
+                          style={{ marginLeft: 8, borderColor: "#131B2D", color: "#131B2D" }}
+                        >
+                          Enviar Agora
+                        </Button>
+                        <Button
+                          type="submit"
+                          color="primary"
+                          disabled={isSubmitting}
+                          variant="contained"
+                          className={classes.btnWrapper}
+                        >
+                          {campaignId
+                            ? `${i18n.t("campaigns.dialog.buttons.edit")}`
+                            : `${i18n.t("campaigns.dialog.buttons.add")}`}
+                          {isSubmitting && (
+                            <CircularProgress
+                              size={24}
+                              className={classes.buttonProgress}
+                            />
+                          )}
+                        </Button>
+                      </>
+                    )}
+                  </Box>
+                </Box>
               </DialogActions>
             </Form>
           )}

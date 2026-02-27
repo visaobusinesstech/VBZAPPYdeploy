@@ -10,10 +10,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import { green } from "@material-ui/core/colors";
 import Button from "@material-ui/core/Button";
 import TextField from "@material-ui/core/TextField";
-import Dialog from "@material-ui/core/Dialog";
-import DialogActions from "@material-ui/core/DialogActions";
-import DialogContent from "@material-ui/core/DialogContent";
-import DialogTitle from "@material-ui/core/DialogTitle";
+import Drawer from "@material-ui/core/Drawer";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import SaveIcon from "@material-ui/icons/Save";
 import EditIcon from "@material-ui/icons/Edit";
@@ -25,9 +22,8 @@ import { isArray } from "lodash";
 import api from "../../services/api";
 import toastError from "../../errors/toastError";
 import ColorPicker from "../ColorPicker";
-import { IconButton, InputAdornment } from "@material-ui/core";
+import { IconButton, InputAdornment, Box, Typography } from "@material-ui/core";
 import { Colorize } from "@material-ui/icons";
-import Typography from "@material-ui/core/Typography";
 import DeleteOutline from "@material-ui/icons/DeleteOutline";
 import Stepper from "@material-ui/core/Stepper";
 import Step from "@material-ui/core/Step";
@@ -35,6 +31,7 @@ import StepLabel from "@material-ui/core/StepLabel";
 import StepContent from "@material-ui/core/StepContent";
 import ConfirmationModal from "../ConfirmationModal";
 import Checkbox from '@mui/material/Checkbox';
+import CloseIcon from "@material-ui/icons/Close";
 
 import OptionsChatBot from "../ChatBots/options";
 import CustomToolTip from "../ToolTips";
@@ -55,14 +52,70 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexWrap: "wrap",
   },
-  textField: {
-    marginRight: theme.spacing(1),
+  form: {
+    display: 'flex',
+    flexDirection: 'column',
+    height: '100%',
+    minHeight: 0
+  },
+  drawerPaper: {
+    display: 'flex',
+    flexDirection: 'column',
+    width: 420,
+    maxWidth: '100%',
+    padding: theme.spacing(2),
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: 'calc(100% - 32px)',
+    marginRight: theme.spacing(2),
+    overflow: 'hidden'
+  },
+  header: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    borderBottom: '1px solid #eee',
+    paddingBottom: theme.spacing(2),
+    marginBottom: theme.spacing(2)
+  },
+  closeButton: {
+    position: 'absolute',
+    left: 0,
+  },
+  content: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: theme.spacing(2),
+    overflowY: 'auto',
     flex: 1,
+    paddingRight: theme.spacing(1),
+    '&::-webkit-scrollbar': {
+      width: '6px',
+    },
+    '&::-webkit-scrollbar-thumb': {
+      backgroundColor: 'rgba(0,0,0,0.1)',
+      borderRadius: '3px',
+    },
+  },
+  footer: {
+    borderTop: '1px solid #eee',
+    backgroundColor: '#fff',
+    paddingTop: theme.spacing(2),
+    display: 'flex',
+    justifyContent: 'flex-end',
+    gap: theme.spacing(1),
+    position: 'sticky',
+    bottom: 0
+  },
+  textField: {
+    width: '100%',
   },
 
   textField1: {
-    margin: theme.spacing(1),
-    minWidth: 120,
+    margin: theme.spacing(1, 0),
+    width: '100%',
   },
 
   btnWrapper: {
@@ -150,7 +203,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
   const [integrations, setIntegrations] = useState([]);
   const [schedulesEnabled, setSchedulesEnabled] = useState(false);
   const [tab, setTab] = useState(0);
-  const [file, setFile] = useState(null);
+  const [file, setFile] = useState([]);
   const { user, socket } = useContext(AuthContext);
   const [searchParam, setSearchParam] = useState("");
   const [loading, setLoading] = useState(false);
@@ -455,28 +508,36 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
       >
         {i18n.t("queueModal.title.confirmationDelete")}
       </ConfirmationModal>
-      <Dialog
-        maxWidth="md"
-        fullWidth
+      <Drawer
+        anchor="right"
         open={open}
         onClose={handleClose}
-        scroll="paper"
+        classes={{ paper: classes.drawerPaper }}
+        ModalProps={{ keepMounted: true }}
       >
-        <DialogTitle>
-          {queueId
-            ? `${i18n.t("queueModal.title.edit")}`
-            : `${i18n.t("queueModal.title.add")}`}
-        </DialogTitle>
-        <Tabs
-          value={tab}
-          indicatorColor="primary"
-          textColor="primary"
-          onChange={(e, v) => setTab(v)}
-          aria-label="disabled tabs example"
-        >
-          <Tab label={i18n.t("queueModal.title.queueData")} />
-          {schedulesEnabled && <Tab label={i18n.t("queueModal.title.text")} />}
-        </Tabs>
+        <Box className={classes.header}>
+          <IconButton onClick={handleClose} size="small" className={classes.closeButton}>
+            <CloseIcon />
+          </IconButton>
+          <Typography variant="h6">
+            {queueId
+              ? `${i18n.t("queueModal.title.edit")}`
+              : `${i18n.t("queueModal.title.add")}`}
+          </Typography>
+          <div style={{ width: 30 }} />
+        </Box>
+        {schedulesEnabled && (
+          <Tabs
+            value={tab}
+            indicatorColor="primary"
+            textColor="primary"
+            onChange={(e, v) => setTab(v)}
+            aria-label="disabled tabs example"
+          >
+            <Tab label={i18n.t("queueModal.title.queueData")} />
+            <Tab label={i18n.t("queueModal.title.text")} />
+          </Tabs>
+        )}
         {tab === 0 && (
           <Formik
             initialValues={queue}
@@ -491,8 +552,8 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
             }}
           >
             {({ setFieldValue, touched, errors, isSubmitting, values }) => (
-              <Form>
-                <DialogContent dividers>
+              <Form className={classes.form}>
+                <Box className={classes.content}>
                   <Field
                     as={TextField}
                     label={i18n.t("queueModal.form.name")}
@@ -503,7 +564,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                     variant="outlined"
                     margin="dense"
                     className={classes.textField}
-                  />
+                  fullWidth />
                   <Field
                     as={TextField}
                     label={i18n.t("queueModal.form.color")}
@@ -537,7 +598,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                     }}
                     variant="outlined"
                     margin="dense"
-                  />
+                  fullWidth />
                   <ColorBoxModal
                     open={colorPickerModalOpen}
                     handleClose={() => setColorPickerModalOpen(false)}
@@ -545,7 +606,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                       setFieldValue("color", `#${color.hex}`);
                     }}
                     currentColor={values.color}
-                  />
+                  fullWidth />
 
                   <Field
                     as={TextField}
@@ -590,7 +651,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                       margin="dense"
                       className={classes.selectField}
                       disabled={!values.ativarRoteador}
-                    >
+                    fullWidth >
                       <MenuItem value="0" selected disabled>{i18n.t("queueModal.form.timeRotate")}</MenuItem>
                       <MenuItem value="1">1 minuto</MenuItem>
                       <MenuItem value="2">2 minutos</MenuItem>
@@ -613,7 +674,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                       margin="dense"
                       className={classes.selectField}
                       disabled={!values.ativarRoteador}
-                    >
+                    fullWidth >
                       <MenuItem value="0" selected disabled>{i18n.t("Selecione o tipo de rodízio")}</MenuItem>
                       <MenuItem value="RANDOM">Random</MenuItem>
                       <MenuItem value="ORDENADO">Ordenado</MenuItem>
@@ -705,7 +766,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                         value={values.fileListId || ""}
                       >
                         <MenuItem value={""} >{"Nenhum"}</MenuItem>
-                        {file.map(f => (
+                        {(Array.isArray(file) ? file : []).map(f => (
                           <MenuItem key={f.id} value={f.id}>
                             {f.name}
                           </MenuItem>
@@ -1213,7 +1274,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                                                   helpertext={touched?.chatbots?.[index]?.optFileId && errors?.chatbots?.[index]?.optFileId}
                                                   className={classes.textField1}
                                                 >
-                                                  {file.map(f => (
+                                                  {(Array.isArray(file) ? file : []).map(f => (
                                                     <MenuItem key={f.id} value={f.id}>
                                                       {f.name}
                                                     </MenuItem>
@@ -1253,8 +1314,8 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                       )}
                     </FieldArray>
                   </div>
-                </DialogContent>
-                <DialogActions>
+                </Box>
+                <Box className={classes.footer}>
                   <Button
                     onClick={handleClose}
                     // color="secondary"
@@ -1280,7 +1341,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
                       />
                     )}
                   </Button>
-                </DialogActions>
+                </Box>
               </Form>
             )}
           </Formik>
@@ -1295,7 +1356,7 @@ const QueueModal = ({ open, onClose, queueId, onEdit }) => {
             />
           </Paper>
         )}
-      </Dialog>
+      </Drawer>
     </div >
   );
 };
