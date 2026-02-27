@@ -629,21 +629,19 @@ const Login = () => {
                             >
                                 {i18n.t("login.buttons.submit")}
                             </Button>
-                            {allowSignup && (
-                                <Grid container justifyContent="center">
-                                    <Grid item>
-                                        <Link
-                                            href="#"
-                                            variant="body2"
-                                            component={RouterLink}
-                                            to="/signup"
-                                            className={classes.registerLink}
-                                        >
-                                            {i18n.t("login.buttons.register")}
-                                        </Link>
-                                    </Grid>
+                            <Grid container justifyContent="center">
+                                <Grid item>
+                                    <Link
+                                        href="#"
+                                        variant="body2"
+                                        component={RouterLink}
+                                        to="/register"
+                                        className={classes.registerLink}
+                                    >
+                                        {i18n.t("login.buttons.register")}
+                                    </Link>
                                 </Grid>
-                            )}
+                            </Grid>
                         </form>
                     </div>
                 </Container>
