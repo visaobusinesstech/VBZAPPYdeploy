@@ -5,5 +5,7 @@ import * as EmailScheduleController from "../controllers/EmailScheduleController
 const routes = express.Router();
 
 routes.get("/email/schedules", isAuth, EmailScheduleController.index);
+routes.post("/email/schedules/:id/cancel", isAuth, EmailScheduleController.cancel);
+routes.post("/email/schedules/cancel-all", isAuth, EmailScheduleController.cancelAll);
 
 export default routes;

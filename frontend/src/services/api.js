@@ -5,12 +5,11 @@ const getBaseUrl = (input) => {
   if (!url) {
     if (typeof window !== "undefined" && window.location && window.location.origin) {
       const port = String(window.location.port || "");
-      if (port && port !== "8080") {
-        return "http://localhost:8080";
-      }
-      return window.location.origin;
+      // Ambiente local: preferir 3000 (backend padrão do projeto)
+      if (port) return "http://localhost:3000";
+      return "http://localhost:3000";
     }
-    return "http://localhost:8080";
+    return "http://localhost:3000";
   }
   if (/^https?:\/\//i.test(url)) {
     return url.replace(/\/+$/, "");

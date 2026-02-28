@@ -17,6 +17,21 @@ const emailService = {
         params
       });
       return data;
+    },
+    cancel: async (id) => {
+      const { data } = await api.request({
+        url: `/email/schedules/${id}/cancel`,
+        method: "POST"
+      });
+      return data;
+    },
+    cancelAll: async (payload = {}) => {
+      const { data } = await api.request({
+        url: "/email/schedules/cancel-all",
+        method: "POST",
+        data: payload
+      });
+      return data;
     }
   },
   templates: {
@@ -50,8 +65,14 @@ const emailService = {
       const { data } = await api.request({
         url: `/email/templates/${templateId}/attachments`,
         method: "POST",
-        data: form,
-        headers: { "Content-Type": "multipart/form-data" }
+        data: form
+      });
+      return data;
+    },
+    listAttachments: async (templateId) => {
+      const { data } = await api.request({
+        url: `/email/templates/${templateId}/attachments`,
+        method: "GET"
       });
       return data;
     },
@@ -61,8 +82,21 @@ const emailService = {
       const { data } = await api.request({
         url: `/email/templates/${templateId}/signature-image`,
         method: "POST",
-        data: form,
-        headers: { "Content-Type": "multipart/form-data" }
+        data: form
+      });
+      return data;
+    },
+    clearSignature: async (templateId) => {
+      const { data } = await api.request({
+        url: `/email/templates/${templateId}/signature-image`,
+        method: "DELETE"
+      });
+      return data;
+    },
+    deleteAttachment: async (templateId, attachmentId) => {
+      const { data } = await api.request({
+        url: `/email/templates/${templateId}/attachments/${attachmentId}`,
+        method: "DELETE"
       });
       return data;
     },

@@ -6,6 +6,7 @@ import EmailTemplate from "../models/EmailTemplate";
 import EmailSchedule from "../models/EmailSchedule";
 import EmailContact from "../models/EmailContact";
 import sequelize from "../database";
+import { enqueueEmailSchedule, processEmailNow } from "../emailQueues";
 import { getIO } from "../libs/socket";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
@@ -73,6 +74,7 @@ export const scheduleContacts = async (req: Request, res: Response): Promise<Res
   if (!campaign) throw new AppError("CAMPAIGN_NOT_FOUND", 404);
   if (!Array.isArray(contactIds) || contactIds.length === 0) throw new AppError("INVALID_CONTACTS", 400);
 
+  let createdSchedules: EmailSchedule[] = [];
   await sequelize.transaction(async t => {
     const contacts = await EmailContact.findAll({ where: { id: { [Op.in]: contactIds }, companyId }, transaction: t });
     if (contacts.length === 0) throw new AppError("CONTACTS_NOT_FOUND", 404);
@@ -86,13 +88,23 @@ export const scheduleContacts = async (req: Request, res: Response): Promise<Res
       createdAt: new Date(),
       updatedAt: new Date()
     }));
-    await EmailSchedule.bulkCreate(rows as any, { transaction: t });
+    createdSchedules = await EmailSchedule.bulkCreate(rows as any, { transaction: t, returning: true }) as any;
     await campaign.update({ status: "scheduled", totalRecipients: contacts.length }, { transaction: t });
   });
 
   const io = getIO();
   io.of(String(companyId)).emit(`company-${companyId}-email`, { action: "scheduled", campaignId: campaign.id });
 
+  try {
+    for (const s of createdSchedules) {
+      await enqueueEmailSchedule(s.id, s.scheduledAt || undefined);
+      if (!s.scheduledAt || s.scheduledAt <= new Date()) {
+        await processEmailNow(s.id);
+      }
+    }
+  } catch {
+    /* noop */
+  }
+
   return res.json({ ok: true });
 };
-

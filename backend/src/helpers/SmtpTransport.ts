@@ -14,6 +14,23 @@ export async function getCompanyTransporter(companyId: number): Promise<Transpor
   const config = await SmtpConfig.findOne({ where: { companyId, isDefault: true } });
 
   if (!config) {
+    // Fallback para variáveis de ambiente clássicas (dev ou legado)
+    const envHost = process.env.MAIL_HOST;
+    const envPort = process.env.MAIL_PORT ? Number(process.env.MAIL_PORT) : 587;
+    const envUser = process.env.MAIL_USER;
+    const envPass = process.env.MAIL_PASS;
+    const envSecure = String(process.env.MAIL_SECURE || "false").toLowerCase() === "true";
+    if (envHost) {
+      const transporter = nodemailer.createTransport({
+        host: envHost,
+        port: envPort,
+        secure: envSecure,
+        pool: true,
+        auth: envUser || envPass ? { user: envUser, pass: envPass } : undefined
+      } as any);
+      cache[key] = transporter;
+      return transporter;
+    }
     throw new Error(`SMTP_NOT_CONFIGURED: Empresa ${companyId} não possui configuração SMTP. Configure em Configurações > Email.`);
   }
 

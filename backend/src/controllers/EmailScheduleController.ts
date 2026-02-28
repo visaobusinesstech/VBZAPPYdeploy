@@ -53,4 +53,31 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   return res.json({ items, count, hasMore });
 };
 
-export default { index };
+export const cancel = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { id } = req.params as any;
+  const sched = await EmailSchedule.findOne({ where: { id, companyId } });
+  if (!sched) return res.status(404).json({ error: "SCHEDULE_NOT_FOUND" });
+  if (["sent", "failed", "canceled"].includes(String(sched.status))) {
+    return res.json({ ok: true, status: sched.status });
+  }
+  await sched.update({ status: "canceled", errorMessage: "Canceled by user", updatedAt: new Date() } as any);
+  return res.json({ ok: true });
+};
+
+export const cancelAll = async (req: Request, res: Response): Promise<Response> => {
+  const { companyId } = req.user;
+  const { olderThanMinutes } = req.body as any;
+  const where: any = { companyId, status: "scheduled" };
+  if (olderThanMinutes && !Number.isNaN(Number(olderThanMinutes))) {
+    const dt = new Date(Date.now() - Number(olderThanMinutes) * 60000);
+    (where as any).scheduledAt = { [Op.lte]: dt };
+  }
+  const rows = await EmailSchedule.findAll({ where });
+  for (const r of rows) {
+    await r.update({ status: "canceled", errorMessage: "Bulk canceled", updatedAt: new Date() } as any);
+  }
+  return res.json({ ok: true, affected: rows.length });
+};
+
+export default { index, cancel, cancelAll };

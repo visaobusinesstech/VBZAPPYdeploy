@@ -35,12 +35,23 @@ import useEmail from "../../hooks/useEmail";
 import emailService from "../../services/emailService";
 import api from "../../services/api";
 import convertedLeadsService from "../../services/convertedLeadsService";
+import smtpService from "../../services/smtpService";
+import { getBackendUrl } from "../../config";
 
 // Placeholders for views
 import { Grid, Paper, Typography, Card, CardContent, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, ButtonGroup, Select, MenuItem, TextField, InputAdornment, Button as MuiButton, Dialog, DialogTitle, DialogContent, DialogActions, Stepper, Step, StepLabel, Chip, Avatar, Divider, Fab, Checkbox, FormControlLabel } from "@material-ui/core";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ChartTitle, Tooltip, Legend, Filler);
+
+const backendBase = (api?.defaults?.baseURL || getBackendUrl() || "").replace(/\/+$/, "");
+const toPublicUrl = (u) => {
+  if (!u || typeof u !== "string") return "";
+  const url = u.trim();
+  if (/^(data:|blob:|https?:\/\/)/i.test(url)) return url;
+  if (url.startsWith("/")) return `${backendBase}${url}`;
+  return `${backendBase}/public/${url}`;
+};
 
 const EmailInbox = ({ data, loading }) => {
   if (loading) return <CircularProgress />;
@@ -222,7 +233,7 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
         grid: { display: false },
       },
     },
-    elements: { point: { radius: 4 } },
+    elements: { point: { radius: 0, hoverRadius: 4 } },
   };
 
   const cardStyle = { padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", height: "100%", display: "flex", flexDirection: "column" };
@@ -245,7 +256,7 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
       ))}
 
       <Grid item xs={12}>
-        <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
+            <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
             <div>
               <Typography variant="h6" style={{ color: "#1E293B", fontWeight: 600 }}>Tendência de Envios</Typography>
@@ -322,14 +333,14 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
           <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
             Status dos Envios Recentes
           </Typography>
-          <TableContainer style={tableWrapStyle}>
-            <Table size="small">
+          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden" }}>
+            <Table size="small" style={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Data/Hora</TableCell>
-                  <TableCell>Destinatário</TableCell>
-                  <TableCell>Assunto</TableCell>
-                  <TableCell>Status</TableCell>
+                  <TableCell style={{ width: "24%" }}>Data/Hora</TableCell>
+                  <TableCell style={{ width: "28%" }}>Destinatário</TableCell>
+                  <TableCell style={{ width: "34%" }}>Assunto</TableCell>
+                  <TableCell style={{ width: "14%" }}>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -349,10 +360,12 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
                     isOk ? "Enviado" : isError ? "Erro" : "Pendente";
                   return (
                     <TableRow key={e.id || `${to}-${when}-${subject}`}>
-                      <TableCell>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
-                      <TableCell>{to || "-"}</TableCell>
-                      <TableCell>{subject}</TableCell>
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {when ? new Date(when).toLocaleString() : "-"}
+                      </TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{to || "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subject}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, fontWeight: 600, fontSize: 12, ...chipStyle }}>
                           {label}
                         </span>
@@ -374,15 +387,15 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
           <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
             Agendamentos Pendentes
           </Typography>
-          <TableContainer style={tableWrapStyle}>
-            <Table size="small">
+          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden" }}>
+            <Table size="small" style={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell>Status</TableCell>
-                  <TableCell>Destinatário</TableCell>
-                  <TableCell>Campanha</TableCell>
-                  <TableCell>Assunto</TableCell>
-                  <TableCell>Agendado para</TableCell>
+                  <TableCell style={{ width: "18%" }}>Status</TableCell>
+                  <TableCell style={{ width: "32%" }}>Destinatário</TableCell>
+                  <TableCell style={{ width: "20%" }}>Campanha</TableCell>
+                  <TableCell style={{ width: "20%" }}>Assunto</TableCell>
+                  <TableCell style={{ width: "10%" }}>Agendado para</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -392,14 +405,14 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
                   const statusPt = "Agendado";
                   return (
                     <TableRow key={s.id || `${to}-${when}`}>
-                      <TableCell>{statusPt}</TableCell>
-                      <TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>{statusPt}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                         <div style={{ fontWeight: 600 }}>{s.contactName || to || "-"}</div>
                         <div style={{ fontSize: 12, color: "#64748B" }}>{to || "-"}</div>
                       </TableCell>
-                      <TableCell>{s.campaignName || "-"}</TableCell>
-                      <TableCell>{s.subject || "-"}</TableCell>
-                      <TableCell>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.campaignName || "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.subject || "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap" }}>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -468,8 +481,12 @@ const EmailPage = () => {
     contentHtml: "",
     contentText: "",
     signatureImageFile: null,
+    signatureImagePath: "",
     attachmentsFiles: []
   });
+  const [signaturePreviewUrl, setSignaturePreviewUrl] = useState("");
+  const [editorAttachments, setEditorAttachments] = useState([]);
+  const [signatureBust, setSignatureBust] = useState(0);
   const variables = [
     { token: "{nome}", label: "Nome do contato" },
     { token: "{email}", label: "Email do contato" },
@@ -489,6 +506,22 @@ const EmailPage = () => {
       pageNumber: 1,
       searchParam: ""
   });
+  const [smtpOk, setSmtpOk] = useState(true);
+  const [smtpChecked, setSmtpChecked] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await smtpService.list();
+        const rows = res?.items || [];
+        setSmtpOk(rows && rows.length > 0);
+      } catch {
+        setSmtpOk(false);
+      } finally {
+        setSmtpChecked(true);
+      }
+    })();
+  }, []);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -542,8 +575,18 @@ const EmailPage = () => {
         contentHtml: tpl.contentHtml || "",
         contentText: tpl.contentText || "",
         signatureImageFile: null,
+        signatureImagePath: tpl.signatureImagePath || "",
         attachmentsFiles: []
       });
+      (async () => {
+        try {
+          const res = await emailService.templates.listAttachments(tpl.id);
+          const items = res?.attachments || [];
+          setEditorAttachments(items);
+        } catch {
+          setEditorAttachments([]);
+        }
+      })();
     } else {
       setEditor({
         id: null,
@@ -554,8 +597,10 @@ const EmailPage = () => {
         contentHtml: "",
         contentText: "",
         signatureImageFile: null,
+        signatureImagePath: "",
         attachmentsFiles: []
       });
+      setEditorAttachments([]);
     }
     setEditorOpen(true);
   };
@@ -566,6 +611,26 @@ const EmailPage = () => {
   const onChangeEditor = (field, value) => {
     setEditor(prev => ({ ...prev, [field]: value }));
   };
+  useEffect(() => {
+    let revoke = null;
+    try {
+      setSignaturePreviewUrl("");
+      if (editor.signatureImageFile) {
+        const url = URL.createObjectURL(editor.signatureImageFile);
+        setSignaturePreviewUrl(url);
+        revoke = url;
+        setSignatureBust(Date.now());
+      } else if (editor.signatureImagePath) {
+        // Usa a URL pública diretamente; não depende de endpoints com auth
+        const url = toPublicUrl(editor.signatureImagePath);
+        setSignaturePreviewUrl(url);
+        setSignatureBust(Date.now());
+      }
+    } catch {
+      setSignaturePreviewUrl("");
+    }
+    return () => { if (revoke) URL.revokeObjectURL(revoke); };
+  }, [editor.signatureImageFile, editor.signatureImagePath]);
   const onFilesSelected = (files) => {
     const arr = Array.from(files || []);
     const filtered = arr.filter(f => f.size <= 50 * 1024 * 1024);
@@ -596,13 +661,28 @@ const EmailPage = () => {
         await emailService.templates.uploadAttachments(saved.id, editor.attachmentsFiles);
       }
       if (editor.signatureImageFile) {
-        await emailService.templates.uploadSignatureImage(saved.id, editor.signatureImageFile);
+        const resp = await emailService.templates.uploadSignatureImage(saved.id, editor.signatureImageFile);
+        if (resp?.signatureImagePath) {
+          setEditor(prev => ({ ...prev, signatureImagePath: resp.signatureImagePath, signatureImageFile: null }));
+        }
       }
-      const res = await emailService.templates.list({ pageNumber: 1 });
-      setTemplatesList(res?.templates || res?.records || res?.rows || []);
+      // Atualizar lista de anexos e templates após upload
+      try {
+        const [tpls, atts] = await Promise.all([
+          emailService.templates.list({ pageNumber: 1 }),
+          emailService.templates.listAttachments(saved.id)
+        ]);
+        setTemplatesList(tpls?.templates || tpls?.records || tpls?.rows || []);
+        setEditorAttachments(atts?.attachments || []);
+      } catch {}
       toast.success("Template salvo");
       setEditorLoading(false);
-      closeEditor();
+      // Manter modal aberto quando houve anexos/assinatura para o usuário visualizar o resultado
+      if (!editor.attachmentsFiles?.length && !editor.signatureImageFile) {
+        closeEditor();
+      } else {
+        setEditor(prev => ({ ...prev, id: saved.id, attachmentsFiles: [] }));
+      }
     } catch (e) {
       setEditorLoading(false);
       toast.error("Erro ao salvar template");
@@ -752,9 +832,61 @@ const EmailPage = () => {
                     <Typography variant="caption" style={{ display: "block", marginTop: 4 }}>Fonte ativa: {editor.fontSize}px</Typography>
                     <Divider style={{ margin: "16px 0" }} />
                     <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Adicionar arquivos anexos (até 50MB cada)</Typography>
-                    <input type="file" multiple onChange={(e) => onFilesSelected(e.target.files)} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input type="file" multiple onChange={(e) => onFilesSelected(e.target.files)} />
+                      <span style={{ fontSize: 12, color: "#6B7280" }}>
+                        {editor.attachmentsFiles?.length
+                          ? `${editor.attachmentsFiles.length} arquivo(s) novo(s) selecionado(s)`
+                          : (editorAttachments?.length ? "anexos já salvos listados abaixo" : "Nenhum arquivo selecionado")}
+                      </span>
+                    </div>
                     <Typography variant="subtitle2" style={{ marginTop: 16 }}>Assinatura (imagem opcional)</Typography>
-                    <input type="file" accept="image/*" onChange={(e) => onSignatureSelected(e.target.files[0])} />
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <input type="file" accept="image/*" onChange={(e) => onSignatureSelected(e.target.files[0])} />
+                      <span style={{ fontSize: 12, color: "#6B7280" }}>
+                        {editor.signatureImageFile?.name
+                          ? editor.signatureImageFile.name
+                          : (editor.signatureImagePath ? "assinatura já salva" : "Nenhum arquivo selecionado")}
+                      </span>
+                      {editor.id && editor.signatureImagePath && (
+                        <Button size="small" color="secondary" onClick={async () => {
+                          try {
+                            await emailService.templates.clearSignature(editor.id);
+                            setEditor(prev => ({ ...prev, signatureImagePath: "" }));
+                            toast.success("Assinatura removida");
+                          } catch {
+                            toast.error("Falha ao remover assinatura");
+                          }
+                        }}>Remover assinatura</Button>
+                      )}
+                    </div>
+                    <Typography variant="subtitle2" style={{ marginTop: 16 }}>Anexos já salvos</Typography>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {(editorAttachments || []).map(a => {
+                        const href = toPublicUrl(a.path || "");
+                        return (
+                          <div key={a.id} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <a href={href} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: "#2563EB", flex: 1 }}>
+                              {a.filename}
+                            </a>
+                            {editor.id && (
+                              <Button size="small" onClick={async () => {
+                                try {
+                                  await emailService.templates.deleteAttachment(editor.id, a.id);
+                                  setEditorAttachments(prev => prev.filter(x => x.id !== a.id));
+                                  toast.success("Anexo removido");
+                                } catch {
+                                  toast.error("Não foi possível remover");
+                                }
+                              }}>Remover</Button>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {(!editorAttachments || editorAttachments.length === 0) && (
+                        <span style={{ fontSize: 12, color: "#6B7280" }}>—</span>
+                      )}
+                    </div>
                   </Grid>
                   <Grid item xs={12} md={4}>
                     <Paper style={{ padding: 12, borderRadius: 8 }}>
@@ -763,8 +895,25 @@ const EmailPage = () => {
                         <div style={{ fontSize: 12, color: "#6B7280", marginBottom: 8 }}>Tamanho da fonte: {editor.fontSize}px</div>
                         <div style={{ minHeight: 120, fontSize: `${editor.fontSize || 16}px` }} dangerouslySetInnerHTML={{ __html: editor.contentHtml || "<i>Sem conteúdo</i>" }} />
                         <div style={{ marginTop: 12, color: "#6B7280" }}>Assinatura:</div>
-                        {editor.signatureImageFile ? (
-                          <img alt="assinatura" style={{ maxWidth: "100%", marginTop: 8 }} src={editor.signatureImageFile ? URL.createObjectURL(editor.signatureImageFile) : undefined} />
+                        {signaturePreviewUrl ? (
+                          <img alt="assinatura" style={{ maxWidth: "100%", marginTop: 8 }} src={signaturePreviewUrl} />
+                        ) : editor.signatureImagePath ? (
+                          <>
+                            <img
+                              alt="assinatura"
+                              style={{ maxWidth: "100%", marginTop: 8 }}
+                              src={`${(api?.defaults?.baseURL || "").replace(/\/+$/,"")}/email/templates/${editor.id}/signature-image/public${signatureBust ? `?v=${signatureBust}` : ""}`}
+                              onError={(e) => {
+                                try {
+                                  const base = (api?.defaults?.baseURL || "").replace(/\/+$/,"");
+                                  e.currentTarget.src = `${base}/email/templates/${editor.id}/signature-image/public${signatureBust ? `?v=${signatureBust}` : ""}`;
+                                } catch {
+                                  e.currentTarget.src = "";
+                                }
+                              }}
+                            />
+                            {/* Link removido a pedido: manter apenas preview inline estável */}
+                          </>
                         ) : (
                           <div style={{ fontSize: 12, color: "#9CA3AF" }}>—</div>
                         )}
@@ -784,7 +933,9 @@ const EmailPage = () => {
         return (
           <>
             <Paper style={{ padding: 16, borderRadius: 12, marginBottom: 16 }}>
-              <Typography variant="h6" style={{ fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>Agendamentos</Typography>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                <Typography variant="h6" style={{ fontWeight: 700, color: "#0F172A" }}>Agendamentos</Typography>
+              </div>
               <TableContainer>
                 <Table size="small">
                   <TableHead>
@@ -793,7 +944,7 @@ const EmailPage = () => {
                       <TableCell>Contato</TableCell>
                       <TableCell>Template/Campanha</TableCell>
                       <TableCell>Assunto</TableCell>
-                      <TableCell>Data de Envio</TableCell>
+                  <TableCell>Data de Envio</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -821,11 +972,11 @@ const EmailPage = () => {
                         </TableCell>
                         <TableCell>{s.campaignName || "-"}</TableCell>
                         <TableCell>{s.subject || "-"}</TableCell>
-                        <TableCell>{s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : "-"}</TableCell>
+                      <TableCell>{s.scheduledAt ? new Date(s.scheduledAt).toLocaleString() : "-"}</TableCell>
                       </TableRow>
                     )})}
                     {(!schedulesList || schedulesList.length === 0) && (
-                      <TableRow><TableCell colSpan={5} align="center">Nenhum agendamento encontrado</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={5} align="center">Nenhum agendamento encontrado</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -907,7 +1058,6 @@ const EmailPage = () => {
                       <TableCell style={{ color: "#6B7280", fontWeight: 600 }}>Destinatário</TableCell>
                       <TableCell style={{ color: "#6B7280", fontWeight: 600 }}>Remetente</TableCell>
                       <TableCell style={{ color: "#6B7280", fontWeight: 600 }}>Status</TableCell>
-                      <TableCell style={{ color: "#6B7280", fontWeight: 600 }}>Tipo</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -924,7 +1074,6 @@ const EmailPage = () => {
                         ? { background: "#FEF2F2", color: "#DC2626" }
                         : { background: "#EFF6FF", color: "#2563EB" };
                       const label = isOk ? "Enviado" : isError ? "Erro" : "Pendente";
-                      const tipo = e.type || e.kind || "—";
                       return (
                         <TableRow key={e.id || `${to}-${when}-${from}`}>
                           <TableCell style={{ color: "#111827" }}>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
@@ -941,12 +1090,11 @@ const EmailPage = () => {
                               {label}
                             </span>
                           </TableCell>
-                          <TableCell style={{ color: "#6B7280" }}>{tipo}</TableCell>
                         </TableRow>
                       );
                     })}
                     {(!emails || emails.length === 0) && (
-                      <TableRow><TableCell colSpan={5} align="center">Nenhum registro encontrado</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={4} align="center">Nenhum registro encontrado</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -1033,6 +1181,18 @@ const EmailPage = () => {
       )}
     >
       <div className={classes.content}>
+        {smtpChecked && !smtpOk && (
+          <Paper style={{ padding: 12, border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#7F1D1D", borderRadius: 8, marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+              <Typography variant="body2" style={{ fontWeight: 600 }}>
+                Nenhuma configuração SMTP encontrada. Configure em Configurações › Email para habilitar envios.
+              </Typography>
+              <Button size="small" variant="outlined" onClick={() => history.push("/settings?tab=email")}>
+                Abrir Configurações
+              </Button>
+            </div>
+          </Paper>
+        )}
         {renderContent()}
       </div>
 

@@ -78,7 +78,8 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     isDefault: isDefault ?? item.isDefault
   });
 
-  if (smtpPassword !== undefined) {
+  // Não apagar senha quando vier string vazia; somente atualizar se houver conteúdo
+  if (smtpPassword !== undefined && smtpPassword !== "") {
     (item as any).smtpPassword = smtpPassword;
     await item.save();
   }

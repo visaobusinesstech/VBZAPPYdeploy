@@ -51,6 +51,9 @@ export default class EmailTemplateAttachment extends Model<EmailTemplateAttachme
   @Column(DataType.STRING)
   mimetype: string;
 
+  @Column(DataType.BLOB)
+  data: Buffer;
+
   @CreatedAt
   createdAt: Date;
 

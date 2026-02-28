@@ -53,7 +53,11 @@ export default function EmailSettings() {
   const save = async () => {
     setSaving(true);
     try {
+      // Não enviar senha vazia para não apagar a senha existente
       const payload = { ...form };
+      if (!payload.smtpPassword) {
+        delete payload.smtpPassword;
+      }
       if (currentId) {
         await smtpService.update(currentId, payload);
       } else {
@@ -72,9 +76,13 @@ export default function EmailSettings() {
     setTesting(true);
     try {
       if (currentId) {
-        await smtpService.update(currentId, { ...form, isDefault: true });
+        const payload = { ...form, isDefault: true };
+        if (!payload.smtpPassword) delete payload.smtpPassword;
+        await smtpService.update(currentId, payload);
       } else {
-        await smtpService.create({ ...form, isDefault: true });
+        const payload = { ...form, isDefault: true };
+        if (!payload.smtpPassword) delete payload.smtpPassword;
+        await smtpService.create(payload);
       }
       toast.success("Conexão SMTP verificada com sucesso.");
     } catch (e) {
@@ -188,4 +196,3 @@ export default function EmailSettings() {
     </Paper>
   );
 }
-

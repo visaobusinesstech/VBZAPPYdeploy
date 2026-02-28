@@ -24,19 +24,31 @@ export const summary = async (req: Request, res: Response): Promise<Response> =>
 export const series = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
   const { period } = req.query as any;
-  const limitDays = period === "year" ? 365 : period === "month" ? 90 : 7;
-  const since = new Date(Date.now() - limitDays * 86400000);
+  const p = String(period || "week").toLowerCase();
+  const limitDays = p === "year" || p === "ano" ? 365 : p === "month" || p === "mês" || p === "mes" ? 90 : 7;
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+  const since = new Date(start.getTime() - (limitDays - 1) * 86400000);
+
   const rows = await EmailAnalytics.findAll({
     where: { companyId, date: { [Op.gte]: since.toISOString().slice(0, 10) } },
     order: [["date", "ASC"]]
   });
-  const data = rows.map(r => ({
-    date: r.date,
-    totalSent: r.totalSent,
-    totalOpened: r.totalOpened,
-    totalClicked: r.totalClicked,
-    totalBounced: r.totalBounced
-  }));
+
+  const byDate: Record<string, EmailAnalytics> = {};
+  for (const r of rows) byDate[String(r.date)] = r;
+
+  const data: Array<{ date: string; label: string; value: number; totalSent: number }> = [];
+  for (let i = 0; i < limitDays; i++) {
+    const d = new Date(since.getTime() + i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const rec = byDate[key];
+    const val = rec?.totalSent || 0;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    data.push({ date: key, label: `${dd}/${mm}`, value: val, totalSent: val });
+  }
+
   return res.json({ data });
 };
 

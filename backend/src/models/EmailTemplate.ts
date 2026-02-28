@@ -64,6 +64,9 @@ export default class EmailTemplate extends Model<EmailTemplate> {
   @Column(DataType.STRING)
   signatureImagePath: string;
 
+  @Column(DataType.BLOB)
+  signatureImageData: Buffer;
+
   @HasMany(() => EmailTemplateAttachment, { as: "attachments", foreignKey: "templateId" })
   attachments: EmailTemplateAttachment[];
 

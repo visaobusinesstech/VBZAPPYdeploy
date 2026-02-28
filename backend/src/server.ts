@@ -10,6 +10,7 @@ import { startQueueProcess } from "./queues";
 import { startLidSyncJob } from "./jobs/LidSyncJob";
 import { REDIS_URI_MSG_CONN } from "./config/redis";
 import { ensureDatabase } from "./utils/ensureDatabase";
+import "./emailQueues";
 
 const preferredPort = Number(process.env.PORT) || 8080;
 
