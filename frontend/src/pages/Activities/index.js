@@ -52,6 +52,7 @@ import useActivities from "../../hooks/useActivities";
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import activitiesService from "../../services/activitiesService";
+import activityStagesService from "../../services/activityStagesService";
 
 const localizer = momentLocalizer(moment);
 
@@ -145,6 +146,13 @@ const mapStatusLabel = (status) => {
   if (s === 'backlog') return 'Backlog';
   return status || '';
 };
+
+const defaultActivityStages = [
+  { key: 'backlog', label: 'Backlog', color: '#4B5563' },
+  { key: 'pending', label: 'Pendente', color: '#4B5563' },
+  { key: 'in_progress', label: 'Em Progresso', color: '#F97316' },
+  { key: 'completed', label: 'Concluído', color: '#10B981' }
+];
 
 // Sub-component for List View
 const ActivitiesList = ({ activities }) => {
@@ -357,6 +365,9 @@ const Activities = () => {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [activityToEdit, setActivityToEdit] = useState(null);
   const kanbanRef = useRef(null);
+  const [activityStagesState, setActivityStagesState] = useState([]);
+  const [stagesDrawerOpen, setStagesDrawerOpen] = useState(false);
+  const [localStages, setLocalStages] = useState([]);
   
   // Use existing hook
   const { activities, loading, count, hasMore } = useActivities({
@@ -447,6 +458,44 @@ const Activities = () => {
     };
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadStages = async () => {
+      try {
+        const list = await activityStagesService.list();
+        if (mounted && Array.isArray(list) && list.length) {
+          setActivityStagesState(list);
+        }
+      } catch (_) {
+        // silencioso
+      }
+    };
+    loadStages();
+    return () => { mounted = false; };
+  }, []);
+
+  useEffect(() => {
+    if (stagesDrawerOpen) {
+      const base = activityStagesState.length ? activityStagesState : defaultActivityStages;
+      // deep clone
+      setLocalStages(JSON.parse(JSON.stringify(base)));
+    }
+  }, [stagesDrawerOpen, activityStagesState]);
+
+  const addStage = () => {
+    const idx = (localStages?.length || 0) + 1;
+    const key = `etapa_${idx}`;
+    setLocalStages(prev => [...prev, { key, label: `Etapa ${idx}`, color: "#4B5563" }]);
+  };
+  const removeStage = (key) => setLocalStages(prev => prev.filter(s => s.key !== key));
+  const updateStage = (i, field, value) => {
+    setLocalStages(prev => {
+      const next = prev.slice();
+      next[i] = { ...next[i], [field]: value };
+      return next;
+    });
+  };
+
   const requestFs = (el) => {
     if (el.requestFullscreen) return el.requestFullscreen();
     if (el.webkitRequestFullscreen) return el.webkitRequestFullscreen();
@@ -488,7 +537,7 @@ const Activities = () => {
         color="default"
         size="small"
         style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
-        onClick={() => {}}
+        onClick={() => setStagesDrawerOpen(true)}
       >
         <SettingsIcon style={{ fontSize: 18 }} />
       </IconButton>
@@ -690,6 +739,7 @@ const Activities = () => {
           {viewMode === "board" && (
             <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
               <KanbanBoard
+                columns={(activityStagesState.length ? activityStagesState : defaultActivityStages).map(s => ({ id: s.key, title: s.label, color: s.color }))}
                 activities={filteredActivities}
                 onActivityClick={(activity) => {
                   setSelectedActivity(activity);
@@ -779,6 +829,76 @@ const Activities = () => {
          setActivityToEdit(null);
       }}
     />
+
+    <Drawer
+      anchor="right"
+      open={stagesDrawerOpen}
+      onClose={() => setStagesDrawerOpen(false)}
+      classes={{ paper: classes.drawerPaper }}
+    >
+      <div className={classes.drawerContainer}>
+        <div className={classes.drawerHeader}>
+          <Typography className={classes.drawerTitle}>Configure seu Kanban</Typography>
+          <IconButton onClick={() => setStagesDrawerOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+        <div className={classes.drawerContent}>
+          <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+            {localStages.map((st, idx) => (
+              <div key={st.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <input
+                  type="color"
+                  value={st.color || "#4B5563"}
+                  onChange={(e) => updateStage(idx, "color", e.target.value)}
+                  aria-label="Cor"
+                  style={{ width: 44, height: 40, padding: 0, border: "1px solid #E5E7EB", borderRadius: 6, background: "transparent" }}
+                />
+                <TextField
+                  label="Rótulo"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={st.label}
+                  onChange={(e) => updateStage(idx, "label", e.target.value)}
+                />
+                <TextField
+                  label="Chave (status)"
+                  variant="outlined"
+                  size="small"
+                  value={st.key}
+                  onChange={(e) => updateStage(idx, "key", e.target.value.toLowerCase().replace(/\s+/g, "_"))}
+                  style={{ width: 160 }}
+                />
+                <Button onClick={() => removeStage(st.key)}>Remover</Button>
+              </div>
+            ))}
+            <div>
+              <Button color="primary" variant="outlined" onClick={addStage}>Adicionar etapa</Button>
+            </div>
+          </div>
+        </div>
+        <div className={classes.drawerActions}>
+          <Button onClick={() => setStagesDrawerOpen(false)} variant="outlined">Cancelar</Button>
+          <Button
+            color="primary"
+            variant="contained"
+            onClick={async () => {
+              try {
+                const saved = await activityStagesService.bulkSave(localStages);
+                setActivityStagesState(saved);
+                setStagesDrawerOpen(false);
+              } catch (err) {
+                toastError(err);
+              }
+            }}
+          >
+            Salvar
+          </Button>
+        </div>
+      </div>
+    </Drawer>
     </>
   );
 };

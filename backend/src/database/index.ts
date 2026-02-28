@@ -76,6 +76,9 @@ import SmtpConfig from "../models/SmtpConfig";
 import EmailAnalytics from "../models/EmailAnalytics";
 import Inventory from "../models/Inventory";
 import EmailTemplateAttachment from "../models/EmailTemplateAttachment";
+import LeadPipeline from "../models/LeadPipeline";
+import LeadPipelineStage from "../models/LeadPipelineStage";
+import ActivityStage from "../models/ActivityStage";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -159,7 +162,10 @@ const models = [
   EmailLog,
   SmtpConfig,
   EmailAnalytics,
-  Inventory
+  Inventory,
+  LeadPipeline,
+  LeadPipelineStage,
+  ActivityStage
 ];
 
 sequelize.addModels(models);

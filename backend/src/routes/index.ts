@@ -61,6 +61,9 @@ import smtpRoutes from "./smtpRoutes";
 import emailCampaignRoutes from "./emailCampaignRoutes";
 import emailScheduleRoutes from "./emailScheduleRoutes";
 import inventoryRoutes from "./inventoryRoutes";
+import leadPipelineRoutes from "./leadPipelineRoutes";
+import activityStageRoutes from "./activityStageRoutes";
+import paymentsWebhookRoutes from "./paymentsWebhookRoutes";
 
 import ChatController from "../controllers/ChatController";
 
@@ -129,6 +132,10 @@ routes.use(smtpRoutes);
 routes.use(emailCampaignRoutes);
 routes.use(emailScheduleRoutes);
 routes.use(inventoryRoutes);
+routes.use(leadPipelineRoutes);
+routes.use(activityStageRoutes);
+
+routes.use("/api/webhook/payments", paymentsWebhookRoutes);
 
 routes.post("/chats/backfill", ChatController.backfillChats);
 

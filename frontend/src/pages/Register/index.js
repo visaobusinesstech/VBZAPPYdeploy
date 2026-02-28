@@ -18,7 +18,8 @@ import {
   Step,
   StepLabel,
   makeStyles,
-  IconButton
+  IconButton,
+  Paper
 } from "@material-ui/core";
 import { toast } from "react-toastify";
 import usePlans from "../../hooks/usePlans";
@@ -289,6 +290,8 @@ const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [validatingCep, setValidatingCep] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState(null); // mensal|semestral|anual
+  const [selectedTier, setSelectedTier] = useState(null); // starter|essencial|pro
 
   useEffect(() => {
     const handler = lng => setLang(lng);
@@ -317,6 +320,29 @@ const Register = () => {
     tKey("register.steps.payment", "Pagamento"),
     tKey("register.steps.confirmation", "Confirmação")
   ];
+
+  const resolvePaymentLink = (cycle, tier) => {
+    const map = {
+      mensal: {
+        starter: "https://pay.cakto.com.br/yfsvcpc",
+        essencial: "https://pay.cakto.com.br/dm2p96b",
+        pro: "https://pay.cakto.com.br/3ecov2x",
+      },
+      semestral: {
+        starter: "https://pay.cakto.com.br/3wkepst",
+        essencial: "https://pay.cakto.com.br/rasnk6e",
+        pro: "https://pay.cakto.com.br/ecosrjo",
+      },
+      anual: {
+        starter: "https://pay.cakto.com.br/8jcckd5",
+        essencial: "https://pay.cakto.com.br/h8woa7d",
+        pro: "https://pay.cakto.com.br/me8p4x3",
+      },
+    };
+    const c = String(cycle || "").toLowerCase();
+    const t = String(tier || "").toLowerCase();
+    return map[c]?.[t] || null;
+  };
 
   const initialValues = useMemo(
     () => ({
@@ -637,7 +663,13 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
-          <PlanosPreview />
+          <PlanosPreview
+            onChoose={(cycle, tier) => {
+              setSelectedCycle(cycle);
+              setSelectedTier(tier);
+              setActiveStep(4);
+            }}
+          />
         </Grid>
         <Grid item xs={12} style={{ display: "none" }}>
           <InputLabel>Plano</InputLabel>
@@ -680,43 +712,39 @@ const Register = () => {
     </Box>
   );
 
-  const SectionPayment = ({ values, setFieldValue }) => (
-    <Box>
-      <Grid container spacing={1} className={classes.inputGroup}>
-        <Grid item xs={12}>
-          <InputLabel>{tKey("register.payment.title", "Pagamento")}</InputLabel>
-          <Select
-            value={values.paymentMethod}
-            onChange={e => setFieldValue("paymentMethod", e.target.value)}
-            fullWidth
-            variant="outlined"
-            displayEmpty
-          >
-            <MenuItem value=""><em>{tKey("common.select", "Selecione")}</em></MenuItem>
-            <MenuItem value="pix">{tKey("register.payment.pix", "Pix")}</MenuItem>
-            <MenuItem value="card">{tKey("register.payment.card", "Cartão")}</MenuItem>
-            <MenuItem value="boleto">{tKey("register.payment.boleto", "Boleto")}</MenuItem>
-          </Select>
-        </Grid>
-        {values.paymentMethod === "card" && (
-          <>
-            <Grid item xs={12} sm={6}>
-              <Field as={TextField} name="cardNumber" label={tKey("register.payment.cardNumber", "Número do cartão")} variant="outlined" fullWidth />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Field as={TextField} name="cardName" label={tKey("register.payment.cardName", "Nome no cartão")} variant="outlined" fullWidth />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Field as={TextField} name="cardExpiry" label={tKey("register.payment.cardExpiry", "Validade (MM/AA)")} variant="outlined" fullWidth />
-            </Grid>
-            <Grid item xs={6} sm={3}>
-              <Field as={TextField} name="cardCvv" label={tKey("register.payment.cardCvv", "CVV")} variant="outlined" fullWidth />
-            </Grid>
-          </>
-        )}
-      </Grid>
-    </Box>
-  );
+  const SectionPayment = ({ values }) => {
+    const urlBase = resolvePaymentLink(selectedCycle, selectedTier);
+    const emailParam = values?.email ? `email=${encodeURIComponent(values.email)}` : "";
+    const url = urlBase ? (emailParam ? `${urlBase}${urlBase.includes("?") ? "&" : "?"}${emailParam}` : urlBase) : null;
+    const [loaded, setLoaded] = useState(false);
+    useEffect(() => {
+      setLoaded(false);
+    }, [urlBase, values?.email]);
+    return (
+      <Box display="flex" alignItems="center" justifyContent="center" style={{ minHeight: 420, width: "100%", paddingLeft: 4, paddingRight: 4, boxSizing: "border-box" }}>
+        <Paper variant="outlined" style={{ width: "calc(100vw - 8px)", height: 720, maxWidth: "100vw", maxHeight: "80vh", borderRadius: 16, overflow: "hidden", position: "relative" }}>
+          {url ? (
+            <>
+              {!loaded && (
+                <Box position="absolute" top={0} left={0} right={0} bottom={0} display="flex" alignItems="center" justifyContent="center" flexDirection="column" style={{ background: "rgba(0,0,0,0.08)" }}>
+                  <CircularProgress size={28} />
+                  <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>Carregando checkout...</Typography>
+                </Box>
+              )}
+              <iframe title="Pagamento" src={url} onLoad={() => setLoaded(true)} style={{ width: "100%", height: "100%", border: "none" }} />
+            </>
+          ) : (
+            <Box p={3} textAlign="center" color="textSecondary">
+              <Typography variant="subtitle1" style={{ fontWeight: 600, marginBottom: 8 }}>
+                Selecione um plano para prosseguir com o pagamento
+              </Typography>
+              <Typography variant="body2">Volte à etapa anterior e escolha o ciclo e o plano.</Typography>
+            </Box>
+          )}
+        </Paper>
+      </Box>
+    );
+  };
 
   const canGoNext = (step, values) => {
     switch (step) {

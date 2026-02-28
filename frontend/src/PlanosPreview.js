@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { useHistory } from "react-router-dom";
 import { makeStyles } from "@material-ui/core/styles";
 import {
   Box,
@@ -130,9 +131,10 @@ const priceParts = v => ({ main: `R$${v}`, suffix: t("register.plans.priceSuffix
 
 const renderText = text => <span>{text}</span>;
 
-export default function PlanosPreview() {
+export default function PlanosPreview({ onChoose }) {
   const classes = useStyles();
   const [cycle, setCycle] = useState("anual");
+  const history = useHistory();
 
   const prices = useMemo(
     () => ({
@@ -167,6 +169,13 @@ export default function PlanosPreview() {
   };
 
   const actionLabel = t("register.plans.actions.startNow", "Comece agora");
+  const choose = (tier) => {
+    if (typeof onChoose === "function") {
+      onChoose(cycle, tier);
+      return;
+    }
+    history.push(`/payment?cycle=${cycle}&tier=${tier}`);
+  };
 
   const featsStarter = i18n.t("register.plans.features.starter", { returnObjects: true }) || [
     "Criação e gerenciamento de negócios e produtos.",
@@ -245,7 +254,7 @@ export default function PlanosPreview() {
                   <Typography className={classes.priceMain}>{priceParts(prices.starter).main}</Typography>
                   <Typography className={classes.priceSuffix}>{priceParts(prices.starter).suffix}</Typography>
                 </Box>
-                <Button fullWidth size="small" variant="outlined" color="default" className={classes.action}>
+                <Button fullWidth size="small" variant="outlined" color="default" className={classes.action} onClick={() => choose("starter")}>
                   {actionLabel}
                 </Button>
               </Box>
@@ -279,7 +288,7 @@ export default function PlanosPreview() {
                   <Typography className={classes.priceMain}>{priceParts(prices.essencial).main}</Typography>
                   <Typography className={classes.priceSuffix}>{priceParts(prices.essencial).suffix}</Typography>
                 </Box>
-                <Button fullWidth size="small" color="primary" variant="contained" className={classes.action}>
+                <Button fullWidth size="small" color="primary" variant="contained" className={classes.action} onClick={() => choose("essencial")}>
                   {actionLabel}
                 </Button>
               </Box>
@@ -315,7 +324,7 @@ export default function PlanosPreview() {
                     {priceParts(prices.pro).suffix}
                   </Typography>
                 </Box>
-                <Button fullWidth size="small" variant="contained" color="primary" className={classes.action}>
+                <Button fullWidth size="small" variant="contained" color="primary" className={classes.action} onClick={() => choose("pro")}>
                   {actionLabel}
                 </Button>
               </Box>

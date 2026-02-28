@@ -36,6 +36,8 @@ import ZoomOutMapIcon from "@material-ui/icons/ZoomOutMap";
 import FullscreenExitIcon from "@material-ui/icons/FullscreenExit";
 import SettingsIcon from "@material-ui/icons/Settings";
 import ActivitiesStyleLayout from "../../components/ActivitiesStyleLayout";
+import PipelineDrawer from "../../components/PipelineDrawer";
+import leadPipelinesService from "../../services/leadPipelinesService";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -140,10 +142,17 @@ const useStyles = makeStyles((theme) => ({
     display: "grid",
     gridAutoRows: "1fr",
     width: "100%",
-    overflowX: "hidden",
+    overflowX: "auto",
+    gridAutoFlow: "column",
+    gridAutoColumns: "minmax(0, 1fr)",
     padding: 12,
     gap: 16,
     ...theme.scrollbarStyles,
+    scrollbarWidth: "none",
+    msOverflowStyle: "none",
+    "&::-webkit-scrollbar": {
+      display: "none"
+    }
   },
   column: {
     minWidth: 0,
@@ -449,7 +458,7 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const COLUMN_DEFS = [
+const DEFAULT_STAGES = [
   { key: "novo", label: "Novo Lead", color: "#6366F1" },
   { key: "qualificacao", label: "Contato Inicial", color: "#8B5CF6" },
   { key: "proposta", label: "Proposta", color: "#F59E0B" },
@@ -510,8 +519,9 @@ const currencyBRL = (v) => {
   }
 };
 
-const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, onOpenTagCreator }) => {
+const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, contacts, onOpenTagCreator }) => {
   const classes = useStyles();
+  const cols = Array.isArray(columns) && columns.length ? columns : DEFAULT_STAGES;
 
   const leadsByStatus = useMemo(() => {
     const map = {};
@@ -533,13 +543,68 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
     if (onMove) onMove(draggableId, source.droppableId, destination.droppableId, destination.index);
   };
 
+  const boardRef = useRef(null);
+  const isPanningRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const [colPx, setColPx] = useState(0);
+
+  useEffect(() => {
+    const calc = () => {
+      const el = boardRef.current;
+      if (!el) return;
+      // largura interna do board menos paddings/gaps
+      const style = window.getComputedStyle(el);
+      const paddingLeft = parseFloat(style.paddingLeft || "12") || 12;
+      const paddingRight = parseFloat(style.paddingRight || "12") || 12;
+      const gap = parseFloat(style.columnGap || style.gap || "16") || 16;
+      const totalGap = gap * 4; // 5 colunas => 4 gaps
+      const inner = el.clientWidth - paddingLeft - paddingRight - totalGap;
+      const widthPerCol = inner > 0 ? Math.floor(inner / 5) : 260;
+      setColPx(widthPerCol);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    if (boardRef.current) ro.observe(boardRef.current);
+    window.addEventListener("resize", calc);
+    return () => {
+      window.removeEventListener("resize", calc);
+      ro.disconnect();
+    };
+  }, []);
+
+  const onMouseDown = (e) => {
+    if (cols.length <= 5) return;
+    isPanningRef.current = true;
+    startXRef.current = e.pageX - (boardRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = boardRef.current?.scrollLeft || 0;
+  };
+  const onMouseLeave = () => { isPanningRef.current = false; };
+  const onMouseUp = () => { isPanningRef.current = false; };
+  const onMouseMove = (e) => {
+    if (!isPanningRef.current || !boardRef.current) return;
+    const x = e.pageX - boardRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * -1;
+    boardRef.current.scrollLeft = scrollLeftRef.current + walk;
+  };
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div
         className={classes.board}
-        style={{ gridTemplateColumns: `repeat(${COLUMN_DEFS.length}, minmax(0, 1fr))` }}
+        ref={boardRef}
+        onMouseDown={onMouseDown}
+        onMouseLeave={onMouseLeave}
+        onMouseUp={onMouseUp}
+        onMouseMove={onMouseMove}
+        style={{
+          gridTemplateColumns: colPx ? `repeat(5, ${colPx}px)` : undefined,
+          gridAutoColumns: colPx ? `${colPx}px` : undefined,
+          cursor: cols.length > 5 ? (isPanningRef.current ? "grabbing" : "grab") : "default",
+          userSelect: isPanningRef.current ? "none" : "auto"
+        }}
       >
-        {COLUMN_DEFS.map((col) => {
+        {cols.map((col) => {
           const list = leadsByStatus[col.key] || [];
           const total = getTotalValue(list);
           const since = (date) => {
@@ -689,7 +754,8 @@ const LeadsKanbanBoard = ({ leads, onEdit, onAdd, onMove, onDelete, contacts, on
 const LeadsList = ({ leads }) => {
   const getStatusMeta = (key) => {
     const k = String(key || "").toLowerCase();
-    const meta = COLUMN_DEFS.find((c) => c.key === k);
+    // Fallback genérico; a versão com colunas dinâmicas é passada pelo componente pai
+    const meta = (window.__LEADS_COLUMNS__ || []).find((c) => c.key === k);
     return meta || { label: String(key || "").toUpperCase(), color: "#E5E7EB" };
     };
   return (
@@ -906,6 +972,47 @@ const LeadsSales = () => {
 
   const handleSearch = (value) => setSearchParam(value);
 
+  // Pipelines (configuração)
+  const defaultPipelines = useMemo(() => ([
+    { id: "default", name: "Padrão", stages: DEFAULT_STAGES }
+  ]), []);
+  const [pipelines, setPipelines] = useState(defaultPipelines);
+  const [selectedPipelineId, setSelectedPipelineId] = useState(() => {
+    return localStorage.getItem("leads_selected_pipeline") || "default";
+  });
+  const [pipelineDrawerOpen, setPipelineDrawerOpen] = useState(false);
+  const [anchorPipeline, setAnchorPipeline] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadPipelines = async () => {
+      try {
+        const list = await leadPipelinesService.list();
+        if (mounted && Array.isArray(list) && list.length) {
+          setPipelines(list);
+          if (!list.find(p => p.id === selectedPipelineId)) {
+            setSelectedPipelineId(list[0].id);
+          }
+        }
+      } catch (_) {
+        // silencioso
+      }
+    };
+    loadPipelines();
+    return () => { mounted = false; };
+  }, []);
+
+  const currentColumns = useMemo(() => {
+    const current = pipelines.find(p => p.id === selectedPipelineId) || pipelines[0];
+    return (current?.stages || DEFAULT_STAGES);
+  }, [pipelines, selectedPipelineId]);
+
+  useEffect(() => {
+    if (selectedPipelineId) {
+      localStorage.setItem("leads_selected_pipeline", selectedPipelineId);
+    }
+  }, [selectedPipelineId]);
+
   useEffect(() => {
     const onFsChange = () => {
       const fsEl = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
@@ -961,7 +1068,7 @@ const LeadsSales = () => {
         color="default"
         size="small"
         style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
-        onClick={() => {}}
+        onClick={() => setPipelineDrawerOpen(true)}
       >
         <SettingsIcon style={{ fontSize: 18 }} />
       </IconButton>
@@ -970,10 +1077,38 @@ const LeadsSales = () => {
 
   const rightFilters = ({ classes: layout }) => (
     <>
-      <div className={layout.filterItem}>
+      <div className={layout.filterItem} onClick={(e) => setAnchorPipeline(e.currentTarget)}>
         <Typography className={layout.filterLabel}>Pipeline</Typography>
         <ExpandMoreIcon className={layout.chevronIcon} />
       </div>
+      <Popover
+        open={Boolean(anchorPipeline)}
+        anchorEl={anchorPipeline}
+        onClose={() => setAnchorPipeline(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
+      >
+        <div className={classes.popoverContent}>
+          <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Selecionar pipeline</Typography>
+          <Grid container spacing={1} className={classes.popoverGrid}>
+            {pipelines.map((p) => (
+              <Grid item xs={12} key={p.id}>
+                <Button
+                  fullWidth
+                  variant={selectedPipelineId === p.id ? "contained" : "outlined"}
+                  color="primary"
+                  onClick={() => { setSelectedPipelineId(p.id); setAnchorPipeline(null); }}
+                >
+                  {p.name}
+                </Button>
+              </Grid>
+            ))}
+            <Grid item xs={12} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+              <Button onClick={() => { setAnchorPipeline(null); setPipelineDrawerOpen(true); }}>Gerenciar</Button>
+              <Button onClick={() => setAnchorPipeline(null)}>Fechar</Button>
+            </Grid>
+          </Grid>
+        </div>
+      </Popover>
       <div className={layout.filterItem} onClick={(e) => setAnchorResp(e.currentTarget)}>
         <Typography className={layout.filterLabel}>Responsável</Typography>
         <ExpandMoreIcon className={layout.chevronIcon} />
@@ -1271,7 +1406,7 @@ const LeadsSales = () => {
 
               // Fallback para Funil (contagem por status) — substitui o antigo doughnut
               const statusOrder = ["novo", "qualificacao", "proposta", "negociacao", "fechado"];
-              const LABEL_BY_KEY = COLUMN_DEFS.reduce((acc, c) => { acc[c.key] = c.label; return acc; }, {});
+              const LABEL_BY_KEY = (currentColumns || []).reduce((acc, c) => { acc[c.key] = c.label; return acc; }, {});
               const funnelCounts = statusOrder.map((k) => (leadsState || []).filter(l => String(l.status || "").toLowerCase() === k).length);
               const funnelLabels = statusOrder.map(k => LABEL_BY_KEY[k] || k.toUpperCase());
 
@@ -1562,7 +1697,10 @@ const LeadsSales = () => {
                 </div>
               );
             })()}
-            {viewMode === "list" && <LeadsList leads={leadsState} />}
+            {viewMode === "list" && (() => {
+              window.__LEADS_COLUMNS__ = currentColumns;
+              return <LeadsList leads={leadsState} />;
+            })()}
             {viewMode === "calendar" && (() => {
               const MiniMonth = ({ value, onChange }) => {
                 const m = moment(value);
@@ -1705,6 +1843,7 @@ const LeadsSales = () => {
             {viewMode === "board" && (
               <div ref={kanbanRef} className={classes.fixedContent} style={{ height: '100%' }}>
                 <LeadsKanbanBoard
+                  columns={currentColumns}
                   leads={leadsState}
                   contacts={contactsList}
                   onEdit={(lead) => { setEditing(lead); setDrawerOpen(true); }}
@@ -1855,6 +1994,25 @@ const LeadsSales = () => {
             return exists ? prev.map(p => Number(p.id) === id ? saved : p) : [saved, ...prev];
           });
           setEditing(null);
+        }}
+      />
+
+      <PipelineDrawer
+        open={pipelineDrawerOpen}
+        onClose={() => setPipelineDrawerOpen(false)}
+        title="Configurar Pipelines"
+        pipelines={pipelines}
+        selectedId={selectedPipelineId}
+        onSave={async (pipes, selId) => {
+          try {
+            const saved = await leadPipelinesService.bulkSave(pipes);
+            setPipelines(saved);
+            if (selId) setSelectedPipelineId(selId);
+            else if (saved?.length) setSelectedPipelineId(saved[0].id);
+            setPipelineDrawerOpen(false);
+          } catch (err) {
+            toastError(err);
+          }
         }}
       />
     </>

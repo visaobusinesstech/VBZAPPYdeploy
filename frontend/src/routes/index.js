@@ -59,6 +59,7 @@ import FilesPage from "../pages/FilesPage/";
 import EmailPage from "../pages/EmailPage/";
 import WhatsappDashboard from "../pages/WhatsappDashboard/";
 import LeadsConvertidos from "../pages/LeadsConvertidos/";
+import Payment from "../pages/Payment/";
 
 const RoutesContent = () => {
   const [showCampaigns, setShowCampaigns] = useState(false);
@@ -99,6 +100,7 @@ const RoutesContent = () => {
         <Route exact path="/login" component={Login} title="Login" />
         <Route exact path="/signup" component={Signup} title="Cadastro" allowWhenAuth />
         <Route exact path="/register" component={Register} title="Registrar" allowWhenAuth />
+        <Route exact path="/payment" component={Payment} title="Pagamento" allowWhenAuth />
         <WhatsAppsProvider>
           <LoggedInLayout hideMenu={isCompanyExpired()}>
                 <Route
