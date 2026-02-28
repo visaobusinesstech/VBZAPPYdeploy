@@ -450,12 +450,17 @@ const Contacts = () => {
               contactTag: JSON.stringify(selectedTags),
             },
           });
-          dispatch({ type: "LOAD_CONTACTS", payload: data.contacts });
-          setHasMore(data.hasMore);
-          setTotalContactsCount(data.count); // Armazenar contagem total
-          setLoading(false);
+          dispatch({ type: "LOAD_CONTACTS", payload: data.contacts || [] });
+          setHasMore(!!data.hasMore);
+          setTotalContactsCount(data?.count || 0); // Armazenar contagem total
         } catch (err) {
           toastError(err);
+          // Garantir que a UI não fique travada em loading em caso de erro
+          dispatch({ type: "RESET" });
+          setHasMore(false);
+          setTotalContactsCount(0);
+        } finally {
+          setLoading(false);
         }
       };
       fetchContacts();

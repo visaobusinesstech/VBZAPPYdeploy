@@ -155,11 +155,14 @@ const Wallets = () => {
               userId: selectedUserId || undefined,
             },
           });
-          dispatch({ type: "LOAD_WALLETS", payload: data.wallets });
-          setHasMore(data.hasMore);
-          setLoading(false);
+          dispatch({ type: "LOAD_WALLETS", payload: data.wallets || [] });
+          setHasMore(!!data.hasMore);
         } catch (err) {
           toastError(err);
+          dispatch({ type: "RESET" });
+          setHasMore(false);
+        } finally {
+          setLoading(false);
         }
       };
 
