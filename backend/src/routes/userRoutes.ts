@@ -4,6 +4,7 @@ import isAuth from "../middleware/isAuth";
 import * as UserController from "../controllers/UserController";
 import multer from "multer";
 import uploadConfig from "../config/upload";
+import { enforceUserQuota } from "../middleware/planQuota";
 
 const upload = multer(uploadConfig);
 
@@ -13,7 +14,7 @@ userRoutes.get("/users", isAuth, UserController.index);
 
 userRoutes.get("/users/list", isAuth, UserController.list);
 
-userRoutes.post("/users", isAuth, UserController.store);
+userRoutes.post("/users", isAuth, enforceUserQuota, UserController.store);
 
 userRoutes.put("/users/:userId", isAuth, UserController.update);
 

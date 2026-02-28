@@ -285,7 +285,7 @@ const Contacts = () => {
   
   useEffect(() => {
     async function fetchData() {
-      const settingList = await getAllSettings(user.companyId);
+      const settingList = (await getAllSettings(user.companyId)) || {};
 
       for (const [key, value] of Object.entries(settingList)) {
         if (key === "enableLGPD") setEnableLGPD(value === "enabled");

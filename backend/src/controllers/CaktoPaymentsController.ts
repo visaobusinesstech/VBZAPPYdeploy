@@ -4,6 +4,8 @@ import Company from "../models/Company";
 import User from "../models/User";
 import Subscriptions from "../models/Subscriptions";
 import { SendMailSmart } from "../helpers/SendMail";
+import logger from "../utils/logger";
+import { issueToken, resolvePlanByName } from "./PaymentConfirmationController";
 
 function addDays(date: Date, days: number) {
   const d = new Date(date.getTime());
@@ -52,12 +54,54 @@ function isCanceled(type: string) {
   return ["subscription_canceled", "refund", "chargeback"].includes(type);
 }
 
+function readProvidedToken(req: Request): string {
+  const authHeader = (req.headers["authorization"] as string) || "";
+  const bearer = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+  const headers = req.headers as Record<string, any>;
+  const candidates = [
+    headers["x-cakto-webhook-token"],
+    headers["x-webhook-token"],
+    headers["x-callback-token"],
+    headers["x-cakto-token"],
+    req.query.token,
+    req.query.secret,
+    req.query.webhook_token,
+    bearer
+  ];
+  const provided = candidates.find(v => typeof v === "string" && v.length > 0);
+  return (provided as string) || "";
+}
+
+function extractAnyEmail(payload: any): string | null {
+  const candidates = [
+    payload?.customer?.email,
+    payload?.order?.customer?.email,
+    payload?.data?.customer?.email,
+    payload?.email,
+    payload?.buyer?.email,
+    payload?.payer?.email,
+    payload?.customer_email
+  ].filter(Boolean);
+  return (candidates[0] as string) || null;
+}
+
 export async function webhook(req: Request, res: Response) {
   try {
     const secret = process.env.CAKTO_WEBHOOK_TOKEN;
-    const provided = (req.headers["x-cakto-webhook-token"] as string) || (req.query.token as string) || "";
-    if (!secret || !provided || secret !== provided) {
-      return res.status(403).json({ detail: "unauthorized" });
+    const strict = String(process.env.CAKTO_WEBHOOK_STRICT || "").toLowerCase() === "true";
+    const provided = readProvidedToken(req);
+    const authorized = secret && provided && secret === provided;
+    if (!authorized) {
+      logger.warn({
+        msg: "Webhook Cakto não autorizado",
+        path: req.path,
+        method: req.method,
+        hasToken: Boolean(provided),
+        strict
+      });
+      if (strict) {
+        return res.status(403).json({ detail: "unauthorized" });
+      }
     }
 
     const body: any = req.body;
@@ -72,9 +116,20 @@ export async function webhook(req: Request, res: Response) {
     for (const ev of events) {
       const type = parseEventType(ev);
       if (!type) continue;
-      const email = extractEmail(ev);
+      const email = extractAnyEmail(ev);
       const company = await findCompanyByEmail(email || "");
-      if (!company) continue;
+      if (!company) {
+        const planCandidate = ev?.plan?.name || ev?.plan?.title || ev?.plan || ev?.data?.plan?.name || ev?.data?.plan;
+        const rec = await issueToken(email || "", undefined, planCandidate ? String(planCandidate) : undefined);
+        const link = `${process.env.FRONTEND_URL?.replace(/\/$/, "")}/confirm?token=${rec.token}`;
+        await SendMailSmart({
+          to: email || "",
+          subject: "Confirme seu acesso",
+          text: `Seu pagamento foi reconhecido. Conclua seu cadastro e crie sua senha: ${link}`
+        });
+        logger.info({ msg: "Token de confirmação emitido para pagamento aprovado sem empresa", email, type });
+        continue;
+      }
 
       const cycle = extractCycle(ev) || company.recurrence || "";
       const days = resolveCycleDays(cycle);
@@ -84,6 +139,13 @@ export async function webhook(req: Request, res: Response) {
       const nextDueStr = nextDue.toISOString().slice(0, 10);
 
       if (isApproved(type)) {
+        const planCandidate = ev?.plan?.name || ev?.plan?.title || ev?.plan || ev?.data?.plan?.name || ev?.data?.plan;
+        if (planCandidate) {
+          const plan = await resolvePlanByName(String(planCandidate));
+          if (plan && company.planId !== (plan as any).id) {
+            await company.update({ planId: (plan as any).id } as any);
+          }
+        }
         await company.update({ dueDate: nextDueStr, status: true } as any);
         let sub = await Subscriptions.findOne({ where: { companyId: company.id } as any });
         if (!sub) {
@@ -95,6 +157,14 @@ export async function webhook(req: Request, res: Response) {
         } else {
           await sub.update({ isActive: true, expiresAt: nextDue } as any);
         }
+        const rec = await issueToken(company.email || "", company.id, company.plan?.name || company.recurrence || undefined);
+        const link = `${process.env.FRONTEND_URL?.replace(/\/$/, "")}/confirm?token=${rec.token}`;
+        await SendMailSmart({
+          to: company.email || "",
+          subject: "Confirme seu acesso",
+          text: `Seu pagamento foi aprovado. Crie sua senha para acessar: ${link}`
+        });
+        logger.info({ msg: "Pagamento aprovado/renovado processado", companyId: company.id, nextDue: nextDueStr });
         await SendMailSmart({
           to: "visaobusinesstech@gmail.com",
           subject: "Pagamento aprovado",
@@ -110,6 +180,7 @@ export async function webhook(req: Request, res: Response) {
         } else {
           await sub.update({ isActive: false } as any);
         }
+        logger.info({ msg: "Pagamento recusado processado", companyId: company.id });
         await SendMailSmart({
           to: "visaobusinesstech@gmail.com",
           subject: "Pagamento recusado",
@@ -121,6 +192,7 @@ export async function webhook(req: Request, res: Response) {
         if (sub) {
           await sub.update({ isActive: false } as any);
         }
+        logger.info({ msg: "Assinatura cancelada/estorno processada", companyId: company.id });
         await SendMailSmart({
           to: "visaobusinesstech@gmail.com",
           subject: "Assinatura cancelada/estorno",
@@ -131,6 +203,7 @@ export async function webhook(req: Request, res: Response) {
 
     return res.status(200).json({ detail: "ok" });
   } catch (e) {
+    logger.error({ msg: "Erro no webhook Cakto", error: (e as Error)?.message });
     return res.status(500).json({ detail: "error" });
   }
 }

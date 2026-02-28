@@ -79,6 +79,7 @@ import EmailTemplateAttachment from "../models/EmailTemplateAttachment";
 import LeadPipeline from "../models/LeadPipeline";
 import LeadPipelineStage from "../models/LeadPipelineStage";
 import ActivityStage from "../models/ActivityStage";
+import PaymentConfirmationToken from "../models/PaymentConfirmationToken";
 
 // eslint-disable-next-line
 const dbConfig = require("../config/database");
@@ -165,7 +166,8 @@ const models = [
   Inventory,
   LeadPipeline,
   LeadPipelineStage,
-  ActivityStage
+  ActivityStage,
+  PaymentConfirmationToken
 ];
 
 sequelize.addModels(models);

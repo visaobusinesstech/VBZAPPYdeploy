@@ -19,7 +19,8 @@ import {
   StepLabel,
   makeStyles,
   IconButton,
-  Paper
+  Paper,
+  Button
 } from "@material-ui/core";
 import { toast } from "react-toastify";
 import usePlans from "../../hooks/usePlans";
@@ -37,6 +38,8 @@ import USFlag from "../../assets/unitedstates.png";
 import ESFlag from "../../assets/esspain.png";
 import ARFlag from "../../assets/arabe.png";
 import PlanosPreview from "../../PlanosPreview";
+import { AuthContext } from "../../context/Auth/AuthContext";
+import api from "../../services/api";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -284,6 +287,7 @@ const Register = () => {
   const history = useHistory();
   const theme = useTheme();
   const { colorMode } = useContext(ColorModeContext);
+  const { handleLogin } = useContext(AuthContext) || {};
   const [lang, setLang] = useState(i18n.language);
   const { getPlanList } = usePlans();
   const [plans, setPlans] = useState([]);
@@ -292,6 +296,18 @@ const Register = () => {
   const [validatingCep, setValidatingCep] = useState(false);
   const [selectedCycle, setSelectedCycle] = useState(null); // mensal|semestral|anual
   const [selectedTier, setSelectedTier] = useState(null); // starter|essencial|pro
+  const [confirmToken, setConfirmToken] = useState(null);
+  const [confirmEmail, setConfirmEmail] = useState("");
+  const [confirmBusy, setConfirmBusy] = useState(false);
+  const [confirmErr, setConfirmErr] = useState("");
+  const [confirmEmailPay, setConfirmEmailPay] = useState("");
+  const [confirmBusyPay, setConfirmBusyPay] = useState(false);
+  const [confirmErrPay, setConfirmErrPay] = useState("");
+  const [accessEmail, setAccessEmail] = useState("");
+  const [accessPassword, setAccessPassword] = useState("");
+  const [accessPassword2, setAccessPassword2] = useState("");
+  const [accessBusy, setAccessBusy] = useState(false);
+  const [accessErr, setAccessErr] = useState("");
 
   useEffect(() => {
     const handler = lng => setLang(lng);
@@ -318,7 +334,7 @@ const Register = () => {
     tKey("register.steps.address", "Endereço"),
     tKey("register.steps.plans", "Planos"),
     tKey("register.steps.payment", "Pagamento"),
-    tKey("register.steps.confirmation", "Confirmação")
+    tKey("register.steps.access", "Acesso")
   ];
 
   const resolvePaymentLink = (cycle, tier) => {
@@ -660,7 +676,7 @@ const Register = () => {
   );
 
   const Section4 = ({ values, touched, errors }) => (
-    <Box>
+    <Box style={{ position: "relative" }}>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
           <PlanosPreview
@@ -682,35 +698,154 @@ const Register = () => {
           </Field>
         </Grid>
       </Grid>
+      {/* Campo de confirmação de pagamento removido da seção Planos */}
     </Box>
   );
 
-  const Section5 = ({ touched, errors }) => (
-    <Box>
-      <Grid container spacing={1} className={classes.inputGroup}>
-        <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="email" label={tKey("register.labels.loginEmail", "E-mail de acesso")} variant="outlined" fullWidth error={touched.email && Boolean(errors.email)} helperText={touched.email && errors.email} />
+  const Section5 = ({ touched, errors, values }) => {
+    useEffect(() => {
+      let mounted = true;
+      const run = async () => {
+        if (!confirmToken) return;
+        try {
+          const r = await openApi.get(`/auth/confirm/${confirmToken}`);
+          if (mounted && r?.data?.email) {
+            setAccessEmail(r.data.email);
+          }
+        } catch {}
+      };
+      run();
+      return () => {
+        mounted = false;
+      };
+    }, [confirmToken]);
+    const [valid, setValid] = React.useState(false);
+    const [mismatch, setMismatch] = React.useState(false);
+    const passRef = React.useRef(null);
+    const confirmRef = React.useRef(null);
+    const recompute = React.useCallback(() => {
+      const p = passRef.current?.value || "";
+      const c = confirmRef.current?.value || "";
+      const okLen = p.length >= 6;
+      const okMix = /[A-Za-z]/.test(p) && /[0-9]/.test(p);
+      const okMatch = c.length > 0 && p === c;
+      setMismatch(c.length > 0 && p !== c);
+      setValid(okLen && okMix && okMatch);
+    }, []);
+    if (confirmToken) {
+      return (
+        <Box p={2} display="flex" justifyContent="center">
+          <Box style={{ width: "100%", maxWidth: 520 }}>
+            <Box className={classes.inputGroup}>
+              <TextField
+                label={tKey("register.labels.loginEmail", "E-mail de acesso")}
+                value={accessEmail || values.email}
+                variant="outlined"
+                fullWidth
+                disabled
+              />
+            </Box>
+            <Box className={classes.inputGroup}>
+              <TextField
+                label={tKey("register.labels.password", "Senha")}
+                type="password"
+                inputRef={passRef}
+                onChange={recompute}
+                onInput={recompute}
+                variant="outlined"
+                fullWidth
+                autoComplete="new-password"
+                inputProps={{ autoCapitalize: "none", autoCorrect: "off", spellCheck: false }}
+              />
+            </Box>
+            <Box className={classes.inputGroup}>
+              <TextField
+                label="Confirmar senha"
+                type="password"
+                inputRef={confirmRef}
+                onChange={recompute}
+                onInput={recompute}
+                variant="outlined"
+                fullWidth
+                autoComplete="new-password"
+                inputProps={{ autoCapitalize: "none", autoCorrect: "off", spellCheck: false }}
+                error={mismatch}
+                helperText={mismatch ? "As senhas não coincidem" : ""}
+              />
+            </Box>
+            <Typography variant="caption" color="textSecondary">
+              A senha deve ter no mínimo 6 caracteres, contendo letras e números.
+            </Typography>
+            <Box mt={1} display="flex" justifyContent="center">
+              <Button
+                color="primary"
+                variant="contained"
+                disabled={accessBusy || !valid}
+                onClick={async () => {
+                  const p = passRef.current?.value || "";
+                  const nameValue = values.legalName || values.companyName || (accessEmail || values.email || "").split("@")[0];
+                  setAccessBusy(true);
+                  setAccessErr("");
+                  try {
+                    await openApi.post(`/auth/confirm/${confirmToken}`, {
+                      name: nameValue,
+                      password: p
+                    });
+                    try {
+                      // encerra qualquer sessão anterior
+                      localStorage.removeItem("token");
+                      await api.delete("/auth/logout");
+                    } catch {}
+                    if (handleLogin) {
+                      await handleLogin({ email: accessEmail || values.email, password: p });
+                    } else {
+                      window.location.assign("/login");
+                    }
+                  } catch (e) {
+                    setAccessErr("Falha ao criar acesso");
+                  }
+                  setAccessBusy(false);
+                }}
+              >
+                Salvar e continuar
+              </Button>
+              {accessErr ? (
+                <Typography variant="caption" color="error" style={{ marginLeft: 8 }}>
+                  {accessErr}
+                </Typography>
+              ) : null}
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+    return (
+      <Box>
+        <Grid container spacing={1} className={classes.inputGroup}>
+          <Grid item xs={12} sm={6}>
+            <Field as={TextField} name="email" label={tKey("register.labels.loginEmail", "E-mail de acesso")} variant="outlined" fullWidth error={touched.email && Boolean(errors.email)} helperText={touched.email && errors.email} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Field as={TextField} name="password" label={tKey("register.labels.password", "Senha")} type="password" variant="outlined" fullWidth error={touched.password && Boolean(errors.password)} helperText={touched.password && errors.password} />
+          </Grid>
+          <Grid item xs={12} sm={6}>
+            <Field as={TextField} name="phone" label={tKey("register.labels.whatsapp", "Telefone (WhatsApp)")} variant="outlined" fullWidth />
+          </Grid>
+          <Grid item xs={12}>
+            <FormControlLabel
+              control={
+                <Field as={Checkbox} name="acceptTerms" color="primary" />
+              }
+              label={tKey("register.labels.terms", "Li e aceito os Termos e a Política de Privacidade")}
+            />
+            {touched.acceptTerms && errors.acceptTerms && (
+              <Typography color="error" variant="caption">{errors.acceptTerms}</Typography>
+            )}
+          </Grid>
         </Grid>
-        <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="password" label={tKey("register.labels.password", "Senha")} type="password" variant="outlined" fullWidth error={touched.password && Boolean(errors.password)} helperText={touched.password && errors.password} />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="phone" label={tKey("register.labels.whatsapp", "Telefone (WhatsApp)")} variant="outlined" fullWidth />
-        </Grid>
-        <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Field as={Checkbox} name="acceptTerms" color="primary" />
-            }
-            label={tKey("register.labels.terms", "Li e aceito os Termos e a Política de Privacidade")}
-          />
-          {touched.acceptTerms && errors.acceptTerms && (
-            <Typography color="error" variant="caption">{errors.acceptTerms}</Typography>
-          )}
-        </Grid>
-      </Grid>
-    </Box>
-  );
+      </Box>
+    );
+  };
 
   const SectionPayment = ({ values }) => {
     const urlBase = resolvePaymentLink(selectedCycle, selectedTier);
@@ -720,18 +855,104 @@ const Register = () => {
     useEffect(() => {
       setLoaded(false);
     }, [urlBase, values?.email]);
+    useEffect(() => {
+      if (!values?.email) return;
+      let timer = null;
+      const tick = async () => {
+        try {
+          const r = await openApi.get("/auth/confirm/by-email", { params: { email: values.email } });
+          if (r?.data?.token) {
+            setConfirmToken(r.data.token);
+            setActiveStep(5);
+          }
+        } catch {}
+      };
+      timer = setInterval(tick, 4000);
+      tick();
+      return () => {
+        if (timer) clearInterval(timer);
+      };
+    }, [values?.email, urlBase]);
     return (
       <Box display="flex" alignItems="center" justifyContent="center" style={{ minHeight: 420, width: "100%", paddingLeft: 4, paddingRight: 4, boxSizing: "border-box" }}>
-        <Paper variant="outlined" style={{ width: "calc(100vw - 8px)", height: 720, maxWidth: "100vw", maxHeight: "80vh", borderRadius: 16, overflow: "hidden", position: "relative" }}>
+        <Paper variant="outlined" style={{ width: "calc(100vw - 8px)", height: 600, maxWidth: "100vw", maxHeight: "78vh", borderRadius: 16, overflow: "hidden", display: "flex", flexDirection: "column" }}>
           {url ? (
             <>
-              {!loaded && (
-                <Box position="absolute" top={0} left={0} right={0} bottom={0} display="flex" alignItems="center" justifyContent="center" flexDirection="column" style={{ background: "rgba(0,0,0,0.08)" }}>
-                  <CircularProgress size={28} />
-                  <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>Carregando checkout...</Typography>
-                </Box>
-              )}
-              <iframe title="Pagamento" src={url} onLoad={() => setLoaded(true)} style={{ width: "100%", height: "100%", border: "none" }} />
+              <Box style={{ position: "relative", flex: "1 1 auto" }}>
+                {!loaded && (
+                  <Box position="absolute" top={0} left={0} right={0} bottom={0} display="flex" alignItems="center" justifyContent="center" flexDirection="column" style={{ background: "rgba(0,0,0,0.08)" }}>
+                    <CircularProgress size={28} />
+                    <Typography variant="caption" color="textSecondary" style={{ marginTop: 8 }}>Carregando checkout...</Typography>
+                  </Box>
+                )}
+                <iframe title="Pagamento" src={url} onLoad={() => setLoaded(true)} style={{ width: "100%", height: "100%", border: "none" }} />
+              </Box>
+              <Box display="flex" alignItems="center" justifyContent="center" style={{ gap: 6, background: "transparent", borderTop: "1px solid rgba(0,0,0,0.06)", padding: 8 }}>
+                <Typography variant="caption" color="textSecondary" style={{ marginRight: 6, opacity: 0.9 }}>
+                  Confirme seu pagamento:
+                </Typography>
+                <TextField
+                  value={confirmEmailPay}
+                  onChange={e => setConfirmEmailPay(e.target.value)}
+                  placeholder="E-mail do checkout"
+                  variant="outlined"
+                  size="small"
+                  type="email"
+                  autoFocus
+                  inputProps={{ autoCapitalize: "none", autoCorrect: "off", spellCheck: false }}
+                  style={{ width: 240 }}
+                />
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  disabled={!confirmEmailPay || confirmBusyPay}
+                  onClick={async () => {
+                    setConfirmBusyPay(true);
+                    setConfirmErrPay("");
+                    try {
+                      const r = await openApi.get("/auth/confirm/by-email", { params: { email: confirmEmailPay } });
+                      if (r?.data?.token) {
+                        setConfirmErrPay("");
+                        setConfirmBusyPay(false);
+                        setConfirmToken(r.data.token);
+                        setActiveStep(5);
+                        return;
+                      }
+                    } catch {
+                      // segue para o polling
+                    }
+                    setConfirmErrPay("Aguardando aprovação...");
+                    let tries = 0;
+                    const poll = setInterval(async () => {
+                      try {
+                        const r = await openApi.get("/auth/confirm/by-email", { params: { email: confirmEmailPay } });
+                        if (r?.data?.token) {
+                          clearInterval(poll);
+                          setConfirmErrPay("");
+                          setConfirmBusyPay(false);
+                          setConfirmToken(r.data.token);
+                          setActiveStep(5);
+                          return;
+                        }
+                      } catch {}
+                      tries += 1;
+                      if (tries > 25) {
+                        clearInterval(poll);
+                        setConfirmBusyPay(false);
+                        setConfirmErrPay("Não encontrado");
+                      }
+                    }, 3000);
+                  }}
+                >
+                  Confirmar
+                </Button>
+                {confirmErrPay ? (
+                  <Typography variant="caption" color={confirmErrPay.includes("Aguardando") ? "textSecondary" : "error"} style={{ marginLeft: 6 }}>
+                    {confirmErrPay}
+                  </Typography>
+                ) : null}
+              </Box>
             </>
           ) : (
             <Box p={3} textAlign="center" color="textSecondary">
@@ -817,7 +1038,7 @@ const Register = () => {
                 {activeStep === 2 && <SectionAddress setFieldValue={setFieldValue} />}
                 {activeStep === 3 && <Section4 values={values} touched={touched} errors={errors} />}
                 {activeStep === 4 && <SectionPayment values={values} setFieldValue={setFieldValue} />}
-                {activeStep === 5 && <Section5 touched={touched} errors={errors} />}
+                {activeStep === 5 && <Section5 touched={touched} errors={errors} values={values} />}
 
                 <IconButton
                   className={classes.navButtonLeft}

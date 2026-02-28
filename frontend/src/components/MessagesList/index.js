@@ -528,7 +528,7 @@ const MessagesList = ({
 
   useEffect(() => {
     async function fetchData() {
-      const settings = await getAll(companyId);
+      const settings = (await getAll(companyId)) || {};
 
       let settinglgpdDeleteMessage;
       let settingEnableLGPD;

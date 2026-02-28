@@ -1,5 +1,6 @@
 import express from "express";
 import isAuth from "../middleware/isAuth";
+import { enforceConnectionQuota } from "../middleware/planQuota";
 
 import * as WhatsAppController from "../controllers/WhatsAppController";
 
@@ -18,8 +19,8 @@ whatsappRoutes.get("/whatsapp/filter", isAuth, WhatsAppController.indexFilter);
 whatsappRoutes.get("/whatsapp/all", isAuth, WhatsAppController.listAll);
 whatsappRoutes.get("/whatsapp/sync-templates/:whatsappId", isAuth, WhatsAppController.syncTemplatesOficial);
 
-whatsappRoutes.post("/whatsapp/", isAuth, WhatsAppController.store);
-whatsappRoutes.post("/facebook/", isAuth, WhatsAppController.storeFacebook);
+whatsappRoutes.post("/whatsapp/", isAuth, enforceConnectionQuota, WhatsAppController.store);
+whatsappRoutes.post("/facebook/", isAuth, enforceConnectionQuota, WhatsAppController.storeFacebook);
 whatsappRoutes.get("/whatsapp/:whatsappId", isAuth, WhatsAppController.show);
 whatsappRoutes.put("/whatsapp/:whatsappId", isAuth, WhatsAppController.update);
 whatsappRoutes.delete("/whatsapp/:whatsappId", isAuth, WhatsAppController.remove);
