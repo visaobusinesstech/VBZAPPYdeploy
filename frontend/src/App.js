@@ -177,7 +177,7 @@ const App = () => {
               letterSpacing: '-0.025em',
             },
             h6: {
-              fontWeight: 600,
+              fontWeight: 400,
               letterSpacing: '-0.025em',
             },
             button: {
@@ -197,6 +197,12 @@ const App = () => {
                   backgroundColor: mode === "light" ? "#f5f5f5" : "#333",
                   overflowX: "hidden",
                   overflowY: "hidden", // Hide native scrollbar
+                  fontFamily: [
+                    '"Helvetica Neue"',
+                    'Helvetica',
+                    'Arial',
+                    'sans-serif',
+                  ].join(','),
                 },
                 // Labels e bordas em Modais (Drawer/Dialog)
                 ".MuiDrawer-paper .MuiFormLabel-root, .MuiDialog-paper .MuiFormLabel-root, .MuiDrawer-paper .MuiInputLabel-root, .MuiDialog-paper .MuiInputLabel-root": {

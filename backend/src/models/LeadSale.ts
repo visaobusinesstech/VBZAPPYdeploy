@@ -39,6 +39,21 @@ class LeadSale extends Model<LeadSale> {
   @Column
   phone: string;
 
+  @Column
+  site: string;
+
+  @Column
+  origin: string;
+
+  @Column
+  document: string;
+
+  @Column
+  birthDate: Date;
+
+  @Column(DataType.JSON)
+  address: any;
+
   @Column(DataType.JSON)
   tags: string[];
 

@@ -1,6 +1,136 @@
 const messages = {
   ar: {
     translations: {
+      register: {
+        steps: {
+          discovery: "الاحتياجات",
+          company: "بيانات الشركة",
+          address: "العنوان",
+          plans: "الخطط",
+          payment: "الدفع",
+          confirmation: "التأكيد"
+        },
+        labels: {
+          niche: "مجال العمل",
+          foundUs: "كيف تعرفت علينا",
+          needs: "الاحتياجات",
+          companyName: "اسم الشركة",
+          userName: "اسم المستخدم",
+          email: "البريد الإلكتروني",
+          fullName: "الاسم الكامل",
+          phone: "الهاتف",
+          publicName: "الاسم العام للشركة",
+          loginEmail: "بريد الدخول",
+          password: "كلمة المرور",
+          whatsapp: "الهاتف (واتساب)",
+          terms: "أوافق على الشروط وسياسة الخصوصية"
+        },
+        address: {
+          cep: "الرمز البريدي",
+          street: "الشارع",
+          number: "الرقم",
+          complement: "مكمل",
+          neighborhood: "الحي",
+          city: "المدينة",
+          state: "الولاية"
+        },
+        options: {
+          niches: {
+            retail: "تجزئة",
+            services: "خدمات",
+            education: "تعليم",
+            health: "صحة",
+            realEstate: "عقارات",
+            technology: "تقنية",
+            other: "أخرى"
+          },
+          foundUs: {
+            google: "جوجل",
+            referral: "ترشيح",
+            social: "شبكات اجتماعية",
+            marketplace: "متجر/شريك",
+            other: "أخرى"
+          },
+          needs: {
+            whatsappSupport: "دعم واتساب",
+            chatbotFlows: "روبوت دردشة/تدفقات",
+            campaigns: "حملات",
+            reportsNps: "تقارير/NPS",
+            integrations: "تكاملات",
+            leadManagement: "إدارة العملاء المحتملين",
+            crmPipeline: "CRM ومسار المبيعات",
+            projectManagement: "إدارة المشاريع",
+            kanbanTasks: "كانبان/مهام",
+            emailMarketing: "تسويق عبر البريد",
+            omnichannelCampaigns: "حملات متعددة القنوات",
+            telephonyDialer: "هاتف/الاتصال الآلي",
+            formsCapture: "نماذج وجمع",
+            calendar: "تقويم",
+            advancedReportsBi: "تقارير متقدمة/BI",
+            taskAutomation: "أتمتة المهام",
+            erpEcommerceIntegrations: "تكاملات ERP/التجارة",
+            aiAgents: "وكلاء ذكاء اصطناعي",
+            other: "أخرى"
+          }
+        },
+        plans: {
+          cycle: {
+            annual: "سنوي",
+            semiannual: "نصف سنوي",
+            monthly: "شهري"
+          },
+          planNames: {
+            starter: "المبدئي",
+            essential: "الأساسي",
+            pro: "المحترف"
+          },
+          bestPrice: "أفضل سعر",
+          bestSeller: "الأكثر مبيعاً",
+          actions: {
+            startNow: "ابدأ الآن"
+          },
+          priceSuffix: "/شهري",
+          descriptions: {
+            starter: "موارد أساسية للبدء مع فريق صغير.",
+            essential: "ميزات متقدمة وحدود موسعة للتوسع.",
+            pro: "للمقياس العالي مع أتمتة وتكاملات غير محدودة."
+          },
+          features: {
+            starter: [
+              "إنشاء وإدارة الصفقات والمنتجات.",
+              "إدارة حتى 10 آلاف عميل محتمل مع الوسوم.",
+              "تسجيل حتى 3 أعضاء في الشركة.",
+              "أتمتة للتفاعل مع العملاء المحتملين.",
+              "دعم متعدد حتى اتصالين (واتساب).",
+              "تكاملان مع Webhooks.",
+              "لوحات تحكم لأنابيب المبيعات."
+            ],
+            essential: [
+              "أنابيب غير محدودة.",
+              "إدارة حتى 100 ألف عميل محتمل.",
+              "تسجيل 15 عضواً في الشركة.",
+              "أتمتة متقدمة.",
+              "حتى 10 اتصالات (واتساب).",
+              "15 تكاملاً مع Webhooks.",
+              "لوحات تحكم للأعمال.",
+              "الوصول إلى واجهة برمجة التكامل."
+            ],
+            pro: [
+              "أنابيب غير محدودة.",
+              "عملاء محتملون غير محدودين مع وسوم.",
+              "صفقات ومنتجات متقدمة.",
+              "أعضاء غير محدودين في الشركة.",
+              "أتمتة غير محدودة.",
+              "اتصالات غير محدودة (واتساب).",
+              "تكاملات Webhooks غير محدودة.",
+              "لوحات تحكم وواجهة برمجة التكامل."
+            ]
+          }
+        }
+      },
+      common: {
+        select: "اختر"
+      },
       signup: {
         title: "إنشاء حساب",
         toasts: {

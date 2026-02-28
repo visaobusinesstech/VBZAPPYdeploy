@@ -282,6 +282,19 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     contactId: null,
     responsibleId: null,
     date: "",
+    site: "",
+    origin: "",
+    document: "",
+    birthDate: "",
+    address: {
+      cep: "",
+      street: "",
+      number: "",
+      complement: "",
+      neighborhood: "",
+      city: "",
+      state: ""
+    },
     tags: []
   });
 
@@ -296,6 +309,19 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
         contactId: lead.contactId || null,
         responsibleId: lead.responsibleId || null,
         date: lead.date ? String(lead.date).slice(0,10) : "",
+        site: lead.site || "",
+        origin: lead.origin || "",
+        document: lead.document || "",
+        birthDate: lead.birthDate ? String(lead.birthDate).slice(0,10) : "",
+        address: {
+          cep: lead.address?.cep || "",
+          street: lead.address?.street || "",
+          number: lead.address?.number || "",
+          complement: lead.address?.complement || "",
+          neighborhood: lead.address?.neighborhood || "",
+          city: lead.address?.city || "",
+          state: lead.address?.state || ""
+        },
         tags: Array.isArray(lead.tags) ? lead.tags : []
       });
       setPhone(lead.phone || "");
@@ -309,6 +335,19 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
         contactId: null,
         responsibleId: null,
         date: "",
+        site: "",
+        origin: "",
+        document: "",
+        birthDate: "",
+        address: {
+          cep: "",
+          street: "",
+          number: "",
+          complement: "",
+          neighborhood: "",
+          city: "",
+          state: ""
+        },
         tags: []
       });
       setPhone("");
@@ -485,6 +524,10 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     const value = e?.target?.value;
     setForm((prev) => ({ ...prev, [field]: value }));
   };
+  const handleAddressChange = (field) => (e) => {
+    const value = e?.target?.value;
+    setForm((prev) => ({ ...prev, address: { ...(prev.address || {}), [field]: value } }));
+  };
 
   const handleSubmit = async () => {
     try {
@@ -508,6 +551,19 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
         value: Number(form.value) || 0,
         companyName: (form.companyName || "").trim() || undefined,
         phone: sanitizePhone(phone) || undefined,
+        site: (form.site || "").trim() || undefined,
+        origin: (form.origin || "").trim() || undefined,
+        document: (form.document || "").replace(/\D/g, "") || undefined,
+        birthDate: form.birthDate && String(form.birthDate).trim() !== "" ? form.birthDate : undefined,
+        address: (() => {
+          const a = form.address || {};
+          const clean = Object.keys(a).reduce((acc, k) => {
+            const v = a[k];
+            if (v !== undefined && v !== null && String(v).trim() !== "") acc[k] = v;
+            return acc;
+          }, {});
+          return Object.keys(clean).length ? clean : undefined;
+        })(),
         contactId: form.contactId || undefined,
         responsibleId:
           form.responsibleId === "" || form.responsibleId === null || form.responsibleId === undefined
@@ -656,6 +712,152 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             <div style={{ height: 12 }} />
             <div className={classes.cardRow}>
               <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Site</div>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  placeholder="https://..."
+                  value={form.site}
+                  onChange={handleChange("site")}
+                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Origem</div>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  placeholder="Ex.: Google, Indicação, Redes sociais"
+                  value={form.origin}
+                  onChange={handleChange("origin")}
+                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Documento (CPF/CNPJ)</div>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  placeholder="Somente números"
+                  value={form.document}
+                  onChange={handleChange("document")}
+                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Data de Nascimento</div>
+                <TextField
+                  type="date"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={form.birthDate}
+                  onChange={handleChange("birthDate")}
+                  InputLabelProps={{ shrink: true }}
+                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Endereço</div>
+                <Grid container spacing={1}>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="CEP"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.cep || ""}
+                      onChange={handleAddressChange("cep")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={8}>
+                    <TextField
+                      label="Logradouro"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.street || ""}
+                      onChange={handleAddressChange("street")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Número"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.number || ""}
+                      onChange={handleAddressChange("number")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={8}>
+                    <TextField
+                      label="Complemento"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.complement || ""}
+                      onChange={handleAddressChange("complement")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      label="Bairro"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.neighborhood || ""}
+                      onChange={handleAddressChange("neighborhood")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <TextField
+                      label="Cidade"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.city || ""}
+                      onChange={handleAddressChange("city")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={2}>
+                    <TextField
+                      label="UF"
+                      variant="outlined"
+                      size="small"
+                      fullWidth
+                      value={form.address?.state || ""}
+                      onChange={handleAddressChange("state")}
+                      InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  </Grid>
+                </Grid>
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
                 <div className={classes.fieldLabel}>Descrição</div>
                 <TextField
                   variant="outlined"
@@ -779,6 +981,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                           contactId={ticket.contact?.id}
                           whatsappId={ticket.whatsappId}
                           disableAutoFocus
+                          allowAiWhileClosed
                         />
                       </QueueSelectedProvider>
                     </EditMessageProvider>
@@ -916,6 +1119,152 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                       ))}
                     </Select>
                   </FormControl>
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Site</div>
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    placeholder="https://..."
+                    value={form.site}
+                    onChange={handleChange("site")}
+                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Origem</div>
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    placeholder="Ex.: Google, Indicação, Redes sociais"
+                    value={form.origin}
+                    onChange={handleChange("origin")}
+                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Documento (CPF/CNPJ)</div>
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    placeholder="Somente números"
+                    value={form.document}
+                    onChange={handleChange("document")}
+                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Data de Nascimento</div>
+                  <TextField
+                    type="date"
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    value={form.birthDate}
+                    onChange={handleChange("birthDate")}
+                    InputLabelProps={{ shrink: true }}
+                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Endereço</div>
+                  <Grid container spacing={1}>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="CEP"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.cep || ""}
+                        onChange={handleAddressChange("cep")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        label="Logradouro"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.street || ""}
+                        onChange={handleAddressChange("street")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Número"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.number || ""}
+                        onChange={handleAddressChange("number")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={8}>
+                      <TextField
+                        label="Complemento"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.complement || ""}
+                        onChange={handleAddressChange("complement")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        label="Bairro"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.neighborhood || ""}
+                        onChange={handleAddressChange("neighborhood")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={4}>
+                      <TextField
+                        label="Cidade"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.city || ""}
+                        onChange={handleAddressChange("city")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={2}>
+                      <TextField
+                        label="UF"
+                        variant="outlined"
+                        size="small"
+                        fullWidth
+                        value={form.address?.state || ""}
+                        onChange={handleAddressChange("state")}
+                        InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    </Grid>
+                  </Grid>
                 </div>
               </div>
               <div style={{ height: 12 }} />

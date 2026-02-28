@@ -1,6 +1,136 @@
 const messages = {
   es: {
     translations: {
+      register: {
+        steps: {
+          discovery: "Encuentro y necesidades",
+          company: "Datos de la empresa",
+          address: "Dirección",
+          plans: "Planes",
+          payment: "Pago",
+          confirmation: "Confirmación"
+        },
+        labels: {
+          niche: "Rubro de actuación",
+          foundUs: "Cómo nos conociste",
+          needs: "Necesidad",
+          companyName: "Nombre de la empresa",
+          userName: "Nombre del usuario",
+          email: "Correo",
+          fullName: "Nombre completo",
+          phone: "Teléfono",
+          publicName: "Nombre público de la empresa",
+          loginEmail: "Correo de acceso",
+          password: "Contraseña",
+          whatsapp: "Teléfono (WhatsApp)",
+          terms: "Acepto los Términos y la Política de Privacidad"
+        },
+        address: {
+          cep: "Código postal",
+          street: "Calle",
+          number: "Número",
+          complement: "Complemento",
+          neighborhood: "Barrio",
+          city: "Ciudad",
+          state: "Estado"
+        },
+        options: {
+          niches: {
+            retail: "Minorista",
+            services: "Servicios",
+            education: "Educación",
+            health: "Salud",
+            realEstate: "Inmobiliario",
+            technology: "Tecnología",
+            other: "Otro"
+          },
+          foundUs: {
+            google: "Google",
+            referral: "Recomendación",
+            social: "Redes sociales",
+            marketplace: "Marketplace/Socio",
+            other: "Otro"
+          },
+          needs: {
+            whatsappSupport: "Atención con WhatsApp",
+            chatbotFlows: "Chatbot/Flujos",
+            campaigns: "Campañas",
+            reportsNps: "Informes/NPS",
+            integrations: "Integraciones",
+            leadManagement: "Gestión de leads",
+            crmPipeline: "CRM y embudo de ventas",
+            projectManagement: "Gestión de proyectos",
+            kanbanTasks: "Kanban/Tareas",
+            emailMarketing: "Email marketing",
+            omnichannelCampaigns: "Campañas omnicanal",
+            telephonyDialer: "Telefonía/Marcador",
+            formsCapture: "Formularios y capturas",
+            calendar: "Agenda/Calendario",
+            advancedReportsBi: "Informes avanzados/BI",
+            taskAutomation: "Automatización de tareas",
+            erpEcommerceIntegrations: "Integraciones ERP/E-commerce",
+            aiAgents: "Agentes de IA",
+            other: "Otro"
+          }
+        },
+        plans: {
+          cycle: {
+            annual: "Anual",
+            semiannual: "Semestral",
+            monthly: "Mensual"
+          },
+          planNames: {
+            starter: "Inicial",
+            essential: "Esencial",
+            pro: "Pro"
+          },
+          bestPrice: "Mejor precio",
+          bestSeller: "Más vendido",
+          actions: {
+            startNow: "Empieza ahora"
+          },
+          priceSuffix: "/mes",
+          descriptions: {
+            starter: "Recursos esenciales para empezar con un equipo reducido.",
+            essential: "Funciones avanzadas y límites ampliados para escalar.",
+            pro: "Para gran escala con automatizaciones e integraciones ilimitadas."
+          },
+          features: {
+            starter: [
+              "Crear y gestionar negocios y productos.",
+              "Gestionar hasta 10k leads con control de etiquetas.",
+              "Registro de hasta 3 miembros de la empresa.",
+              "Automatizaciones para interactuar con leads.",
+              "Atención múltiple con hasta 2 conexiones (WhatsApp).",
+              "2 integraciones con Webhooks.",
+              "Tableros de negocios de las pipelines."
+            ],
+            essential: [
+              "Pipelines ilimitadas.",
+              "Gestionar hasta 100k leads.",
+              "Registro de 15 miembros de la empresa.",
+              "Automatizaciones avanzadas.",
+              "Hasta 10 conexiones (WhatsApp).",
+              "15 integraciones con Webhooks.",
+              "Tableros de negocios.",
+              "Acceso a la API de integración."
+            ],
+            pro: [
+              "Pipelines ilimitadas.",
+              "Leads ilimitados con etiquetas.",
+              "Negocios y productos avanzados.",
+              "Miembros ilimitados en la empresa.",
+              "Automatizaciones ilimitadas.",
+              "Conexiones ilimitadas (WhatsApp).",
+              "Integraciones con Webhooks ilimitadas.",
+              "Tableros y API de integración."
+            ]
+          }
+        }
+      },
+      common: {
+        select: "Seleccione"
+      },
       signup: {
         title: "Registro",
         toasts: {

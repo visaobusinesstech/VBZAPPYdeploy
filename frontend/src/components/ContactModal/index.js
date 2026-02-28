@@ -63,7 +63,9 @@ const useStyles = makeStyles(theme => ({
 		borderBottom: "1px solid #eee",
 	},
 	drawerTitle: {
-		fontWeight: 600,
+		fontWeight: 400,
+		letterSpacing: 0,
+		color: "#0F172A",
 		textAlign: "center",
 	},
 	drawerClose: {

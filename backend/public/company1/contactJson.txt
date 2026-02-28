@@ -1,11 +1,7 @@
 [
   {
-    "id": "554498165035@s.whatsapp.net",
-    "name": "Renato Cianorte "
+    "id": "554197813370@s.whatsapp.net",
+    "name": "Sindica Celma"
   }
-]]  }
-]
-  }
-]
-  }
+]]}
 ]

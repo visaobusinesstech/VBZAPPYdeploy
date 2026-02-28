@@ -54,7 +54,23 @@ export const dashboard = async (req: Request, res: Response): Promise<Response> 
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const { name, description, status, value, contactId, responsibleId, date, companyName, phone, tags } = req.body;
+  const {
+    name,
+    description,
+    status,
+    value,
+    contactId,
+    responsibleId,
+    date,
+    companyName,
+    phone,
+    tags,
+    site,
+    origin,
+    document,
+    birthDate,
+    address
+  } = req.body;
 
   const record = await CreateService({
     name,
@@ -64,6 +80,11 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     companyName,
     phone,
     tags,
+    site,
+    origin,
+    document,
+    birthDate,
+    address,
     contactId,
     responsibleId,
     date,
@@ -83,7 +104,23 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const update = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
   const { id } = req.params;
-  const { name, description, status, value, contactId, responsibleId, date, companyName, phone, tags } = req.body;
+  const {
+    name,
+    description,
+    status,
+    value,
+    contactId,
+    responsibleId,
+    date,
+    companyName,
+    phone,
+    tags,
+    site,
+    origin,
+    document,
+    birthDate,
+    address
+  } = req.body;
 
   const record = await UpdateService({
     id,
@@ -94,6 +131,11 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     companyName,
     phone,
     tags,
+    site,
+    origin,
+    document,
+    birthDate,
+    address,
     contactId,
     responsibleId,
     date

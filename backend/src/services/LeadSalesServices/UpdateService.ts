@@ -8,6 +8,11 @@ interface Request {
   value?: number;
   companyName?: string;
   phone?: string;
+  site?: string;
+  origin?: string;
+  document?: string;
+  birthDate?: string | Date | null;
+  address?: any;
   tags?: string[];
   contactId?: number;
   responsibleId?: number;
@@ -22,6 +27,11 @@ const UpdateService = async ({
   value,
   companyName,
   phone,
+  site,
+  origin,
+  document,
+  birthDate,
+  address,
   tags,
   contactId,
   responsibleId,
@@ -42,6 +52,10 @@ const UpdateService = async ({
     typeof date === "string"
       ? (date.trim() ? new Date(date) : undefined)
       : date;
+  const parsedBirthDate =
+    typeof birthDate === "string"
+      ? (birthDate.trim() ? new Date(birthDate) : null)
+      : birthDate;
 
   await record.update({
     name: name ?? record.name,
@@ -50,6 +64,11 @@ const UpdateService = async ({
     value: parsedValue ?? record.value,
     companyName: companyName ?? record.companyName,
     phone: phone ?? record.phone,
+    site: site ?? record.site,
+    origin: origin ?? record.origin,
+    document: document ?? record.document,
+    birthDate: parsedBirthDate ?? record.birthDate,
+    address: address ?? record.address,
     tags: tags ?? record.tags,
     contactId: parsedContactId ?? record.contactId,
     responsibleId: parsedResponsibleId ?? record.responsibleId,

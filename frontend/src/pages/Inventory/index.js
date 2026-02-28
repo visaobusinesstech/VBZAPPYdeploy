@@ -268,7 +268,7 @@ const useStyles = makeStyles((theme) => ({
     marginRight: theme.spacing(2),
     height: "calc(100% - 32px)",
     borderRadius: 16,
-    overflow: "hidden",
+    overflow: "visible",
   },
   drawerContainer: {
     display: "flex",
@@ -285,7 +285,9 @@ const useStyles = makeStyles((theme) => ({
     borderBottom: "1px solid #eee",
   },
   drawerTitle: {
-    fontWeight: 600,
+    fontWeight: 400,
+    letterSpacing: 0,
+    color: "#0F172A",
     textAlign: "center",
   },
   drawerClose: {
@@ -297,6 +299,7 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
     flexDirection: "column",
     gap: theme.spacing(2),
+    paddingTop: theme.spacing(1),
     overflowY: "auto",
     paddingRight: theme.spacing(1),
     '&::-webkit-scrollbar': {
@@ -322,7 +325,7 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(2),
     height: "calc(100% - 32px)",
     marginRight: theme.spacing(2),
-    overflow: "hidden",
+    overflow: "visible",
   },
   importHeader: {
     display: "flex",

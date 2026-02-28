@@ -1,6 +1,136 @@
 const messages = {
   en: {
     translations: {
+      register: {
+        steps: {
+          discovery: "Discovery",
+          company: "Company info",
+          address: "Address",
+          plans: "Plans",
+          payment: "Payment",
+          confirmation: "Confirmation"
+        },
+        labels: {
+          niche: "Business niche",
+          foundUs: "How did you find us",
+          needs: "Needs",
+          companyName: "Company name",
+          userName: "User name",
+          email: "Email",
+          fullName: "Full name",
+          phone: "Phone",
+          publicName: "Public company name",
+          loginEmail: "Login email",
+          password: "Password",
+          whatsapp: "Phone (WhatsApp)",
+          terms: "I agree with the Terms and Privacy Policy"
+        },
+        address: {
+          cep: "ZIP code",
+          street: "Street",
+          number: "Number",
+          complement: "Complement",
+          neighborhood: "Neighborhood",
+          city: "City",
+          state: "State"
+        },
+        options: {
+          niches: {
+            retail: "Retail",
+            services: "Services",
+            education: "Education",
+            health: "Health",
+            realEstate: "Real Estate",
+            technology: "Technology",
+            other: "Other"
+          },
+          foundUs: {
+            google: "Google",
+            referral: "Referral",
+            social: "Social networks",
+            marketplace: "Marketplace/Partner",
+            other: "Other"
+          },
+          needs: {
+            whatsappSupport: "WhatsApp support",
+            chatbotFlows: "Chatbot/Flows",
+            campaigns: "Campaigns",
+            reportsNps: "Reports/NPS",
+            integrations: "Integrations",
+            leadManagement: "Lead management",
+            crmPipeline: "CRM and sales pipeline",
+            projectManagement: "Project management",
+            kanbanTasks: "Kanban/Tasks",
+            emailMarketing: "Email marketing",
+            omnichannelCampaigns: "Omnichannel campaigns",
+            telephonyDialer: "Telephony/Dialer",
+            formsCapture: "Forms and capture",
+            calendar: "Calendar",
+            advancedReportsBi: "Advanced reports/BI",
+            taskAutomation: "Task automation",
+            erpEcommerceIntegrations: "ERP/E-commerce integrations",
+            aiAgents: "AI agents",
+            other: "Other"
+          }
+        },
+        plans: {
+          cycle: {
+            annual: "Annual",
+            semiannual: "Semiannual",
+            monthly: "Monthly"
+          },
+          planNames: {
+            starter: "Starter",
+            essential: "Essential",
+            pro: "Pro"
+          },
+          bestPrice: "Best price",
+          bestSeller: "Best seller",
+          actions: {
+            startNow: "Start now"
+          },
+          priceSuffix: "/month",
+          descriptions: {
+            starter: "Essential resources to get started with a lean team.",
+            essential: "Advanced features and expanded limits for scaling.",
+            pro: "For high scale with unlimited automations and integrations."
+          },
+          features: {
+            starter: [
+              "Create and manage deals and products.",
+              "Manage up to 10k leads with tag control.",
+              "Register up to 3 company members.",
+              "Automations to interact with leads.",
+              "Multi-attendance with up to 2 connections (WhatsApp).",
+              "2 Webhooks integrations.",
+              "Pipeline business dashboards."
+            ],
+            essential: [
+              "Unlimited pipelines.",
+              "Manage up to 100k leads.",
+              "Register 15 company members.",
+              "Advanced automations.",
+              "Up to 10 connections (WhatsApp).",
+              "15 Webhooks integrations.",
+              "Business dashboards.",
+              "Access to integration API."
+            ],
+            pro: [
+              "Unlimited pipelines.",
+              "Unlimited leads with tags.",
+              "Advanced deals and products.",
+              "Unlimited company members.",
+              "Unlimited automations.",
+              "Unlimited connections (WhatsApp).",
+              "Unlimited Webhooks integrations.",
+              "Dashboards and integration API."
+            ]
+          }
+        }
+      },
+      common: {
+        select: "Select"
+      },
       signup: {
         title: "Sign Up",
         toasts: {

@@ -236,10 +236,10 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
     elements: { point: { radius: 0, hoverRadius: 4 } },
   };
 
-  const cardStyle = { padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", height: "100%", display: "flex", flexDirection: "column" };
-  const tableWrapStyle = { flex: 1, minHeight: 280 };
+  const cardStyle = { padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)", display: "flex", flexDirection: "column", minHeight: 360, height: "100%", overflow: "hidden" };
+  const tableWrapStyle = { flex: 1 };
   return (
-    <Grid container spacing={3} alignItems="stretch">
+    <Grid container spacing={3} alignItems="stretch" style={{ margin: 0, width: "100%", overflow: "hidden" }}>
       {kpis.map(({ title, value, subtitle, Icon, circle, color }) => (
         <Grid item xs={12} sm={6} md={3} key={title}>
           <Paper style={{ padding: 16, borderRadius: 12, boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}>
@@ -330,21 +330,21 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
 
       <Grid item xs={12} md={6}>
         <Paper style={cardStyle}>
-          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
+          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 400, letterSpacing: 0, marginBottom: 8 }}>
             Status dos Envios Recentes
           </Typography>
-          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden" }}>
+          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden", overflowY: "hidden", maxHeight: "none" }}>
             <Table size="small" style={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell style={{ width: "24%" }}>Data/Hora</TableCell>
-                  <TableCell style={{ width: "28%" }}>Destinatário</TableCell>
-                  <TableCell style={{ width: "34%" }}>Assunto</TableCell>
-                  <TableCell style={{ width: "14%" }}>Status</TableCell>
+                  <TableCell style={{ width: "18%" }}>Data/Hora</TableCell>
+                  <TableCell style={{ width: "30%" }}>Destinatário</TableCell>
+                  <TableCell style={{ width: "36%" }}>Assunto</TableCell>
+                  <TableCell style={{ width: "16%" }}>Status</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(recentEmails || []).slice(0, 6).map((e) => {
+                {(recentEmails || []).slice(0, 8).map((e) => {
                   const when = e.sentAt || e.createdAt || e.date;
                   const to = e.to || e.recipient || e.recipientEmail || e.email;
                   const subject = e.subject || e.title || "-";
@@ -360,12 +360,12 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
                     isOk ? "Enviado" : isError ? "Erro" : "Pendente";
                   return (
                     <TableRow key={e.id || `${to}-${when}-${subject}`}>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>
                         {when ? new Date(when).toLocaleString() : "-"}
                       </TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{to || "-"}</TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{subject}</TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap" }}>
+                      <TableCell style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "middle" }}>{to || "-"}</TableCell>
+                      <TableCell style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "middle" }}>{subject}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", verticalAlign: "middle" }}>
                         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 10px", borderRadius: 999, fontWeight: 600, fontSize: 12, ...chipStyle }}>
                           {label}
                         </span>
@@ -384,35 +384,35 @@ const EmailDashboard = ({ fetchTotals, fetchSeries }) => {
 
       <Grid item xs={12} md={6}>
         <Paper style={cardStyle}>
-          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 700, marginBottom: 8 }}>
+          <Typography variant="h6" style={{ color: "#0F172A", fontWeight: 400, letterSpacing: 0, marginBottom: 8 }}>
             Agendamentos Pendentes
           </Typography>
-          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden" }}>
+          <TableContainer style={{ ...tableWrapStyle, overflowX: "hidden", overflowY: "hidden", maxHeight: "none" }}>
             <Table size="small" style={{ tableLayout: "fixed", width: "100%" }}>
               <TableHead>
                 <TableRow>
-                  <TableCell style={{ width: "18%" }}>Status</TableCell>
-                  <TableCell style={{ width: "32%" }}>Destinatário</TableCell>
-                  <TableCell style={{ width: "20%" }}>Campanha</TableCell>
-                  <TableCell style={{ width: "20%" }}>Assunto</TableCell>
-                  <TableCell style={{ width: "10%" }}>Agendado para</TableCell>
+                  <TableCell style={{ width: "14%" }}>Status</TableCell>
+                  <TableCell style={{ width: "26%" }}>Destinatário</TableCell>
+                  <TableCell style={{ width: "16%" }}>Campanha</TableCell>
+                  <TableCell style={{ width: "24%" }}>Assunto</TableCell>
+                  <TableCell style={{ width: "20%", whiteSpace: "normal", overflow: "visible", textOverflow: "clip" }}>Agendado para</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {(pendingSchedules || []).slice(0, 6).map((s) => {
+                {(pendingSchedules || []).slice(0, 8).map((s) => {
                   const when = s.scheduledAt || s.sendAt || s.date;
                   const to = s.contactEmail || s.to || s.recipient;
                   const statusPt = "Agendado";
                   return (
                     <TableRow key={s.id || `${to}-${when}`}>
-                      <TableCell style={{ whiteSpace: "nowrap" }}>{statusPt}</TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{statusPt}</TableCell>
+                      <TableCell style={{ whiteSpace: "normal", wordBreak: "break-word", overflow: "hidden", verticalAlign: "middle" }}>
                         <div style={{ fontWeight: 600 }}>{s.contactName || to || "-"}</div>
-                        <div style={{ fontSize: 12, color: "#64748B" }}>{to || "-"}</div>
+                        <div style={{ fontSize: 12, color: "#64748B", whiteSpace: "normal", wordBreak: "break-word", overflow: "hidden", textOverflow: "ellipsis" }}>{to || "-"}</div>
                       </TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.campaignName || "-"}</TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{s.subject || "-"}</TableCell>
-                      <TableCell style={{ whiteSpace: "nowrap" }}>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{s.campaignName || "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{s.subject || "-"}</TableCell>
+                      <TableCell style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", verticalAlign: "middle" }}>{when ? new Date(when).toLocaleString() : "-"}</TableCell>
                     </TableRow>
                   );
                 })}

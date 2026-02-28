@@ -35,6 +35,7 @@ import BRFlag from "../../assets/brazil.png";
 import USFlag from "../../assets/unitedstates.png";
 import ESFlag from "../../assets/esspain.png";
 import ARFlag from "../../assets/arabe.png";
+import PlanosPreview from "../../PlanosPreview";
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -62,7 +63,7 @@ const useStyles = makeStyles(theme => ({
     top: 0,
     left: 0,
     right: 0,
-    padding: theme.spacing(0.75, 1),
+    padding: theme.spacing(1, 2),
     zIndex: 20,
     background: "transparent"
   },
@@ -72,7 +73,7 @@ const useStyles = makeStyles(theme => ({
     alignItems: "center",
     justifyContent: "center",
     padding: theme.spacing(0, 1),
-    marginTop: theme.spacing(3)
+    marginTop: theme.spacing(1)
   },
   stepperInner: {
     width: "100%",
@@ -82,11 +83,15 @@ const useStyles = makeStyles(theme => ({
     display: "flex",
     alignItems: "flex-start",
     gap: theme.spacing(1.5),
-    paddingTop: 0
+    paddingTop: 0,
+    marginLeft: theme.spacing(2),
+    marginRight: theme.spacing(2)
   },
   logo: {
     height: 72,
-    width: "auto"
+    width: "auto",
+    marginRight: theme.spacing(1.5),
+    filter: theme.palette.type === "dark" ? "invert(1) brightness(1.1)" : "none"
   },
   stepperClear: {
     background: "transparent !important",
@@ -143,6 +148,12 @@ const useStyles = makeStyles(theme => ({
     boxShadow: "none",
     "& .MuiOutlinedInput-root": {
       background: theme.palette.type === "light" ? "#ffffff" : theme.palette.background.paper,
+      borderRadius: 12,
+      minHeight: 42
+    },
+    "& .MuiSelect-select.MuiSelect-outlined": {
+      paddingTop: 9,
+      paddingBottom: 9,
       borderRadius: 12
     },
     "& .MuiFormLabel-root": {
@@ -156,10 +167,36 @@ const useStyles = makeStyles(theme => ({
       fontWeight: 300
     }
   },
+  menuPaper: {
+    borderRadius: 12,
+    boxShadow: "0 8px 24px rgba(0,0,0,0.12)"
+  },
   actionBar: {
     display: "flex",
     justifyContent: "space-between",
     marginTop: theme.spacing(1)
+  },
+  navButtonLeft: {
+    position: "fixed",
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 40,
+    left: 96,
+    [theme.breakpoints.up("sm")]: { left: 120 },
+    [theme.breakpoints.up("md")]: { left: 144 },
+    [theme.breakpoints.up("lg")]: { left: 168 },
+    [theme.breakpoints.up("xl")]: { left: 192 }
+  },
+  navButtonRight: {
+    position: "fixed",
+    top: "50%",
+    transform: "translateY(-50%)",
+    zIndex: 40,
+    right: 96,
+    [theme.breakpoints.up("sm")]: { right: 120 },
+    [theme.breakpoints.up("md")]: { right: 144 },
+    [theme.breakpoints.up("lg")]: { right: 168 },
+    [theme.breakpoints.up("xl")]: { right: 192 }
   }
 }));
 
@@ -185,69 +222,55 @@ const Connector = withStyles((theme) => ({
   }
 }))(StepConnector);
 
-const steps = [
-  "Encontro e necessidades",
-  "Informações da empresa",
-  "Endereço",
-  "Nome de contato",
-  "Planos",
-  "Confirmação"
-];
+const tKey = (key, fallback) => {
+  const v = i18n.t(key);
+  return v !== key ? v : fallback;
+};
 
 const niches = [
-  "Varejo",
-  "Serviços",
-  "Educação",
-  "Saúde",
-  "Imobiliário",
-  "Tecnologia",
-  "Outro"
+  "retail",
+  "services",
+  "education",
+  "health",
+  "realEstate",
+  "technology",
+  "other"
 ];
 
 const foundOptions = [
-  "Google",
-  "Indicação",
-  "Redes sociais",
-  "Marketplace/Parceria",
-  "Outro"
+  "google",
+  "referral",
+  "social",
+  "marketplace",
+  "other"
 ];
 
 const needsOptions = [
-  "Atendimento com WhatsApp",
-  "Chatbot/Fluxos",
-  "Campanhas",
-  "Relatórios/NPS",
-  "Integrações",
-  "Outro"
+  "whatsappSupport",
+  "chatbotFlows",
+  "campaigns",
+  "reportsNps",
+  "integrations",
+  "leadManagement",
+  "crmPipeline",
+  "projectManagement",
+  "kanbanTasks",
+  "emailMarketing",
+  "omnichannelCampaigns",
+  "telephonyDialer",
+  "formsCapture",
+  "calendar",
+  "advancedReportsBi",
+  "taskAutomation",
+  "erpEcommerceIntegrations",
+  "aiAgents",
+  "other"
 ];
 
 const Schema = Yup.object().shape({
-  hasCNPJ: Yup.boolean(),
-  document: Yup.string().when("hasCNPJ", {
-    is: true,
-    then: Yup.string().required(),
-    otherwise: Yup.string().notRequired(),
-  }),
-  cpf: Yup.string().when("hasCNPJ", {
-    is: false,
-    then: Yup.string().required(),
-    otherwise: Yup.string().notRequired(),
-  }),
-  personName: Yup.string().when("hasCNPJ", {
-    is: false,
-    then: Yup.string().required(),
-    otherwise: Yup.string().notRequired(),
-  }),
-  companyName: Yup.string().when("hasCNPJ", {
-    is: true,
-    then: Yup.string().required(),
-    otherwise: Yup.string().notRequired(),
-  }),
-  razaoSocial: Yup.string().when("hasCNPJ", {
-    is: true,
-    then: Yup.string().required(),
-    otherwise: Yup.string().notRequired(),
-  }),
+  companyName: Yup.string().required(),
+  legalName: Yup.string().required(),
+  legalEmail: Yup.string().email().required(),
   email: Yup.string().email().required(),
   password: Yup.string().min(5).required(),
   phone: Yup.string().required(),
@@ -260,11 +283,18 @@ const Register = () => {
   const history = useHistory();
   const theme = useTheme();
   const { colorMode } = useContext(ColorModeContext);
+  const [lang, setLang] = useState(i18n.language);
   const { getPlanList } = usePlans();
   const [plans, setPlans] = useState([]);
   const [activeStep, setActiveStep] = useState(0);
   const [loadingPlans, setLoadingPlans] = useState(false);
   const [validatingCep, setValidatingCep] = useState(false);
+
+  useEffect(() => {
+    const handler = lng => setLang(lng);
+    i18n.on("languageChanged", handler);
+    return () => i18n.off("languageChanged", handler);
+  }, []);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -278,6 +308,15 @@ const Register = () => {
     };
     fetchPlans();
   }, []);
+
+  const steps = [
+    tKey("register.steps.discovery", "Encontro e necessidades"),
+    tKey("register.steps.company", "Informações da empresa"),
+    tKey("register.steps.address", "Endereço"),
+    tKey("register.steps.plans", "Planos"),
+    tKey("register.steps.payment", "Pagamento"),
+    tKey("register.steps.confirmation", "Confirmação")
+  ];
 
   const initialValues = useMemo(
     () => ({
@@ -310,10 +349,62 @@ const Register = () => {
       password: "",
       phone: "",
       planId: "",
+      paymentMethod: "",
+      cardNumber: "",
+      cardName: "",
+      cardExpiry: "",
+      cardCvv: "",
       acceptTerms: false
     }),
     []
   );
+
+  const handleCnpjCpf = async (value, isCnpj, setFieldValue) => {
+    const digits = (value || "").replace(/\D/g, "");
+    if (isCnpj) {
+      if (digits.length !== 14) return;
+      try {
+        const res = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digits}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data) {
+          setFieldValue("razaoSocial", data.razao_social || "");
+          setFieldValue("companyName", data.nome_fantasia || data.razao_social || "");
+          if (data.cep) setFieldValue("cep", data.cep);
+          if (data.logradouro) setFieldValue("logradouro", data.logradouro);
+          if (data.numero) setFieldValue("numero", String(data.numero));
+          if (data.complemento) setFieldValue("complemento", data.complemento);
+          if (data.bairro) setFieldValue("bairro", data.bairro);
+          if (data.municipio) setFieldValue("cidade", data.municipio);
+          if (data.uf) setFieldValue("uf", data.uf);
+        }
+      } catch {}
+    } else {
+      const valid = digits.length === 11;
+      if (!valid) return;
+      try {
+        const customUrl = process.env.REACT_APP_CPF_LOOKUP_URL;
+        if (customUrl) {
+          const r = await fetch(`${customUrl}?cpf=${digits}`);
+          if (r.ok) {
+            const d = await r.json();
+            const nome = d.nome || d.name || d.fullname || d.nome_completo;
+            if (nome) setFieldValue("personName", nome);
+          }
+          return;
+        }
+        const token = process.env.REACT_APP_HUBDEV_TOKEN;
+        if (token) {
+          const r = await fetch(`https://ws.hubdodesenvolvedor.com.br/v2/cpf/?cpf=${digits}&token=${token}`);
+          if (r.ok) {
+            const d = await r.json();
+            const nome = d?.result?.nome || d?.nome;
+            if (nome) setFieldValue("personName", nome);
+          }
+        }
+      } catch {}
+    }
+  };
 
   const handleCep = async (cep, setFieldValue) => {
     const digits = (cep || "").replace(/\D/g, "");
@@ -337,15 +428,14 @@ const Register = () => {
 
   const onSubmit = async values => {
     const payload = {
-      companyName: values.companyName,
-      document: (values.hasCNPJ ? values.document : values.cpf).replace(/\D/g, ""),
+      document: "",
       email: values.email,
       phone: values.phone || values.legalPhone,
       planId: values.planId,
       metadata: {
-        razaoSocial: values.razaoSocial,
-        hasCNPJ: values.hasCNPJ,
-        personName: values.hasCNPJ ? undefined : values.personName,
+        razaoSocial: undefined,
+        hasCNPJ: undefined,
+        personName: undefined,
         niche: values.niche,
         foundUs: values.foundUs,
         needs: values.needs,
@@ -357,6 +447,17 @@ const Register = () => {
           bairro: values.bairro,
           cidade: values.cidade,
           uf: values.uf
+        },
+        payment: {
+          method: values.paymentMethod,
+          card: values.paymentMethod === "card"
+            ? {
+                number: values.cardNumber,
+                name: values.cardName,
+                expiry: values.cardExpiry,
+                cvv: values.cardCvv
+              }
+            : undefined
         },
         contacts: {
           legal: { name: values.legalName, email: values.legalEmail, phone: values.legalPhone },
@@ -380,7 +481,24 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
-          <InputLabel>Como nos encontrou</InputLabel>
+          <InputLabel>{tKey("register.labels.niche", "Nicho de Atuação")}</InputLabel>
+          <Select
+            value={values.niche}
+            onChange={e => setFieldValue("niche", e.target.value)}
+            fullWidth
+            variant="outlined"
+            displayEmpty
+          >
+            <MenuItem value=""><em>{tKey("common.select", "Selecione")}</em></MenuItem>
+            {niches.map(key => (
+              <MenuItem key={key} value={key} style={{ fontSize: 14, paddingTop: 6, paddingBottom: 6 }}>
+                {tKey(`register.options.niches.${key}`, key)}
+              </MenuItem>
+            ))}
+          </Select>
+        </Grid>
+        <Grid item xs={12}>
+          <InputLabel>{tKey("register.labels.foundUs", "Como nos encontrou")}</InputLabel>
           <Select
             multiple
             value={values.foundUs}
@@ -388,23 +506,27 @@ const Register = () => {
             fullWidth
             variant="outlined"
             displayEmpty
+            MenuProps={{
+              PaperProps: { className: classes.menuPaper, style: { maxHeight: 280, width: 320 } },
+              MenuListProps: { dense: true }
+            }}
             renderValue={(selected) => {
               if (!selected || selected.length === 0) {
-                return <span style={{ color: "#9ca3af" }}>Selecione</span>;
+                return <span style={{ color: "#9ca3af" }}>{tKey("common.select", "Selecione")}</span>;
               }
-              return selected.join(", ");
+              return selected.map(k => tKey(`register.options.foundUs.${k}`, k)).join(", ");
             }}
           >
-            {foundOptions.map(opt => (
-              <MenuItem key={opt} value={opt}>
-                <Checkbox checked={values.foundUs.indexOf(opt) > -1} />
-                <ListItemText primary={opt} />
+            {foundOptions.map(key => (
+              <MenuItem key={key} value={key} style={{ fontSize: 14, paddingTop: 6, paddingBottom: 6 }}>
+                <Checkbox checked={values.foundUs.indexOf(key) > -1} />
+                <ListItemText primary={tKey(`register.options.foundUs.${key}`, key)} />
               </MenuItem>
             ))}
           </Select>
         </Grid>
         <Grid item xs={12}>
-          <InputLabel>Necessidade</InputLabel>
+          <InputLabel>{tKey("register.labels.needs", "Necessidade")}</InputLabel>
           <Select
             multiple
             value={values.needs}
@@ -412,17 +534,21 @@ const Register = () => {
             fullWidth
             variant="outlined"
             displayEmpty
+            MenuProps={{
+              PaperProps: { className: classes.menuPaper, style: { maxHeight: 280, width: 320 } },
+              MenuListProps: { dense: true }
+            }}
             renderValue={(selected) => {
               if (!selected || selected.length === 0) {
-                return <span style={{ color: "#9ca3af" }}>Selecione</span>;
+                return <span style={{ color: "#9ca3af" }}>{tKey("common.select", "Selecione")}</span>;
               }
-              return selected.join(", ");
+              return selected.map(k => tKey(`register.options.needs.${k}`, k)).join(", ");
             }}
           >
-            {needsOptions.map(opt => (
-              <MenuItem key={opt} value={opt}>
-                <Checkbox checked={values.needs.indexOf(opt) > -1} />
-                <ListItemText primary={opt} />
+            {needsOptions.map(key => (
+              <MenuItem key={key} value={key} style={{ fontSize: 14, paddingTop: 6, paddingBottom: 6 }}>
+                <Checkbox checked={values.needs.indexOf(key) > -1} />
+                <ListItemText primary={tKey(`register.options.needs.${key}`, key)} />
               </MenuItem>
             ))}
           </Select>
@@ -435,45 +561,13 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
-          <FormControlLabel
-            control={
-              <Field as={Checkbox} name="hasCNPJ" color="primary" />
-            }
-            label="Tenho CNPJ"
-          />
+          <Field as={TextField} name="companyName" label={tKey("register.labels.companyName", "Nome da Empresa")} variant="outlined" fullWidth />
         </Grid>
-        <Field name="hasCNPJ">
-          {({ field, form }) =>
-            field.value ? (
-              <>
-                <Grid item xs={12}>
-                  <Field as={TextField} name="razaoSocial" label="Razão social" variant="outlined" fullWidth />
-                </Grid>
-                <Grid item xs={12}>
-                  <Field as={TextField} name="companyName" label="Nome fantasia" variant="outlined" fullWidth />
-                </Grid>
-                <Grid item xs={12}>
-                  <Field as={TextField} name="document" label="CNPJ" variant="outlined" fullWidth />
-                </Grid>
-              </>
-            ) : (
-              <>
-                <Grid item xs={12}>
-                  <Field as={TextField} name="cpf" label="CPF" variant="outlined" fullWidth />
-                </Grid>
-                <Grid item xs={12}>
-                  <Field as={TextField} name="personName" label="Nome completo" variant="outlined" fullWidth />
-                </Grid>
-              </>
-            )
-          }
-        </Field>
         <Grid item xs={12}>
-          <Field as={TextField} name="niche" label="Nicho" variant="outlined" fullWidth select>
-            {niches.map(n => (
-              <MenuItem key={n} value={n}>{n}</MenuItem>
-            ))}
-          </Field>
+          <Field as={TextField} name="legalName" label={tKey("register.labels.userName", "Nome do Usuário")} variant="outlined" fullWidth />
+        </Grid>
+        <Grid item xs={12}>
+          <Field as={TextField} name="legalEmail" label={tKey("register.labels.email", "E-mail")} variant="outlined" fullWidth />
         </Grid>
       </Grid>
     </Box>
@@ -481,14 +575,16 @@ const Register = () => {
 
   const SectionAddress = ({ setFieldValue }) => (
     <Box>
-      <Grid container spacing={1} className={classes.inputGroup}>
-        <Grid item xs={12}>
+      <Grid container spacing={2} className={classes.inputGroup}>
+        <Grid item xs={12} sm={6} md={4}>
           <Field
             as={TextField}
             name="cep"
-            label="CEP"
+            label={tKey("register.address.cep", "CEP")}
             variant="outlined"
             fullWidth
+            size="small"
+            margin="dense"
             placeholder="00000-000"
             onBlur={e => handleCep(e.target.value, setFieldValue)}
             InputProps={{
@@ -496,23 +592,23 @@ const Register = () => {
             }}
           />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="logradouro" label="Logradouro" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={8}>
+          <Field as={TextField} name="logradouro" label={tKey("register.address.street", "Logradouro")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="numero" label="Número" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={4}>
+          <Field as={TextField} name="numero" label={tKey("register.address.number", "Número")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="complemento" label="Complemento" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={8}>
+          <Field as={TextField} name="complemento" label={tKey("register.address.complement", "Complemento")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="bairro" label="Bairro" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={6}>
+          <Field as={TextField} name="bairro" label={tKey("register.address.neighborhood", "Bairro")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="cidade" label="Cidade" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={4}>
+          <Field as={TextField} name="cidade" label={tKey("register.address.city", "Cidade")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
-        <Grid item xs={12}>
-          <Field as={TextField} name="uf" label="UF" variant="outlined" fullWidth />
+        <Grid item xs={12} sm={6} md={2}>
+          <Field as={TextField} name="uf" label={tKey("register.address.state", "UF")} variant="outlined" fullWidth size="small" margin="dense" />
         </Grid>
       </Grid>
     </Box>
@@ -522,16 +618,16 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
-          <Field as={TextField} name="legalName" label="Nome completo" variant="outlined" fullWidth />
+          <Field as={TextField} name="legalName" label={tKey("register.labels.fullName", "Nome completo")} variant="outlined" fullWidth />
         </Grid>
         <Grid item xs={12}>
-          <Field as={TextField} name="legalEmail" label="E-mail" variant="outlined" fullWidth />
+          <Field as={TextField} name="legalEmail" label={tKey("register.labels.email", "E-mail")} variant="outlined" fullWidth />
         </Grid>
         <Grid item xs={12}>
-          <Field as={TextField} name="legalPhone" label="Telefone" variant="outlined" fullWidth />
+          <Field as={TextField} name="legalPhone" label={tKey("register.labels.phone", "Telefone")} variant="outlined" fullWidth />
         </Grid>
         <Grid item xs={12}>
-          <Field as={TextField} name="publicAccountName" label="Nome público da empresa" variant="outlined" fullWidth />
+          <Field as={TextField} name="publicAccountName" label={tKey("register.labels.publicName", "Nome público da empresa")} variant="outlined" fullWidth />
         </Grid>
       </Grid>
     </Box>
@@ -541,6 +637,9 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12}>
+          <PlanosPreview />
+        </Grid>
+        <Grid item xs={12} style={{ display: "none" }}>
           <InputLabel>Plano</InputLabel>
           <Field as={Select} name="planId" fullWidth variant="outlined" error={touched.planId && Boolean(errors.planId)}>
             {plans.map(p => (
@@ -558,20 +657,20 @@ const Register = () => {
     <Box>
       <Grid container spacing={1} className={classes.inputGroup}>
         <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="email" label="E-mail de acesso" variant="outlined" fullWidth error={touched.email && Boolean(errors.email)} helperText={touched.email && errors.email} />
+          <Field as={TextField} name="email" label={tKey("register.labels.loginEmail", "E-mail de acesso")} variant="outlined" fullWidth error={touched.email && Boolean(errors.email)} helperText={touched.email && errors.email} />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="password" label="Senha" type="password" variant="outlined" fullWidth error={touched.password && Boolean(errors.password)} helperText={touched.password && errors.password} />
+          <Field as={TextField} name="password" label={tKey("register.labels.password", "Senha")} type="password" variant="outlined" fullWidth error={touched.password && Boolean(errors.password)} helperText={touched.password && errors.password} />
         </Grid>
         <Grid item xs={12} sm={6}>
-          <Field as={TextField} name="phone" label="Telefone (WhatsApp)" variant="outlined" fullWidth />
+          <Field as={TextField} name="phone" label={tKey("register.labels.whatsapp", "Telefone (WhatsApp)")} variant="outlined" fullWidth />
         </Grid>
         <Grid item xs={12}>
           <FormControlLabel
             control={
               <Field as={Checkbox} name="acceptTerms" color="primary" />
             }
-            label="Li e aceito os Termos e a Política de Privacidade"
+            label={tKey("register.labels.terms", "Li e aceito os Termos e a Política de Privacidade")}
           />
           {touched.acceptTerms && errors.acceptTerms && (
             <Typography color="error" variant="caption">{errors.acceptTerms}</Typography>
@@ -581,20 +680,56 @@ const Register = () => {
     </Box>
   );
 
+  const SectionPayment = ({ values, setFieldValue }) => (
+    <Box>
+      <Grid container spacing={1} className={classes.inputGroup}>
+        <Grid item xs={12}>
+          <InputLabel>{tKey("register.payment.title", "Pagamento")}</InputLabel>
+          <Select
+            value={values.paymentMethod}
+            onChange={e => setFieldValue("paymentMethod", e.target.value)}
+            fullWidth
+            variant="outlined"
+            displayEmpty
+          >
+            <MenuItem value=""><em>{tKey("common.select", "Selecione")}</em></MenuItem>
+            <MenuItem value="pix">{tKey("register.payment.pix", "Pix")}</MenuItem>
+            <MenuItem value="card">{tKey("register.payment.card", "Cartão")}</MenuItem>
+            <MenuItem value="boleto">{tKey("register.payment.boleto", "Boleto")}</MenuItem>
+          </Select>
+        </Grid>
+        {values.paymentMethod === "card" && (
+          <>
+            <Grid item xs={12} sm={6}>
+              <Field as={TextField} name="cardNumber" label={tKey("register.payment.cardNumber", "Número do cartão")} variant="outlined" fullWidth />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Field as={TextField} name="cardName" label={tKey("register.payment.cardName", "Nome no cartão")} variant="outlined" fullWidth />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Field as={TextField} name="cardExpiry" label={tKey("register.payment.cardExpiry", "Validade (MM/AA)")} variant="outlined" fullWidth />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Field as={TextField} name="cardCvv" label={tKey("register.payment.cardCvv", "CVV")} variant="outlined" fullWidth />
+            </Grid>
+          </>
+        )}
+      </Grid>
+    </Box>
+  );
+
   const canGoNext = (step, values) => {
     switch (step) {
       case 0:
-        return (values.foundUs && values.foundUs.length > 0) || (values.needs && values.needs.length > 0);
+        return (values.niche && values.niche !== "") || (values.foundUs && values.foundUs.length > 0) || (values.needs && values.needs.length > 0);
       case 1:
-        return values.hasCNPJ
-          ? (values.razaoSocial && values.companyName && values.document)
-          : (values.cpf && values.personName);
+        return values.companyName && values.legalName && values.legalEmail;
       case 2:
         return values.cep && values.logradouro && values.cidade && values.uf;
       case 3:
-        return values.legalName && values.legalEmail && values.legalPhone && values.publicAccountName;
-      case 4:
         return !!values.planId;
+      case 4:
+        return !!values.paymentMethod;
       case 5:
         return values.email && values.password && values.acceptTerms;
       default:
@@ -626,12 +761,12 @@ const Register = () => {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <Select
-              value={i18n.language || "pt-BR"}
+              value={(i18n.language && i18n.language.split("-")[0]) || "pt"}
               onChange={e => i18n.changeLanguage(e.target.value)}
               variant="outlined"
               style={{ height: 36, borderRadius: 10 }}
             >
-              <MenuItem value="pt-BR"><img alt="pt" src={BRFlag} height={14} style={{ marginRight: 8 }} />PT</MenuItem>
+              <MenuItem value="pt"><img alt="pt" src={BRFlag} height={14} style={{ marginRight: 8 }} />PT</MenuItem>
               <MenuItem value="en"><img alt="en" src={USFlag} height={14} style={{ marginRight: 8 }} />EN</MenuItem>
               <MenuItem value="es"><img alt="es" src={ESFlag} height={14} style={{ marginRight: 8 }} />ES</MenuItem>
               <MenuItem value="ar"><img alt="ar" src={ARFlag} height={14} style={{ marginRight: 8 }} />AR</MenuItem>
@@ -641,7 +776,7 @@ const Register = () => {
             </IconButton>
           </div>
         </Box>
-        <Box mt={4}>
+        <Box mt={6}>
           <Formik
             initialValues={initialValues}
             validationSchema={Schema}
@@ -652,19 +787,15 @@ const Register = () => {
                 {activeStep === 0 && <Section1 values={values} setFieldValue={setFieldValue} />}
                 {activeStep === 1 && <Section2 setFieldValue={setFieldValue} />}
                 {activeStep === 2 && <SectionAddress setFieldValue={setFieldValue} />}
-                {activeStep === 3 && <Section3 touched={touched} errors={errors} values={values} setFieldValue={setFieldValue} />}
-                {activeStep === 4 && <Section4 values={values} touched={touched} errors={errors} />}
+                {activeStep === 3 && <Section4 values={values} touched={touched} errors={errors} />}
+                {activeStep === 4 && <SectionPayment values={values} setFieldValue={setFieldValue} />}
                 {activeStep === 5 && <Section5 touched={touched} errors={errors} />}
 
                 <IconButton
+                  className={classes.navButtonLeft}
                   onClick={prev}
                   disabled={activeStep === 0}
                   style={{
-                    position: "fixed",
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    left: 12,
-                    zIndex: 40,
                     background: activeStep === 0 ? "#cbd5e1" : theme.palette.primary.main,
                     color: "#fff",
                     width: 46,
@@ -677,14 +808,10 @@ const Register = () => {
                 </IconButton>
                 {activeStep < steps.length - 1 ? (
                   <IconButton
+                    className={classes.navButtonRight}
                     onClick={() => canGoNext(activeStep, values) && next()}
                     disabled={!canGoNext(activeStep, values)}
                     style={{
-                      position: "fixed",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      right: 12,
-                      zIndex: 40,
                       background: canGoNext(activeStep, values) ? theme.palette.primary.main : "#cbd5e1",
                       color: "#fff",
                       width: 46,
@@ -697,14 +824,10 @@ const Register = () => {
                   </IconButton>
                 ) : (
                   <IconButton
+                    className={classes.navButtonRight}
                     type="submit"
                     disabled={!canGoNext(activeStep, values) || isSubmitting}
                     style={{
-                      position: "fixed",
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      right: 12,
-                      zIndex: 40,
                       background: canGoNext(activeStep, values) ? theme.palette.primary.main : "#cbd5e1",
                       color: "#fff",
                       width: 46,

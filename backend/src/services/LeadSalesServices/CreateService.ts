@@ -7,6 +7,11 @@ interface Request {
   value?: number;
   companyName?: string;
   phone?: string;
+  site?: string;
+  origin?: string;
+  document?: string;
+  birthDate?: string | Date;
+  address?: any;
   tags?: string[];
   contactId?: number;
   responsibleId?: number;
@@ -21,6 +26,11 @@ const CreateService = async ({
   value = 0,
   companyName,
   phone,
+  site,
+  origin,
+  document,
+  birthDate,
+  address,
   tags,
   contactId,
   responsibleId,
@@ -34,6 +44,11 @@ const CreateService = async ({
     value,
     companyName,
     phone,
+    site,
+    origin,
+    document,
+    birthDate: birthDate ? new Date(birthDate as any) : null,
+    address,
     tags,
     contactId,
     responsibleId,
