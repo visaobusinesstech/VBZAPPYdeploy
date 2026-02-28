@@ -78,6 +78,11 @@ async function processEmailSend(job: any) {
   if (!schedule) return;
   if (schedule.status !== "scheduled" && schedule.status !== "retrying") return;
   try {
+    if (schedule.status === "scheduled") {
+      try {
+        await schedule.update({ status: "retrying", updatedAt: new Date() } as any);
+      } catch {}
+    }
     const companyId = schedule.companyId;
     const transporter = await getCompanyTransporter(companyId);
     const smtpConfig = await SmtpConfig.findOne({ where: { companyId, isDefault: true } });
@@ -240,7 +245,7 @@ async function handleEmailScheduler() {
   } as any);
   if (USE_REDIS && emailSendQueue) {
     for (const s of due) {
-      await emailSendQueue.add({ scheduleId: s.id }, { removeOnComplete: true });
+      await emailSendQueue.add({ scheduleId: s.id }, { removeOnComplete: true, jobId: `send-${s.id}` });
     }
   } else {
     for (const s of due) {
@@ -265,10 +270,7 @@ export async function enqueueEmailSchedule(scheduleId: number, scheduledAt?: Dat
   try {
     if (USE_REDIS && emailSendQueue) {
       const delayMs = scheduledAt ? Math.max(0, scheduledAt.getTime() - Date.now()) : 0;
-      await emailSendQueue.add({ scheduleId }, { delay: delayMs, removeOnComplete: true });
-      if (delayMs === 0) {
-        try { await processEmailSend({ data: { scheduleId } } as any); } catch {}
-      }
+      await emailSendQueue.add({ scheduleId }, { delay: delayMs, removeOnComplete: true, jobId: `send-${scheduleId}` });
     } else {
       if (!scheduledAt || scheduledAt <= new Date()) {
         await processEmailSend({ data: { scheduleId } } as any);

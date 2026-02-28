@@ -97,10 +97,8 @@ export const scheduleContacts = async (req: Request, res: Response): Promise<Res
 
   try {
     for (const s of createdSchedules) {
-      await enqueueEmailSchedule(s.id, s.scheduledAt || undefined);
-      if (!s.scheduledAt || s.scheduledAt <= new Date()) {
-        await processEmailNow(s.id);
-      }
+      // Enfileira de forma assíncrona usando jobId único; processamento ocorrerá pela fila
+      enqueueEmailSchedule(s.id, s.scheduledAt || undefined).catch(() => {});
     }
   } catch {
     /* noop */

@@ -545,12 +545,18 @@ const EmailPage = () => {
   }, [location.search]);
 
   useEffect(() => {
-    const loadTemplates = async () => {
-      const res = await emailService.templates.list({ pageNumber: 1 });
-      setTemplatesList(res?.templates || res?.records || res?.rows || []);
-    };
-    loadTemplates();
-  }, []);
+    if (activeTab !== "template") return;
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await emailService.templates.list({ pageNumber: 1 });
+        if (mounted) setTemplatesList(res?.templates || res?.records || res?.rows || []);
+      } catch {
+        if (mounted) setTemplatesList([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [activeTab]);
 
   useEffect(() => {
     const loadSchedules = async () => {
