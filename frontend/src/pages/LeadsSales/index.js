@@ -1469,7 +1469,8 @@ const LeadsSales = () => {
                 },
                 scales: {
                   x: { stacked: false, ticks: { color: palette.sub }, grid: { display: false }, beginAtZero: true },
-                  y: { stacked: false, ticks: { color: palette.sub, padding: 6 }, grid: { color: "#E6F0FF" } }
+                  y: { stacked: false, position: "left", beginAtZero: true, ticks: { color: palette.sub, padding: 6 }, grid: { color: "#E6F0FF" } },
+                  y1: { position: "right", beginAtZero: true, ticks: { color: palette.sub, padding: 6, callback: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v) }, grid: { drawOnChartArea: false } }
                 }
               };
               const barData = {
@@ -1489,7 +1490,7 @@ const LeadsSales = () => {
               };
 
               return (
-                <div style={{ padding: 4, overflowX: "hidden", overflowY: "visible", width: "100%", height: "auto" }}>
+                <div style={{ padding: 4, overflowX: "hidden", overflowY: "hidden", width: "100%", height: "auto" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
                     {kpi.map((c) => (
                       <Paper key={c.label} onMouseEnter={() => setHoveredKpi(c.label)} onMouseLeave={() => setHoveredKpi(null)} style={{
@@ -1604,7 +1605,7 @@ const LeadsSales = () => {
                     ))}
                   </div>
 
-                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${chartCols}, minmax(0, 1fr))`, gap: 16, marginTop: 8, width: "100%", overflowX: "hidden", overflowY: "visible", alignItems: "stretch", minWidth: 0 }}>
+                  <div style={{ display: "grid", gridTemplateColumns: `repeat(${chartCols}, minmax(0, 1fr))`, gap: 16, marginTop: 8, width: "100%", overflowX: "hidden", overflowY: "hidden", alignItems: "stretch", minWidth: 0 }}>
                     {(() => {
                       const boxH = 260; // Altura igual para todos os gráficos
                       const chartH = 200; // Área interna do canvas

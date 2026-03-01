@@ -218,6 +218,24 @@ const useStyles = makeStyles((theme) => ({
     overflowY: 'auto',
     maxHeight: 'calc(100vh - 112px)',
   },
+  noScroll: {
+    overflowY: 'hidden',
+    overflowX: 'hidden',
+    maxHeight: 'none',
+    height: 'auto',
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none',
+    '&::-webkit-scrollbar': {
+      display: 'none'
+    },
+    '& *::-webkit-scrollbar': {
+      display: 'none'
+    },
+    '& *': {
+      scrollbarWidth: 'none',
+      msOverflowStyle: 'none'
+    }
+  },
   fab: {
     position: 'fixed',
     bottom: theme.spacing(3),
@@ -423,11 +441,11 @@ const ActivitiesStyleLayout = ({
 
       <div
         ref={contentRef}
-        className={classes.content}
+        className={`${classes.content} ${!scrollContent ? classes.noScroll : ''}`}
         style={
           scrollContent
             ? undefined
-            : { overflowY: 'visible', overflowX: 'hidden', maxHeight: 'none', height: 'auto' }
+            : { overflowY: 'hidden', overflowX: 'hidden', maxHeight: 'none', height: 'auto' }
         }
       >
         {children}

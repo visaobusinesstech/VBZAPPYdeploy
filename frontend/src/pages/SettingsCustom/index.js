@@ -38,12 +38,12 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: theme.palette.background.paper,
   },
   mainPaper: {
-    overflowY: "visible",
+    overflowY: "hidden",
     overflowX: "hidden",
     flex: 1,
   },
   paper: {
-    overflowY: "visible",
+    overflowY: "hidden",
     overflowX: "hidden",
     padding: theme.spacing(2),
     display: "flex",

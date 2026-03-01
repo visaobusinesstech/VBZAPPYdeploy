@@ -54,6 +54,40 @@ import toastError from "../../errors/toastError";
 import activitiesService from "../../services/activitiesService";
 import activityStagesService from "../../services/activityStagesService";
 
+// Charts (igual ao Dashboard de Leads/Vendas)
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title as ChartTitle,
+  Tooltip,
+  Legend,
+  Filler
+} from "chart.js";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import InsertChartOutlinedIcon from "@material-ui/icons/InsertChartOutlined";
+import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
+import ScheduleIcon from "@material-ui/icons/Schedule";
+import ErrorOutlineIcon from "@material-ui/icons/ErrorOutline";
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  ChartTitle,
+  Tooltip,
+  Legend,
+  Filler,
+  ChartDataLabels
+);
+
 const localizer = momentLocalizer(moment);
 
 const useStyles = makeStyles((theme) => ({
@@ -368,6 +402,7 @@ const Activities = () => {
   const [activityStagesState, setActivityStagesState] = useState([]);
   const [stagesDrawerOpen, setStagesDrawerOpen] = useState(false);
   const [localStages, setLocalStages] = useState([]);
+  const [hoveredKpi, setHoveredKpi] = useState(null);
   
   // Use existing hook
   const { activities, loading, count, hasMore } = useActivities({
@@ -702,38 +737,370 @@ const Activities = () => {
       currentViewMode={viewMode}
       onViewModeChange={setViewMode}
       rightFilters={rightFilters}
+      scrollContent={viewMode !== "dashboard" && viewMode !== "calendar"}
     >
       {loading ? (
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
       ) : (
         <>
-          {viewMode === "dashboard" && (
-            <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
-              {(() => {
-                const total = filteredActivities.length;
-                const counts = {
-                  backlog: filteredActivities.filter(a => String(a.status).toLowerCase() === 'backlog').length,
-                  pending: filteredActivities.filter(a => String(a.status).toLowerCase() === 'pending').length,
-                  in_progress: filteredActivities.filter(a => String(a.status).toLowerCase() === 'in_progress').length,
-                  completed: filteredActivities.filter(a => String(a.status).toLowerCase() === 'completed').length,
-                };
-                const cards = [
-                  { label: 'Total', value: total, color: '#2563eb' },
-                  { label: 'Pendentes', value: counts.pending, color: '#f59e0b' },
-                  { label: 'Em progresso', value: counts.in_progress, color: '#3b82f6' },
-                  { label: 'Concluídas', value: counts.completed, color: '#10b981' },
-                ];
-                return cards.map((c) => (
-                  <Grid item xs={12} sm={6} md={3} key={c.label}>
-                    <Paper className={classes.dashboardCard} elevation={1}>
-                      <div className={classes.cardValue} style={{ color: c.color }}>{c.value}</div>
-                      <div className={classes.cardLabel}>{c.label}</div>
-                    </Paper>
-                  </Grid>
-                ));
-              })()}
-            </Grid>
-          )}
+          {viewMode === "dashboard" && (() => {
+            const palette = {
+              bg: "#F8FAFC",
+              card: "#FFFFFF",
+              text: "#0F172A",
+              sub: "#64748B",
+              border: "#E2E8F0",
+              shadow: "0 2px 8px rgba(2,6,23,0.06)",
+              blue: "#3B82F6",
+              blueDark: "#2563EB",
+              blueLight: "#60A5FA",
+              green: "#10B981",
+              red: "#EF4444",
+              amber: "#F59E0B",
+              gray: "#6B7280"
+            };
+            const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+            const total = filteredActivities.length;
+            const completed = filteredActivities.filter(a => String(a.status).toLowerCase() === "completed").length;
+            const inProgress = filteredActivities.filter(a => String(a.status).toLowerCase() === "in_progress").length;
+            const overdue = filteredActivities.filter(a => {
+              if (!a?.date) return false;
+              const d = new Date(a.date);
+              const st = String(a.status || "").toLowerCase();
+              return d < todayMid && st !== "completed";
+            }).length;
+
+            // Séries diárias por status para percentuais/sparkline
+            const dayKeyLocal = (d) => {
+              try {
+                const dt = new Date(d);
+                if (isNaN(dt.getTime())) return null;
+                return dt.toISOString().slice(0,10);
+              } catch { return null; }
+            };
+            const createdPerDay = {};
+            const completedPerDay = {};
+            const inProgPerDay = {};
+            const overduePerDay = {};
+            filteredActivities.forEach(a => {
+              const k = dayKeyLocal(a.date || a.createdAt || Date.now());
+              if (!k) return;
+              createdPerDay[k] = (createdPerDay[k] || 0) + 1;
+              const st = String(a.status || "").toLowerCase();
+              if (st === "completed") completedPerDay[k] = (completedPerDay[k] || 0) + 1;
+              if (st === "in_progress") inProgPerDay[k] = (inProgPerDay[k] || 0) + 1;
+              const d = new Date(a.date || Date.now());
+              if (d < todayMid && st !== "completed") overduePerDay[k] = (overduePerDay[k] || 0) + 1;
+            });
+            const sortKeys = (obj) => Object.keys(obj || {}).sort();
+            const seriesFrom = (obj) => sortKeys(obj).map(k => obj[k]);
+            const createdSeries = seriesFrom(createdPerDay);
+            const completedSeries = seriesFrom(completedPerDay);
+            const inProgSeries = seriesFrom(inProgPerDay);
+            const overdueSeries = seriesFrom(overduePerDay);
+            const computeDelta = (arr) => {
+              if (!Array.isArray(arr) || arr.length < 2) return 0;
+              const last = Number(arr[arr.length - 1] || 0);
+              const prev = Number(arr[arr.length - 2] || 0);
+              if (prev === 0) return 0;
+              return ((last - prev) / prev) * 100;
+            };
+
+            const kpis = [
+              { label: "Total de Atividades", value: total, color: palette.blueDark, badgeBg: `${palette.blueDark}18`, delta: computeDelta(createdSeries), icon: <InsertChartOutlinedIcon style={{ color: palette.blueDark }} />, spark: createdSeries },
+              { label: "Concluídas", value: completed, color: palette.green, badgeBg: `${palette.green}18`, delta: computeDelta(completedSeries), icon: <CheckCircleOutlineIcon style={{ color: palette.green }} />, spark: completedSeries },
+              { label: "Em Progresso", value: inProgress, color: palette.amber, badgeBg: `${palette.amber}18`, delta: computeDelta(inProgSeries), icon: <ScheduleIcon style={{ color: palette.amber }} />, spark: inProgSeries },
+              { label: "Atrasadas", value: overdue, color: palette.red, badgeBg: `${palette.red}18`, delta: computeDelta(overdueSeries), icon: <ErrorOutlineIcon style={{ color: palette.red }} />, spark: overdueSeries }
+            ];
+
+            // Agrupar por mês (Criadas vs Concluídas)
+            const monthKey = (d) => {
+              try {
+                const dt = new Date(d);
+                if (isNaN(dt.getTime())) return null;
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, "0");
+                return `${y}-${m}`;
+              } catch { return null; }
+            };
+            const createdMap = {};
+            const doneMap = {};
+            filteredActivities.forEach(a => {
+              const key = monthKey(a.date || a.createdAt || Date.now());
+              if (!key) return;
+              createdMap[key] = (createdMap[key] || 0) + 1;
+              const st = String(a.status || "").toLowerCase();
+              if (st === "completed") doneMap[key] = (doneMap[key] || 0) + 1;
+            });
+            const months = Array.from(new Set([...Object.keys(createdMap), ...Object.keys(doneMap)])).sort();
+            // Labels humanizados PT-BR
+            const labelFromKey = (k) => {
+              const [yy, mm] = k.split("-");
+              const d = new Date(Number(yy), Number(mm) - 1, 1);
+              return d.toLocaleDateString("pt-BR", { month: "short" });
+            };
+            const labelsCreatedDone = months.map(labelFromKey);
+            const dataCreated = months.map(k => createdMap[k] || 0);
+            const dataDone = months.map(k => doneMap[k] || 0);
+
+            // Donut por Etapa (status)
+            const stages = (activityStagesState.length ? activityStagesState : defaultActivityStages);
+            const stageOrder = stages.map(s => s.key);
+            const stageLabelByKey = stages.reduce((acc, s) => { acc[s.key] = s.label; return acc; }, {});
+            const stageColorByKey = stages.reduce((acc, s) => { acc[s.key] = s.color || palette.gray; return acc; }, {});
+            const stageCounts = stageOrder.map(k =>
+              filteredActivities.filter(a => String(a.status).toLowerCase() === String(k).toLowerCase()).length
+            );
+            const stageLabels = stageOrder.map(k => stageLabelByKey[k] || k);
+            const stageColors = stageOrder.map(k => stageColorByKey[k]);
+
+            // Gráfico por Tipo
+            const typeMap = {};
+            filteredActivities.forEach(a => {
+              const t = String(a.type || "outros").toLowerCase();
+              typeMap[t] = (typeMap[t] || 0) + 1;
+            });
+            const typeLabels = Object.keys(typeMap);
+            const humanizeType = (t) => {
+              const key = String(t || "").toLowerCase();
+              if (key === "task") return "Tarefa";
+              return key.charAt(0).toUpperCase() + key.slice(1);
+            };
+            const typeValues = typeLabels.map(k => typeMap[k]);
+
+            // Linha diária (total criado por dia)
+            const dayKey = (d) => {
+              try {
+                const dt = new Date(d);
+                if (isNaN(dt.getTime())) return null;
+                return dt.toISOString().slice(0,10);
+              } catch { return null; }
+            };
+            const perDay = {};
+            filteredActivities.forEach(a => {
+              const k = dayKey(a.date || a.createdAt || Date.now());
+              if (!k) return;
+              perDay[k] = (perDay[k] || 0) + 1;
+            });
+            const dayKeys = Object.keys(perDay).sort();
+            const dayLabels = dayKeys;
+            const dayValues = dayKeys.map(k => perDay[k]);
+
+            const cardStyle = {
+              borderRadius: 12,
+              padding: 12,
+              border: `1px solid ${palette.border}`,
+              boxShadow: palette.shadow,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: 6,
+              minHeight: 110,
+              background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`,
+              overflow: "hidden"
+            };
+            const chartCardStyle = {
+              borderRadius: 12,
+              padding: 12,
+              border: `1px solid ${palette.border}`,
+              boxShadow: palette.shadow,
+              background: palette.card,
+              minHeight: 280
+            };
+
+            const sparkOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+              scales: { x: { display: false }, y: { display: false } },
+              elements: { point: { radius: 0 }, line: { tension: 0.35 } },
+              layout: { padding: 0 }
+            };
+
+            const barOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: { padding: { top: 18, right: 12, left: 4, bottom: 8 } },
+              plugins: {
+                legend: { position: "bottom" },
+                datalabels: {
+                  display: true,
+                  color: palette.text,
+                  anchor: "end",
+                  align: "top",
+                  offset: 4,
+                  clamp: true,
+                  clip: false,
+                  formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                  font: { weight: "600", size: 10 }
+                }
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: palette.sub } },
+                y: { grid: { color: "#E6F0FF" }, ticks: { color: palette.sub } }
+              }
+            };
+            const barCreatedDone = {
+              labels: labelsCreatedDone,
+              datasets: [
+                { label: "Concluídas", data: dataDone, backgroundColor: palette.blueLight, borderRadius: 6, maxBarThickness: 22 },
+                { label: "Criadas", data: dataCreated, backgroundColor: palette.blueDark, borderRadius: 6, maxBarThickness: 22 }
+              ]
+            };
+
+            const donutOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "right", labels: { color: palette.text } },
+                datalabels: {
+                  color: "#fff",
+                  textStrokeColor: "rgba(0,0,0,0.25)",
+                  textStrokeWidth: 2,
+                  formatter: (v) => (v > 0 ? v : ""),
+                  font: { weight: "700", size: 10 }
+                }
+              },
+              cutout: "55%"
+            };
+            const donutStages = {
+              labels: stageLabels,
+              datasets: [{ data: stageCounts, backgroundColor: stageColors, borderWidth: 0 }]
+            };
+            const donutTypes = {
+              labels: typeLabels.map(humanizeType),
+              datasets: [{ data: typeValues, backgroundColor: [palette.blue, palette.green, palette.amber, palette.red, "#8B5CF6", "#14B8A6", "#F97316"] }]
+            };
+
+            const singlePoint = (dayValues || []).length <= 1;
+            const maxVal = Math.max(0, ...(dayValues || []));
+            const suggestedMax = maxVal <= 1 ? 1.2 : maxVal * 1.1;
+            const lineOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: { padding: { top: 18, right: 12, left: 4, bottom: 8 } },
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  display: singlePoint,
+                  color: palette.text,
+                  anchor: "center",
+                  align: "top",
+                  offset: 6,
+                  clamp: true,
+                  clip: false,
+                  formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                  font: { weight: "600", size: 10 }
+                }
+              },
+              elements: { point: { radius: singlePoint ? 6 : 2 } },
+              spanGaps: true,
+              scales: {
+                x: { grid: { display: false }, ticks: { color: palette.sub } },
+                y: { grid: { color: "#E6F0FF" }, ticks: { color: palette.sub }, beginAtZero: true, suggestedMax, grace: "10%" }
+              }
+            };
+            const linePerDay = {
+              labels: dayLabels,
+              datasets: [{
+                label: "Atividades",
+                data: dayValues,
+                fill: true,
+                borderColor: palette.blueDark,
+                backgroundColor: "rgba(37,99,235,0.10)",
+                tension: 0.35
+              }]
+            };
+
+            return (
+              <div style={{ padding: 4, overflowX: "hidden", overflowY: "visible", width: "100%", height: "auto" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
+                  {kpis.map((c) => {
+                    const delta = Math.round(c.delta || 0);
+                    const deltaColor = delta > 0 ? "#065F46" : delta < 0 ? "#B91C1C" : palette.sub;
+                    const deltaPrefix = delta > 0 ? "+" : "";
+                    return (
+                      <Paper
+                        key={c.label}
+                        onMouseEnter={() => setHoveredKpi(c.label)}
+                        onMouseLeave={() => setHoveredKpi(null)}
+                        style={{
+                          ...cardStyle,
+                          boxShadow: hoveredKpi === c.label ? "0 12px 24px rgba(2,6,23,0.16)" : palette.shadow,
+                          transform: hoveredKpi === c.label ? "translateY(-4px) scale(1.01)" : "none",
+                          transition: "transform 150ms ease, box-shadow 150ms ease",
+                          transformStyle: "preserve-3d"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 400 }}>{c.label}</div>
+                          <div style={{ width: 28, height: 28, borderRadius: 10, background: c.badgeBg, display: "grid", placeItems: "center" }}>
+                            <div style={{ transform: "scale(0.9)" }}>{c.icon}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 20, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
+                          <div style={{ width: 64, height: 22 }}>
+                            <Line
+                              data={{
+                                labels: (c.spark || []).map((_, i) => i + 1),
+                                datasets: [{ data: c.spark || [], borderColor: c.color, backgroundColor: `${c.color}22`, fill: true }]
+                              }}
+                              options={sparkOptions}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: palette.sub, minHeight: 16, display: "flex", justifyContent: "space-between" }}>
+                          <span />
+                          <span style={{ color: deltaColor }}>{`${deltaPrefix}${delta}%`}</span>
+                        </div>
+                      </Paper>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Criadas vs Concluídas</div>
+                    <div style={{ height: 220 }}>
+                      <Bar options={barOptions} data={barCreatedDone} />
+                    </div>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: palette.sub, fontSize: 12 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: palette.blueLight, display: "inline-block" }} />
+                        Concluídas
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: palette.sub, fontSize: 12 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: palette.blueDark, display: "inline-block" }} />
+                        Criadas
+                      </span>
+                    </div>
+                  </Paper>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Atividades por Etapa</div>
+                    <div style={{ height: 240 }}>
+                      <Doughnut data={donutStages} options={donutOptions} />
+                    </div>
+                  </Paper>
+                </div>
+
+                <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Atividades por Tipo</div>
+                    <div style={{ height: 240 }}>
+                      <Doughnut data={donutTypes} options={donutOptions} />
+                    </div>
+                  </Paper>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Atividades por Dia</div>
+                    <div style={{ height: 220 }}>
+                      <Line data={linePerDay} options={lineOptions} />
+                    </div>
+                  </Paper>
+                </div>
+              </div>
+            );
+          })()}
           {viewMode === "list" && <ActivitiesList activities={filteredActivities} />}
           {viewMode === "calendar" && <ActivitiesCalendar activities={filteredActivities} onCreate={handleCreateActivity} />}
           {viewMode === "board" && (
