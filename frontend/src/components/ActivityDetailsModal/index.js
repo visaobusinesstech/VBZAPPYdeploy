@@ -105,13 +105,34 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users = [] }) => {
+const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users = [], stages }) => {
   const classes = useStyles();
   const { user: authUser } = useContext(AuthContext) || {};
   const backendUrl = getBackendUrl && getBackendUrl();
   const [projectName, setProjectName] = useState("");
 
-  const progress = activity?.progress || 33;
+  const progress = useMemo(() => {
+    const fallbackStages = [
+      { key: 'backlog', label: 'Backlog' },
+      { key: 'pending', label: 'Pendente' },
+      { key: 'in_progress', label: 'Em Progresso' },
+      { key: 'completed', label: 'Concluído' }
+    ];
+    const list = Array.isArray(stages) && stages.length >= 2 ? stages : fallbackStages;
+    const normalize = (s) => {
+      const v = String(s || '').toLowerCase();
+      if (['in_progress','em progresso','active','ativo'].includes(v)) return 'in_progress';
+      if (['pending','pendente'].includes(v)) return 'pending';
+      if (['completed','concluído','concluido'].includes(v)) return 'completed';
+      if (['archived','arquivado'].includes(v)) return 'archived';
+      return 'backlog';
+    };
+    const ids = list.map(st => st.key || st.id || st.status || String(st).toLowerCase());
+    const cur = normalize(activity?.status);
+    const idx = Math.max(0, ids.findIndex(x => String(x).toLowerCase() === cur));
+    const denom = Math.max(1, ids.length - 1);
+    return Math.round((idx / denom) * 100);
+  }, [activity?.status, stages]);
 
   const formatDate = (value) => {
     if (!value) return '—';

@@ -103,11 +103,43 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit }) => {
+const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit, stages, users = [] }) => {
   const classes = useStyles();
-  if (!project) return null;
+  const progress = React.useMemo(() => {
+    const list = Array.isArray(stages) && stages.length >= 2
+      ? stages
+      : [
+          { id: 'backlog', title: 'Backlog' },
+          { id: 'pending', title: 'Pendente' },
+          { id: 'in_progress', title: 'Em Progresso' },
+          { id: 'completed', title: 'Concluído' }
+        ];
+    const normalize = (s) => {
+      const v = String(s || "").toLowerCase();
+      if (['pending','pendente'].includes(v)) return 'pending';
+      if (['in_progress','em progresso','active','ativo'].includes(v)) return 'in_progress';
+      if (['completed','concluído','concluido'].includes(v)) return 'completed';
+      if (['archived','arquivado'].includes(v)) return 'archived';
+      return 'backlog';
+    };
+    const ids = list.map(st => st.id || st.key || st.status || String(st).toLowerCase());
+    const current = normalize(project?.status);
+    const idx = Math.max(0, ids.findIndex(x => String(x).toLowerCase() === current));
+    const denom = Math.max(1, ids.length - 1);
+    return Math.round((idx / denom) * 100);
+  }, [project?.status, stages]);
 
-  const progress = project.progress || 0;
+  const resolveUserById = (id) => {
+    if (!id || !Array.isArray(users)) return null;
+    const uid = Number(id);
+    return users.find(u => Number(u.id) === uid) || null;
+  };
+  const ownerUser = (project && project.user) || resolveUserById(project && project.userId);
+  const ownerName = ownerUser
+    ? (ownerUser.name || ownerUser.fullName || ownerUser.email)
+    : (project && project.userId ? `Usuário #${project.userId}` : 'Sem responsável');
+
+  if (!project) return null;
 
   return (
     <Drawer
@@ -137,33 +169,12 @@ const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit }) => {
         </Typography>
       </Box>
 
-      <Divider />
-
-      <Typography className={classes.sectionTitle}>Informações</Typography>
-      <div className={classes.infoRow}>
-        <Paper className={classes.infoCardPurple} elevation={0}>
-          <Typography variant="overline" style={{ opacity: 0.9 }}>EMPRESA</Typography>
-          <Typography variant="subtitle2" style={{ marginTop: 6 }}>
-            {(project.company && (project.company.name || project.company.title)) || (project.companyId || 'Não informado')}
-          </Typography>
-        </Paper>
-        <Paper className={classes.infoCardOrange} elevation={0}>
-          <Typography variant="overline" style={{ opacity: 0.9 }}>STATUS</Typography>
-          <Box mt={1}>
-             <Chip 
-                label={project.status === 'active' ? 'Ativo' : project.status === 'completed' ? 'Concluído' : 'Arquivado'} 
-                size="small" 
-                color={project.status === 'active' ? 'primary' : 'default'}
-             />
-          </Box>
-        </Paper>
-      </div>
       
       <div className={classes.infoRow}>
         <Paper className={classes.infoCardPurple} elevation={0}>
           <Typography variant="overline" style={{ opacity: 0.9 }}>RESPONSÁVEL</Typography>
           <Typography variant="subtitle2" style={{ marginTop: 6 }}>
-            {(project.user && (project.user.name || project.user.email)) || (project.userId ? `Usuário #${project.userId}` : 'Sem responsável')}
+            {ownerName}
           </Typography>
         </Paper>
       </div>

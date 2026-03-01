@@ -475,17 +475,6 @@ const Activities = () => {
     }
   ];
 
-  // Calculate quick stats for the header (respeita filtros)
-  const headerStats = useMemo(() => {
-    const base = filteredActivities;
-    const total = base.length;
-    const completed = base.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
-    return [
-      { label: "Total", value: total, color: "#2563eb" },
-      { label: "Concluídas", value: completed, color: "#22c55e" }
-    ];
-  }, [filteredActivities]);
-
   const filteredActivities = useMemo(() => {
     let base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
     if (statusFilter) {
@@ -503,6 +492,17 @@ const Activities = () => {
     // Empresa: sem persistência de contactId ainda; manter base
     return base;
   }, [activitiesState, statusFilter, selectedResponsible]);
+
+  // Calculate quick stats for the header (respeita filtros)
+  const headerStats = useMemo(() => {
+    const base = filteredActivities;
+    const total = base.length;
+    const completed = base.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
+    return [
+      { label: "Total", value: total, color: "#2563eb" },
+      { label: "Concluídas", value: completed, color: "#22c55e" }
+    ];
+  }, [filteredActivities]);
 
   useEffect(() => {
     const onFsChange = () => {
@@ -1222,6 +1222,7 @@ const Activities = () => {
       open={detailsOpen}
       onClose={() => setDetailsOpen(false)}
       activity={selectedActivity}
+      stages={activityStagesState.length ? activityStagesState : defaultActivityStages}
       users={usersList}
       onEdit={(activity) => {
         setActivityToEdit(activity);

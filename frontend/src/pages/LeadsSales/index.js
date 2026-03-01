@@ -849,6 +849,15 @@ const LeadsSales = () => {
   const [dash, setDash] = useState(null);
   const [hoveredKpi, setHoveredKpi] = useState(null);
 
+  const visibleLeads = useMemo(() => {
+    let arr = Array.isArray(leadsState) ? leadsState : [];
+    if (contact && contact.__company) {
+      const target = String(contact.name || "").trim().toLowerCase();
+      arr = arr.filter(l => String(l.companyName || "").trim().toLowerCase() === target);
+    }
+    return arr;
+  }, [leadsState, contact]);
+
   const companiesFromLeads = useMemo(() => {
     const names = new Set();
     const items = [];
@@ -1834,7 +1843,7 @@ const LeadsSales = () => {
             })()}
             {viewMode === "list" && (() => {
               window.__LEADS_COLUMNS__ = currentColumns;
-              return <LeadsList leads={leadsState} />;
+              return <LeadsList leads={visibleLeads} />;
             })()}
             {viewMode === "calendar" && (() => {
               const MiniMonth = ({ value, onChange }) => {
@@ -1886,7 +1895,7 @@ const LeadsSales = () => {
                   </div>
                 );
               };
-              const events = (leadsState || []).map((l) => {
+              const events = (visibleLeads || []).map((l) => {
                 const when = l.nextFollowUpAt || l.date || l.createdAt || l.updatedAt || Date.now();
                 return {
                   title: l.name || l.companyName || `Lead ${l.id}`,
@@ -1903,8 +1912,8 @@ const LeadsSales = () => {
                 if (st.includes("lost") || st.includes("perdido")) backgroundColor = "#EF4444";
                 return { style: { backgroundColor, color: "#0f172a", borderRadius: 10, border: `1px solid ${backgroundColor}`, padding: "6px 8px", fontSize: 12 } };
               };
-              const total = leadsState.length;
-              const ganho = leadsState.filter(l => /(won|converted|fechado)/i.test(String(l.status || ""))).length;
+              const total = visibleLeads.length;
+              const ganho = visibleLeads.filter(l => /(won|converted|fechado)/i.test(String(l.status || ""))).length;
               return (
                 <div className="schedules-page" style={{ paddingTop: 8, height: 'calc(100vh - 128px)', overflow: 'hidden' }}>
                   <Grid container spacing={2} style={{ height: '100%' }}>
@@ -1951,7 +1960,7 @@ const LeadsSales = () => {
                             <Typography className="aside-title" variant="body2">Lead</Typography>
                           </div>
                           {(() => {
-                            const recent = [...leadsState].sort((a,b) => new Date(b.updatedAt||b.createdAt||b.date||0) - new Date(a.updatedAt||a.createdAt||a.date||0))[0];
+                            const recent = [...visibleLeads].sort((a,b) => new Date(b.updatedAt||b.createdAt||b.date||0) - new Date(a.updatedAt||a.createdAt||a.date||0))[0];
                             return (
                           <div className="activity-item">
                                 <div className="activity-icon"><BusinessCenterIcon style={{ fontSize: 18 }} /></div>
@@ -1979,7 +1988,7 @@ const LeadsSales = () => {
               <div ref={kanbanRef} className={classes.fixedContent} style={{ height: '100%' }}>
                 <LeadsKanbanBoard
                   columns={currentColumns}
-                  leads={leadsState}
+                  leads={visibleLeads}
                   contacts={contactsList}
                   onEdit={(lead) => { setEditing(lead); setDrawerOpen(true); }}
                   onOpenTagCreator={openTagCreator}

@@ -444,15 +444,6 @@ const Projects = () => {
     }
   ];
 
-  const headerStats = useMemo(() => {
-    const total = filteredProjects.length;
-    const completed = filteredProjects.filter(p => p.status === 'completed').length;
-    return [
-      { label: "Total", value: total, color: "#2563eb" },
-      { label: "Concluídos", value: completed, color: "#22c55e" }
-    ];
-  }, [filteredProjects]);
-
   const filteredProjects = useMemo(() => {
     let base = projectsState;
 
@@ -472,15 +463,21 @@ const Projects = () => {
       });
     }
 
-    // Empresa (usa nome da empresa selecionada para filtrar nome/descrição/empresa associada)
-    if (selectedCompany && selectedCompany.name) {
+    // Empresa: aceitar correspondência por ID (companyId) ou por nome
+    if (selectedCompany && (selectedCompany.id || selectedCompany.name)) {
+      const cid = selectedCompany.id ? String(selectedCompany.id) : null;
       const cname = String(selectedCompany.name || "").toLowerCase();
       base = base.filter((p) => {
+        const byId =
+          (cid && String(p?.companyId || p?.company?.id) === cid);
         const byName =
-          String(p?.name || "").toLowerCase().includes(cname) ||
-          String(p?.description || "").toLowerCase().includes(cname) ||
-          String(p?.company?.name || "").toLowerCase().includes(cname);
-        return byName;
+          cname &&
+          (
+            String(p?.name || "").toLowerCase().includes(cname) ||
+            String(p?.description || "").toLowerCase().includes(cname) ||
+            String(p?.company?.name || "").toLowerCase().includes(cname)
+          );
+        return byId || byName;
       });
     }
 
@@ -512,6 +509,15 @@ const Projects = () => {
 
     return base;
   }, [projectsState, statusFilter, selectedResponsible, selectedCompany, dateStart, dateEnd]);
+
+  const headerStats = useMemo(() => {
+    const total = filteredProjects.length;
+    const completed = filteredProjects.filter(p => p.status === 'completed').length;
+    return [
+      { label: "Total", value: total, color: "#2563eb" },
+      { label: "Concluídos", value: completed, color: "#22c55e" }
+    ];
+  }, [filteredProjects]);
 
   // Fullscreen logic (mesma de Activities)
   useEffect(() => {
@@ -1266,6 +1272,13 @@ const Projects = () => {
       open={detailsOpen}
       onClose={() => setDetailsOpen(false)}
       project={selectedProject}
+      users={usersList}
+      stages={(projectStagesState && projectStagesState.length) ? projectStagesState : [
+        { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+        { id: 'pending', title: 'Pendente', color: '#f59e0b' },
+        { id: 'in_progress', title: 'Em Progresso', color: '#2563eb' },
+        { id: 'completed', title: 'Concluído', color: '#10B981' }
+      ]}
       onEdit={(project) => {
         setProjectToEdit(project);
         setDetailsOpen(false);
