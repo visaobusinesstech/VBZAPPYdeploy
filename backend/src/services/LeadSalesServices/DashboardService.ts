@@ -2,9 +2,11 @@ import { Op, fn, col, literal, Sequelize } from "sequelize";
 import LeadSale from "../../models/LeadSale";
 import Contact from "../../models/Contact";
 import User from "../../models/User";
+import LeadPipeline from "../../models/LeadPipeline";
 
 type Request = {
   status?: string;
+  pipelineId?: string | number;
   responsibleId?: string | number;
   contactId?: string | number;
   dateStart?: string;
@@ -30,13 +32,16 @@ export type LeadsDashboardResponse = {
   conversionByOrigin: Origin[];
 };
 
-const isWon = (status?: string) =>
-  /^(fechado|won|converted|ganho|ganhos)$/i.test(String(status || ""));
+const isWon = (status?: string) => {
+  const s = String(status || "").toLowerCase();
+  return /(fech|fechado|fechamento|won|convert|ganho)/i.test(s);
+};
 const isLost = (status?: string) =>
   /^(perdido|lost|cancelado|rejeitado)$/i.test(String(status || ""));
 
 export default async function DashboardService({
   status,
+  pipelineId,
   responsibleId,
   contactId,
   dateStart,
@@ -45,6 +50,17 @@ export default async function DashboardService({
 }: Request): Promise<LeadsDashboardResponse> {
   const where: any = { companyId };
   if (status) where.status = status;
+  if (pipelineId) {
+    const pid = Number(pipelineId);
+    if (Number.isFinite(pid)) {
+      const first = await LeadPipeline.findOne({ where: { companyId }, order: [["id", "ASC"]] });
+      if (first && Number(first.id) === pid) {
+        where[Op.or] = [{ pipelineId: pid }, { pipelineId: { [Op.is]: null } }];
+      } else {
+        where.pipelineId = pid;
+      }
+    }
+  }
   if (responsibleId) where.responsibleId = responsibleId;
   if (contactId) where.contactId = contactId;
   if (dateStart && dateEnd) {
@@ -60,9 +76,8 @@ export default async function DashboardService({
   const totalLeads = all.length;
   const leadsWon = all.filter((r) => isWon(String(r.status))).length;
   const leadsLost = all.filter((r) => isLost(String(r.status))).length;
-  const totalSales = all
-    .filter((r) => isWon(String(r.status)))
-    .reduce((sum, r: any) => sum + (Number(r.value) || 0), 0);
+  // Total de Vendas: soma do valor de todos os leads (independente de ganho/perda)
+  const totalSales = all.reduce((sum, r: any) => sum + (Number(r.value) || 0), 0);
   const efficiency = totalLeads > 0 ? (leadsWon / totalLeads) * 100 : 0;
 
   // Helpers for date truncation (Postgres)
@@ -70,16 +85,13 @@ export default async function DashboardService({
   const castDate = (field: string) =>
     Sequelize.cast(fn("to_char", dt(field), literal(`'YYYY-MM-DD'`)), "text");
 
-  // Revenue per day (won only)
+  // Revenue per day (all leads)
   const revenuePerDayRaw = await LeadSale.findAll({
     attributes: [
       [castDate("createdAt"), "date"],
       [fn("sum", col("value")), "revenue"]
     ],
-    where: {
-      ...where,
-      status: { [Op.iLike]: "%fechado%" }
-    },
+    where,
     group: [castDate("createdAt") as any],
     order: [[literal("date"), "ASC"]],
     raw: true
@@ -120,7 +132,12 @@ export default async function DashboardService({
     ],
     where: {
       ...where,
-      status: { [Op.iLike]: "%fechado%" }
+      [Op.or]: [
+        { status: { [Op.iLike]: "%fech%" } },
+        { status: { [Op.iLike]: "%won%" } },
+        { status: { [Op.iLike]: "%convert%" } },
+        { status: { [Op.iLike]: "%ganho%" } }
+      ]
     },
     include: [{ model: Contact, attributes: [], required: false }],
     group: [literal('"contact"."channel"') as any],

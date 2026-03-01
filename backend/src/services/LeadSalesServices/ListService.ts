@@ -2,11 +2,13 @@ import { Op } from "sequelize";
 import LeadSale from "../../models/LeadSale";
 import Contact from "../../models/Contact";
 import User from "../../models/User";
+import LeadPipeline from "../../models/LeadPipeline";
 
 interface Request {
   searchParam?: string;
   pageNumber?: string | number;
   status?: string;
+  pipelineId?: string | number;
   responsibleId?: number | string;
   contactId?: number | string;
   dateStart?: string;
@@ -24,6 +26,7 @@ const ListService = async ({
   searchParam = "",
   pageNumber = 1,
   status,
+  pipelineId,
   responsibleId,
   contactId,
   dateStart,
@@ -45,6 +48,18 @@ const ListService = async ({
     ];
   }
   if (status) where.status = status;
+  if (pipelineId) {
+    const pid = Number(pipelineId);
+    if (Number.isFinite(pid)) {
+      // Include legacy records (NULL pipeline) only when requesting the first/default pipeline of the company
+      const first = await LeadPipeline.findOne({ where: { companyId }, order: [["id", "ASC"]] });
+      if (first && Number(first.id) === pid) {
+        where[Op.or] = [{ pipelineId: pid }, { pipelineId: { [Op.is]: null } }];
+      } else {
+        where.pipelineId = pid;
+      }
+    }
+  }
   if (responsibleId) where.responsibleId = responsibleId;
   if (contactId) where.contactId = contactId;
   if (dateStart && dateEnd) {

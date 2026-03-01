@@ -107,7 +107,7 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
           type: activity.type || "task",
           date: activity.date ? activity.date.split('T')[0] : "",
           status: activity.status || "pending",
-          responsible: activity.responsible || "",
+          responsible: activity.userId || "",
           companyId: activity.companyId || "",
           projectId: activity.projectId || "",
           sector: activity.sector || ""
@@ -145,8 +145,11 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
 
     try {
       setLoading(true);
+      const selectedUser = Array.isArray(activeUsers) ? activeUsers.find(u => String(u.id) === String(formValues.responsible)) : null;
       const payload = {
         ...formValues,
+        userId: selectedUser ? selectedUser.id : undefined,
+        owner: selectedUser ? (selectedUser.name || selectedUser.fullName || selectedUser.email || `Usuário ${selectedUser.id}`) : (formValues.owner || undefined)
       };
       // Here you would call the service. For now, we simulate or call the prop.
       // Assuming onSave handles the API call or we do it here.

@@ -188,15 +188,17 @@ const withAlpha = (hex, alpha) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const ProjectKanbanBoard = ({ projects, onProjectClick, onAdd, onMove, onDelete }) => {
+const ProjectKanbanBoard = ({ projects, columns: columnsProp, onProjectClick, onAdd, onMove, onDelete }) => {
   const classes = useStyles();
 
-  const columns = [
-    { id: 'backlog', title: 'Backlog', color: '#6b7280' },
-    { id: 'pending', title: 'Pendente', color: '#f59e0b' },
-    { id: 'in_progress', title: 'Em Progresso', color: '#2563eb' },
-    { id: 'completed', title: 'Concluído', color: '#10B981' }
-  ];
+  const columns = Array.isArray(columnsProp) && columnsProp.length
+    ? columnsProp
+    : [
+        { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+        { id: 'pending', title: 'Pendente', color: '#f59e0b' },
+        { id: 'in_progress', title: 'Em Progresso', color: '#2563eb' },
+        { id: 'completed', title: 'Concluído', color: '#10B981' }
+      ];
 
   // Função auxiliar para mapear status do backend para colunas
   const getColumnId = (status) => {

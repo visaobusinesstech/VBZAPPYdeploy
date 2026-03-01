@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useContext } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   Grid,
@@ -9,10 +9,13 @@ import {
   Chip,
   Avatar,
   IconButton,
-  Button
+  Button,
+  Tooltip
 } from '@material-ui/core';
-import { MoreVert as MoreVertIcon, Add as AddIcon, DeleteOutline as DeleteIcon } from '@material-ui/icons';
+import { MoreVert as MoreVertIcon, Add as AddIcon, DeleteOutline as DeleteIcon, CalendarTodayOutlined as CalendarIcon, AssignmentOutlined as AssignmentIcon, PhoneOutlined as PhoneIcon, MailOutline as MailIcon, EventOutlined as MeetingIcon, ChevronRightOutlined as ArrowIcon } from '@material-ui/icons';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { AuthContext } from '../../context/Auth/AuthContext';
+import { getBackendUrl } from '../../config';
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -184,13 +187,15 @@ const withAlpha = (hex, alpha) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, columns: columnsProp, statusResolver }) => {
+const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, columns: columnsProp, statusResolver, users = [] }) => {
   const classes = useStyles();
   const boardRef = useRef(null);
   const isPanningRef = useRef(false);
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const [colPx, setColPx] = useState(0);
+  const { user: authUser } = useContext(AuthContext) || {};
+  const backendUrl = getBackendUrl && getBackendUrl();
 
   const columns = columnsProp || [
     { id: 'backlog', title: 'Backlog', color: '#4B5563' },
@@ -263,13 +268,41 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, col
     try {
       const d = new Date(value);
       if (isNaN(d.getTime())) return String(value);
+      const monthsPtShort = ["jan.","fev.","mar.","abr.","mai.","jun.","jul.","ago.","set.","out.","nov.","dez."];
       const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const yyyy = d.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
+      const monthName = monthsPtShort[d.getMonth()] || '';
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      return `${dd} de ${monthName}, ${hh}:${mi}`;
     } catch {
       return String(value);
     }
+  };
+
+  const renderTypeIcon = (type) => {
+    const t = String(type || '').toLowerCase();
+    const commonStyle = { fontSize: 16, color: '#6B7280' };
+    if (t === 'task') return <AssignmentIcon style={commonStyle} />;
+    if (t === 'call') return <PhoneIcon style={commonStyle} />;
+    if (t === 'email') return <MailIcon style={commonStyle} />;
+    if (t === 'meeting') return <MeetingIcon style={commonStyle} />;
+    return <AssignmentIcon style={commonStyle} />;
+  };
+
+  const resolveUserById = (id) => {
+    if (!id || !Array.isArray(users)) return null;
+    const uid = Number(id);
+    return users.find(u => Number(u.id) === uid) || null;
+  };
+
+  const avatarSrcForUser = (u) => {
+    if (!u) return undefined;
+    const img = u.profileImage || u.avatar || u.picture || null;
+    if (!img) return undefined;
+    if (String(img).startsWith('http')) return img;
+    const companyId = u.companyId || (authUser && authUser.companyId);
+    if (!backendUrl || !companyId) return undefined;
+    return `${backendUrl}/public/company${companyId}/user/${img}`;
   };
 
   const handleDragEnd = (result) => {
@@ -345,67 +378,83 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, col
                           )}
                           <div className={classes.cardAccent} style={{ backgroundColor: column.color }} />
                           <CardContent style={{ padding: 10 }}>
-                            <Typography variant="body2" className={classes.cardTitle}>
-                              {activity.title || "Sem título"}
-                            </Typography>
+                            {(() => {
+                              const projectObj = activity && activity.project;
+                              const projectLabelFromObj = projectObj && typeof projectObj === 'object'
+                                ? (projectObj.name || projectObj.title || '')
+                                : '';
+                              const projectLabel =
+                                (activity && activity.projectName) ||
+                                projectLabelFromObj ||
+                                '';
+                              return (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 4 }}>
+                                  <Typography variant="body2" className={classes.cardTitle} style={{ margin: 0 }}>
+                                    {activity.title || "Sem título"}
+                                  </Typography>
+                                  <Tooltip
+                                    title={projectLabel || 'Sem projeto'}
+                                    placement="top"
+                                    arrow
+                                  >
+                                    <ArrowIcon style={{ fontSize: 14, color: '#0D47A1', opacity: 0.9, cursor: 'default' }} />
+                                  </Tooltip>
+                                </div>
+                              );
+                            })()}
+                            
+                            {(() => {
+                              const responsibleUser = resolveUserById(activity.userId);
+                              const ownerName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email))
+                                || activity.owner
+                                || (activity.user && (activity.user.name || activity.user.email));
+                              if (!ownerName) return null;
+                              const initials = String(ownerName).split(" ").slice(0,2).map(p => p[0]).join("").toUpperCase();
+                              const src = avatarSrcForUser(responsibleUser);
+                              return (
+                                <>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <Avatar src={src} style={{ width: 22, height: 22, fontSize: 11, background: '#E5E7EB', color: '#111827' }}>
+                                      {!src && initials}
+                                    </Avatar>
+                                    <Typography variant="caption" className={classes.cardMeta} style={{ fontSize: 12 }}>
+                                      {ownerName}
+                                    </Typography>
+                                    </div>
+                                    <div style={{ marginLeft: 8 }}>
+                                      {renderTypeIcon(activity.type)}
+                                    </div>
+                                  </div>
+                                  <div style={{ height: 1, background: '#E5E7EB', opacity: 0.8, margin: '6px 0' }} />
+                                </>
+                              );
+                            })()}
+
                             <Typography variant="caption" className={classes.cardMeta} display="block">
                               {activity.description ? (activity.description.length > 38 ? activity.description.substring(0, 38) + '...' : activity.description) : "Sem descrição"}
                             </Typography>
-                            
-                            {/* Color Blocks for Company and Project */}
-                            <div style={{ display: 'flex', gap: 6, marginTop: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                              {/* Company Block */}
-                              <div 
-                                style={{ 
-                                  backgroundColor: '#F5F3FF', // Purple-ish
-                                  borderRadius: 4,
-                                  padding: activity.company ? '4px 8px' : '4px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  minWidth: activity.company ? 'auto' : 16,
-                                  minHeight: 16
-                                }}
-                                title={activity.company || "Sem empresa"}
-                              >
-                                {activity.company ? (
-                                  <Typography variant="caption" style={{ color: '#4C1D95', fontWeight: 600, fontSize: '0.7rem' }}>
-                                    {activity.company}
-                                  </Typography>
-                                ) : (
-                                  <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#DDD6FE' }} />
-                                )}
-                              </div>
-
-                              {/* Project Block */}
-                              <div 
-                                style={{ 
-                                  backgroundColor: '#FFF7ED', // Orange-ish
-                                  borderRadius: 4,
-                                  padding: (activity.project || (activity.projects && activity.projects.length > 0)) ? '4px 8px' : '4px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  minWidth: (activity.project || (activity.projects && activity.projects.length > 0)) ? 'auto' : 16,
-                                  minHeight: 16
-                                }}
-                                title={activity.project || (activity.projects && activity.projects[0]) || "Sem projeto"}
-                              >
-                                {(activity.project || (activity.projects && activity.projects.length > 0)) ? (
-                                  <Typography variant="caption" style={{ color: '#9A3412', fontWeight: 600, fontSize: '0.7rem' }}>
-                                    {activity.project || activity.projects[0]}
-                                  </Typography>
-                                ) : (
-                                  <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: '#FFEDD5' }} />
-                                )}
-                              </div>
-                            </div>
 
                             <div className={classes.cardFooter}>
-                              <Typography variant="caption" className={classes.cardMeta}>
-                              {formatDate(activity.date)}
-                              </Typography>
-                              <span className={classes.cardFooterDot} style={{ backgroundColor: column.color }} />
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                <CalendarIcon style={{ fontSize: 12, color: '#6B7280' }} />
+                                <Typography variant="caption" className={classes.cardMeta}>
+                                  {formatDate(activity.date)}
+                                </Typography>
+                              </div>
+                              {(() => {
+                                const creatorId = activity.createdById || activity.creatorId || null;
+                                const creatorUser = resolveUserById(creatorId) || authUser || null;
+                                const src = avatarSrcForUser(creatorUser);
+                                const initials = creatorUser && (creatorUser.name || creatorUser.fullName || creatorUser.email)
+                                  ? String(creatorUser.name || creatorUser.fullName || creatorUser.email).charAt(0).toUpperCase()
+                                  : 'U';
+                                return (
+                                  <Avatar src={src} style={{ width: 18, height: 18 }}>
+                                    {!src && initials}
+                                  </Avatar>
+                                );
+                              })()}
                             </div>
                           </CardContent>
                         </Card>

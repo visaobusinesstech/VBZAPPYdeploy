@@ -37,6 +37,7 @@ import TicketInfo from "../TicketInfo";
 import TicketActionButtons from "../TicketActionButtonsCustom";
 import ContactDrawer from "../ContactDrawer";
 import ArrowBackIos from "@material-ui/icons/ArrowBackIos";
+import leadPipelinesService from "../../services/leadPipelinesService";
 
 const NumberFormatCustom = (props) => {
   const { inputRef, onChange, thousandSeparator, decimalSeparator, prefix, ...other } = props;
@@ -278,11 +279,13 @@ const statusOptions = [
   { value: "fechado", label: "Fechado" }
 ];
 
-export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
+export default function CreateLeadSaleModal({ open, onClose, lead, onSave, pipelineId, columns }) {
   const classes = useStyles();
   const [loading, setLoading] = useState(false);
   const [contacts, setContacts] = useState([]);
   const [users, setUsers] = useState([]);
+  const [pipelines, setPipelines] = useState([]);
+  const [selectedPipelineId, setSelectedPipelineId] = useState(pipelineId || null);
   const [selectedContact, setSelectedContact] = useState(null);
   const [phone, setPhone] = useState("");
   const [ticketLoading, setTicketLoading] = useState(false);
@@ -346,6 +349,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
         tags: Array.isArray(lead.tags) ? lead.tags : []
       });
       setPhone(lead.phone || "");
+      setSelectedPipelineId(lead.pipelineId ?? (pipelineId || null));
     } else {
       setForm({
         name: "",
@@ -383,6 +387,10 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
           const data = await inventoryService.list({ searchParam: "", pageNumber: 1 });
           setInventoryItems(Array.isArray(data?.inventory) ? data.inventory : []);
         } catch { /* ignore inventário */ }
+        try {
+          const list = await leadPipelinesService.list();
+          setPipelines(Array.isArray(list) ? list : []);
+        } catch { /* ignore pipelines */ }
         const { data: contactsResp } = await api.get("/contacts/list");
         setContacts(contactsResp || []);
         const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
@@ -431,6 +439,12 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     const loadTicket = async () => {
       if (!open) return;
       if (!(lead && lead.id)) return;
+      // Sem contato selecionado, sem phone digitado e sem contactId salvo => não buscar nada
+      if (!selectedContact && !digitsPhone && !lead?.contactId) {
+        setTicket(null);
+        setTicketLoading(false);
+        return;
+      }
       setTicketLoading(true);
       try {
         // Obtém todas as filas para evitar restrições de visibilidade no endpoint /tickets
@@ -484,19 +498,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             list = Array.isArray(byContactResp?.data?.tickets) ? byContactResp.data.tickets : [];
           }
         }
-        // Fallback adicional: buscar por nome do contato se ainda vazio
-        if ((!list || list.length === 0) && (selectedContact?.name || lead?.name)) {
-          const byNameResp = await api.get("/tickets", {
-            params: {
-              searchParam: selectedContact?.name || lead?.name,
-              pageNumber: 1,
-              showAll: "true",
-              status: "search",
-              queueIds: allQueueIds
-            }
-          });
-          list = Array.isArray(byNameResp?.data?.tickets) ? byNameResp.data.tickets : [];
-        }
+        // Não buscar por nome quando não há contato/telefone, para evitar puxar conversa errada
         const byContactBaseId = lead?.contactId || selectedContact?.id || null;
         const byContact = byContactBaseId ? list.filter(t => String(t.contactId) === String(byContactBaseId)) : list;
         const chosen = byContact.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt))[0];
@@ -507,10 +509,12 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             localStorage.setItem(storageKey, chosen.uuid);
           }
         } else {
-          // Mantém a conversa anterior se já houver uma carregada
+          // Sem match: limpar preview para não exibir conversa de outra pessoa
+          setTicket(null);
         }
       } catch (err) {
-        // Em caso de erro, não limpe a conversa previamente carregada
+        // Em caso de erro, limpamos para evitar preview incorreto
+        setTicket(null);
       } finally {
         setTicketLoading(false);
       }
@@ -549,6 +553,13 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
     const value = e?.target?.value;
     setForm((prev) => ({ ...prev, address: { ...(prev.address || {}), [field]: value } }));
   };
+
+  const stageOptions = useMemo(() => {
+    if (Array.isArray(columns) && columns.length) {
+      return columns.map((c) => ({ value: c.key, label: c.label }));
+    }
+    return statusOptions;
+  }, [columns]);
 
   const handleSubmit = async () => {
     try {
@@ -595,9 +606,21 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
       };
       let saved;
       if (lead && lead.id) {
-        saved = await leadsSalesService.update(lead.id, payload);
+        const payloadWithPipeline = {
+          ...payload,
+          pipelineId: selectedPipelineId != null && String(selectedPipelineId).trim() !== ""
+            ? Number(selectedPipelineId)
+            : undefined
+        };
+        saved = await leadsSalesService.update(lead.id, payloadWithPipeline);
       } else {
-        saved = await leadsSalesService.create(payload);
+        const payloadWithPipeline = {
+          ...payload,
+          pipelineId: selectedPipelineId != null && String(selectedPipelineId).trim() !== ""
+            ? Number(selectedPipelineId)
+            : undefined
+        };
+        saved = await leadsSalesService.create(payloadWithPipeline);
       }
       setLoading(false);
       if (onSave) onSave(saved);
@@ -637,6 +660,45 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                   fullWidth
                   value={form.name}
                   onChange={handleChange("name")}
+                  InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Contato</div>
+                <Autocomplete
+                  options={contacts}
+                  getOptionLabel={(c) => c?.name ? `${c.name} (${c.number})` : c?.number || ""}
+                  value={selectedContact}
+                  onChange={(_e, val) => {
+                    setSelectedContact(val || null);
+                    setForm(prev => ({ ...prev, contactId: val?.id || null }));
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      variant="outlined"
+                      size="small"
+                      placeholder="Selecionar contato (opcional)"
+                      InputProps={{ ...params.InputProps, classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                    />
+                  )}
+                />
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Telefone</div>
+                <TextField
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  placeholder="(DDD) 9 0000-0000"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
                   InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
                 />
               </div>
@@ -716,6 +778,42 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             <div style={{ height: 12 }} />
             <div className={classes.cardRow}>
               <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Responsável</div>
+                <FormControl variant="outlined" fullWidth size="small">
+                  <Select
+                    value={form.responsibleId ?? ""}
+                    onChange={(e) => setForm(prev => ({ ...prev, responsibleId: e.target.value === "" ? null : e.target.value }))}
+                    input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
+                  >
+                    <MenuItem value=""><em>Sem responsável</em></MenuItem>
+                    {Array.isArray(users) && users.map((u) => (
+                      <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
+                <div className={classes.fieldLabel}>Pipeline</div>
+                <FormControl variant="outlined" fullWidth size="small">
+                  <Select
+                    value={selectedPipelineId ?? ""}
+                    onChange={(e) => setSelectedPipelineId(e.target.value === "" ? null : e.target.value)}
+                    input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
+                  >
+                    <MenuItem value=""><em>Padrão</em></MenuItem>
+                    {Array.isArray(pipelines) && pipelines.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </div>
+            </div>
+            <div style={{ height: 12 }} />
+            <div className={classes.cardRow}>
+              <div style={{ width: '100%' }}>
                 <div className={classes.fieldLabel}>Estágio</div>
                 <FormControl variant="outlined" fullWidth size="small">
                   <Select
@@ -723,7 +821,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                     onChange={handleChange("status")}
                     input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
                   >
-                    {statusOptions.map((opt) => (
+                    {stageOptions.map((opt) => (
                       <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                     ))}
                   </Select>
@@ -1087,6 +1185,45 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
               <div style={{ height: 12 }} />
               <div className={classes.cardRow}>
                 <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Contato</div>
+                  <Autocomplete
+                    options={contacts}
+                    getOptionLabel={(c) => c?.name ? `${c.name} (${c.number})` : c?.number || ""}
+                    value={selectedContact}
+                    onChange={(_e, val) => {
+                      setSelectedContact(val || null);
+                      setForm(prev => ({ ...prev, contactId: val?.id || null }));
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        variant="outlined"
+                        size="small"
+                        placeholder="Selecionar contato (opcional)"
+                        InputProps={{ ...params.InputProps, classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                      />
+                    )}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Telefone</div>
+                  <TextField
+                    variant="outlined"
+                    size="small"
+                    fullWidth
+                    placeholder="(DDD) 9 0000-0000"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    InputProps={{ classes: { root: classes.inputRoot, notchedOutline: classes.notchedOutline } }}
+                  />
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
                   <div className={classes.fieldLabel}>Nome da empresa</div>
                   <TextField
                     variant="outlined"
@@ -1159,6 +1296,42 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
               <div style={{ height: 12 }} />
               <div className={classes.cardRow}>
                 <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Responsável</div>
+                  <FormControl variant="outlined" fullWidth size="small">
+                    <Select
+                      value={form.responsibleId ?? ""}
+                      onChange={(e) => setForm(prev => ({ ...prev, responsibleId: e.target.value === "" ? null : e.target.value }))}
+                      input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
+                    >
+                      <MenuItem value=""><em>Sem responsável</em></MenuItem>
+                      {Array.isArray(users) && users.map((u) => (
+                        <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
+                  <div className={classes.fieldLabel}>Pipeline</div>
+                  <FormControl variant="outlined" fullWidth size="small">
+                    <Select
+                      value={selectedPipelineId ?? ""}
+                      onChange={(e) => setSelectedPipelineId(e.target.value === "" ? null : e.target.value)}
+                      input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
+                    >
+                      <MenuItem value=""><em>Padrão</em></MenuItem>
+                      {Array.isArray(pipelines) && pipelines.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </div>
+              </div>
+              <div style={{ height: 12 }} />
+              <div className={classes.cardRow}>
+                <div style={{ width: '100%' }}>
                   <div className={classes.fieldLabel}>Estágio</div>
                   <FormControl variant="outlined" fullWidth size="small">
                     <Select
@@ -1166,7 +1339,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                       onChange={handleChange("status")}
                       input={<OutlinedInput classes={{ root: classes.inputRoot, notchedOutline: classes.notchedOutline }} />}
                     >
-                      {statusOptions.map((opt) => (
+                      {stageOptions.map((opt) => (
                         <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
                       ))}
                     </Select>

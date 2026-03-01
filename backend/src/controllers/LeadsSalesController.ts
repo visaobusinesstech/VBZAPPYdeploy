@@ -11,6 +11,7 @@ type IndexQuery = {
   searchParam?: string;
   pageNumber?: string;
   status?: string;
+  pipelineId?: string;
   responsibleId?: string;
   contactId?: string;
   dateStart?: string;
@@ -19,13 +20,14 @@ type IndexQuery = {
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const { searchParam, pageNumber, status, responsibleId, contactId, dateStart, dateEnd } =
+  const { searchParam, pageNumber, status, pipelineId, responsibleId, contactId, dateStart, dateEnd } =
     req.query as IndexQuery;
 
   const { leads, count, hasMore } = await ListService({
     searchParam,
     pageNumber,
     status,
+    pipelineId,
     responsibleId,
     contactId,
     dateStart,
@@ -38,10 +40,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const dashboard = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const { status, responsibleId, contactId, dateStart, dateEnd } = req.query as IndexQuery;
+  const { status, pipelineId, responsibleId, contactId, dateStart, dateEnd } = req.query as IndexQuery;
 
   const data = await DashboardService({
     status,
+    pipelineId,
     responsibleId,
     contactId,
     dateStart,
@@ -59,6 +62,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     description,
     status,
     value,
+    pipelineId,
     contactId,
     responsibleId,
     date,
@@ -77,6 +81,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     description,
     status,
     value,
+    pipelineId,
     companyName,
     phone,
     tags,
@@ -109,6 +114,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     description,
     status,
     value,
+    pipelineId,
     contactId,
     responsibleId,
     date,
@@ -128,6 +134,7 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
     description,
     status,
     value,
+    pipelineId,
     companyName,
     phone,
     tags,

@@ -1,5 +1,7 @@
-import { Op, Sequelize } from "sequelize";
+import { Op } from "sequelize";
 import Activity from "../../models/Activity";
+import Company from "../../models/Company";
+import Project from "../../models/Project";
 
 interface Request {
   searchParam?: string;
@@ -74,6 +76,10 @@ const ListService = async ({
       order: [
         ["date", "DESC"],
         ["id", "DESC"]
+      ],
+      include: [
+        { model: Company, as: "company", attributes: ["id", "name"] },
+        { model: Project, as: "project", attributes: ["id", "name"] }
       ]
     });
 

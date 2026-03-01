@@ -10,7 +10,7 @@ import {
   Divider
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
-import { Close as CloseIcon } from "@material-ui/icons";
+import { Close as CloseIcon, Add as AddIcon, DeleteOutline as DeleteOutlineIcon } from "@material-ui/icons";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -23,6 +23,7 @@ const useStyles = makeStyles((theme) => ({
     height: "calc(100% - 32px)",
     marginRight: theme.spacing(2),
     overflow: "hidden",
+    overflowX: "hidden",
   },
   header: {
     display: "flex",
@@ -44,6 +45,7 @@ const useStyles = makeStyles((theme) => ({
     overflowY: "auto",
     height: "100%",
     paddingRight: theme.spacing(1),
+    overflowX: "hidden",
   },
   actions: {
     display: "flex",
@@ -52,21 +54,30 @@ const useStyles = makeStyles((theme) => ({
     gap: theme.spacing(1),
   },
   stageRow: {
-    display: "flex",
+    display: "grid",
+    gridTemplateColumns: "28px 1fr auto",
     alignItems: "center",
-    gap: theme.spacing(1),
+    columnGap: theme.spacing(1),
+    rowGap: theme.spacing(1),
   },
   colorInput: {
-    width: 44,
-    height: 40,
+    width: 28,
+    height: 28,
     padding: 0,
     border: "1px solid #E5E7EB",
-    borderRadius: 6,
+    borderRadius: "50%",
     background: "transparent",
   },
 }));
 
 const randomId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+const slug = (txt) =>
+  (txt || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, "_")
+    .replace(/[^a-z0-9_]/g, "");
 
 export default function PipelineDrawer({
   open,
@@ -81,8 +92,13 @@ export default function PipelineDrawer({
   const [currentId, setCurrentId] = useState(null);
 
   useEffect(() => {
-    setLocalPipes(Array.isArray(pipelines) ? JSON.parse(JSON.stringify(pipelines)) : []);
-    setCurrentId(selectedId || (pipelines && pipelines[0] ? pipelines[0].id : null));
+    const base = Array.isArray(pipelines) ? JSON.parse(JSON.stringify(pipelines)) : [];
+    const withUids = base.map(p => ({
+      ...p,
+      stages: (p.stages || []).map(s => ({ ...s, uid: s.uid || s.id || randomId() }))
+    }));
+    setLocalPipes(withUids);
+    setCurrentId(selectedId || (withUids && withUids[0] ? withUids[0].id : null));
   }, [pipelines, selectedId, open]);
 
   const current = useMemo(() => {
@@ -95,11 +111,11 @@ export default function PipelineDrawer({
       id: randomId(),
       name: "Nova Pipeline",
       stages: [
-        { key: "novo", label: "Novo Lead", color: "#6366F1" },
-        { key: "qualificacao", label: "Contato Inicial", color: "#8B5CF6" },
-        { key: "proposta", label: "Proposta", color: "#F59E0B" },
-        { key: "negociacao", label: "Reunião", color: "#F97316" },
-        { key: "fechado", label: "Fechamento", color: "#10B981" },
+        { uid: randomId(), key: "novo", label: "Novo Lead", color: "#6366F1" },
+        { uid: randomId(), key: "qualificacao", label: "Contato Inicial", color: "#8B5CF6" },
+        { uid: randomId(), key: "proposta", label: "Proposta", color: "#F59E0B" },
+        { uid: randomId(), key: "negociacao", label: "Reunião", color: "#F97316" },
+        { uid: randomId(), key: "fechado", label: "Fechamento", color: "#10B981" },
       ],
     };
     setLocalPipes(prev => [...prev, newPipe]);
@@ -125,19 +141,25 @@ export default function PipelineDrawer({
     if (!current) return;
     const keyBase = `etapa_${current.stages.length + 1}`;
     const key = keyBase.toLowerCase().replace(/\s+/g, "_");
-    const newStage = { key, label: `Etapa ${current.stages.length + 1}`, color: "#3B82F6" };
+    const newStage = { uid: randomId(), key, label: `Etapa ${current.stages.length + 1}`, color: "#3B82F6" };
     updateCurrent({ stages: [...current.stages, newStage] });
   };
 
-  const handleRemoveStage = (key) => {
+  const handleRemoveStage = (uidOrKey) => {
     if (!current) return;
-    updateCurrent({ stages: current.stages.filter(s => s.key !== key) });
+    updateCurrent({
+      stages: current.stages.filter(s => (s.uid || s.key) !== uidOrKey)
+    });
   };
 
   const handleStageChange = (idx, field, value) => {
     if (!current) return;
     const next = current.stages.slice();
-    next[idx] = { ...next[idx], [field]: value };
+    if (field === "label") {
+      next[idx] = { ...next[idx], label: value, key: slug(value) };
+    } else {
+      next[idx] = { ...next[idx], [field]: value };
+    }
     updateCurrent({ stages: next });
   };
 
@@ -155,15 +177,16 @@ export default function PipelineDrawer({
       classes={{ paper: classes.drawerPaper }}
     >
       <Box className={classes.header}>
-        <IconButton className={classes.closeButton} onClick={onClose}>
+        <IconButton className={classes.closeButton} onClick={onClose} size="small">
           <CloseIcon />
         </IconButton>
-        <Typography variant="subtitle1" style={{ fontWeight: 600 }}>{title}</Typography>
+        <Typography variant="h6">{title}</Typography>
+        <div style={{ width: 30 }} />
       </Box>
       <Box className={classes.content}>
         <Grid container spacing={1}>
           <Grid item xs={12}>
-            <Typography variant="caption" style={{ color: "#374151" }}>Pipeline</Typography>
+            <Typography variant="caption" style={{ color: "#374151" }}>Nova Pipeline</Typography>
           </Grid>
           <Grid item xs={8}>
             <TextField
@@ -174,23 +197,33 @@ export default function PipelineDrawer({
               SelectProps={{ native: true }}
               value={currentId || ""}
               onChange={(e) => setCurrentId(e.target.value)}
+              InputLabelProps={{ style: { fontSize: 13 } }}
+              inputProps={{ style: { fontSize: 14 } }}
             >
               {localPipes.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </TextField>
           </Grid>
-          <Grid item xs={4} style={{ display: "flex", gap: 8 }}>
-            <Button onClick={handleAddPipeline} color="primary" variant="outlined" fullWidth>
-              Nova
+          <Grid item xs={4} style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <Button
+              onClick={handleAddPipeline}
+              variant="outlined"
+              size="small"
+              style={{ minWidth: 36, padding: 6 }}
+              title="Nova Pipeline"
+            >
+              <AddIcon fontSize="small" />
             </Button>
             <Button
               onClick={() => handleRemovePipeline(currentId)}
               variant="outlined"
-              fullWidth
+              size="small"
+              style={{ minWidth: 36, padding: 6 }}
               disabled={localPipes.length <= 1}
+              title="Excluir Pipeline"
             >
-              Excluir
+              <DeleteOutlineIcon fontSize="small" />
             </Button>
           </Grid>
           <Grid item xs={12}>
@@ -201,15 +234,17 @@ export default function PipelineDrawer({
               size="small"
               value={current?.name || ""}
               onChange={(e) => updateCurrent({ name: e.target.value })}
+              InputLabelProps={{ style: { fontSize: 13 } }}
+              inputProps={{ style: { fontSize: 14 } }}
             />
           </Grid>
         </Grid>
         <Divider style={{ marginTop: 8, marginBottom: 8 }} />
         <Box>
-          <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
+          <Typography variant="caption" style={{ color: "#374151" }}>Escolha suas Etapas</Typography>
           <Box style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             {(current?.stages || []).map((st, idx) => (
-              <div key={st.key} className={classes.stageRow}>
+              <div key={st.uid || st.id || st.key} className={classes.stageRow}>
                 <input
                   type="color"
                   className={classes.colorInput}
@@ -224,20 +259,14 @@ export default function PipelineDrawer({
                   fullWidth
                   value={st.label}
                   onChange={(e) => handleStageChange(idx, "label", e.target.value)}
+                  InputLabelProps={{ style: { fontSize: 13 } }}
+                  inputProps={{ style: { fontSize: 14 } }}
                 />
-                <TextField
-                  label="Chave (status)"
-                  variant="outlined"
-                  size="small"
-                  value={st.key}
-                  onChange={(e) => handleStageChange(idx, "key", e.target.value.toLowerCase().replace(/\s+/g, "_"))}
-                  style={{ width: 160 }}
-                />
-                <Button onClick={() => handleRemoveStage(st.key)}>Remover</Button>
+                <Button size="small" onClick={() => handleRemoveStage(st.uid || st.key)}>Remover</Button>
               </div>
             ))}
             <div>
-              <Button color="primary" variant="contained" onClick={handleAddStage}>Adicionar etapa</Button>
+              <Button size="small" color="primary" variant="outlined" onClick={handleAddStage}>Adicionar etapa</Button>
             </div>
           </Box>
         </Box>

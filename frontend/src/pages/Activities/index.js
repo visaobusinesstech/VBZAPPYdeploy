@@ -117,9 +117,12 @@ const useStyles = makeStyles((theme) => ({
     width: 420,
     maxWidth: "100%",
     padding: theme.spacing(2),
-    marginTop: theme.spacing(4),
-    marginBottom: theme.spacing(4),
-    borderRadius: "16px 0 0 16px",
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: "calc(100% - 32px)",
+    marginRight: theme.spacing(2),
+    overflow: "hidden",
   },
   drawerContainer: {
     display: "flex",
@@ -129,7 +132,10 @@ const useStyles = makeStyles((theme) => ({
   drawerHeader: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "center",
+    position: "relative",
+    borderBottom: "1px solid #eee",
+    paddingBottom: theme.spacing(2),
     marginBottom: theme.spacing(2),
   },
   drawerTitle: {
@@ -471,10 +477,22 @@ const Activities = () => {
   }, [activitiesState]);
 
   const filteredActivities = useMemo(() => {
-    const base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
-    if (!statusFilter) return base;
-    return base.filter((activity) => activity.status === statusFilter);
-  }, [activitiesState, statusFilter]);
+    let base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
+    if (statusFilter) {
+      base = base.filter((activity) => String(activity.status || "") === statusFilter);
+    }
+    if (selectedResponsible && (selectedResponsible.id || selectedResponsible.name)) {
+      const idVal = selectedResponsible.id ? String(selectedResponsible.id) : null;
+      const nameVal = selectedResponsible.name ? String(selectedResponsible.name).toLowerCase() : null;
+      base = base.filter(a => {
+        const idMatch = idVal ? String(a.userId || "") === idVal : false;
+        const nameMatch = nameVal ? String(a.owner || "").toLowerCase().includes(nameVal) : false;
+        return idMatch || nameMatch;
+      });
+    }
+    // Empresa: sem persistência de contactId ainda; manter base
+    return base;
+  }, [activitiesState, statusFilter, selectedResponsible]);
 
   useEffect(() => {
     const onFsChange = () => {
@@ -517,16 +535,29 @@ const Activities = () => {
     }
   }, [stagesDrawerOpen, activityStagesState]);
 
+  const slug = (txt) =>
+    (txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+
   const addStage = () => {
     const idx = (localStages?.length || 0) + 1;
-    const key = `etapa_${idx}`;
-    setLocalStages(prev => [...prev, { key, label: `Etapa ${idx}`, color: "#4B5563" }]);
+    const label = `Etapa ${idx}`;
+    const key = slug(label);
+    setLocalStages(prev => [...prev, { key, label, color: "#4B5563" }]);
   };
   const removeStage = (key) => setLocalStages(prev => prev.filter(s => s.key !== key));
   const updateStage = (i, field, value) => {
     setLocalStages(prev => {
       const next = prev.slice();
-      next[i] = { ...next[i], [field]: value };
+      if (field === "label") {
+        next[i] = { ...next[i], label: value, key: slug(value) };
+      } else {
+        next[i] = { ...next[i], [field]: value };
+      }
       return next;
     });
   };
@@ -591,14 +622,24 @@ const Activities = () => {
         onClose={() => setAnchorResp(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={selectedResponsible}
             options={usersList}
             onChange={(e, val) => setSelectedResponsible(val)}
             getOptionLabel={(option) => option.name}
-            renderInput={(params) => <TextField {...params} label="Responsável" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Responsável"
+                variant="outlined"
+                size="small"
+                placeholder="Selecione"
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setSelectedResponsible(null)}>Limpar</Button>
@@ -616,14 +657,24 @@ const Activities = () => {
         onClose={() => setAnchorEmpresa(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={selectedCompany}
             options={contactsList}
             onChange={(e, val) => setSelectedCompany(val)}
             getOptionLabel={(option) => option.name || option.number || String(option.id)}
-            renderInput={(params) => <TextField {...params} label="Empresa" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Empresa"
+                variant="outlined"
+                size="small"
+                placeholder="Pesquisar..."
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setSelectedCompany(null)}>Limpar</Button>
@@ -641,8 +692,8 @@ const Activities = () => {
         onClose={() => setAnchorPeriodo(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
-          <Grid container spacing={2}>
+        <div style={{ padding: 8, width: 220 }}>
+          <Grid container spacing={1}>
             <Grid item xs={6}>
               <TextField
                 label="Início"
@@ -652,6 +703,9 @@ const Activities = () => {
                 InputLabelProps={{ shrink: true }}
                 value={dateStart}
                 onChange={(e) => setDateStart(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
               />
             </Grid>
             <Grid item xs={6}>
@@ -663,6 +717,9 @@ const Activities = () => {
                 InputLabelProps={{ shrink: true }}
                 value={dateEnd}
                 onChange={(e) => setDateEnd(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
               />
             </Grid>
           </Grid>
@@ -683,7 +740,7 @@ const Activities = () => {
         onClose={() => setAnchorTodos(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Período rápido</Typography>
           <Grid container spacing={1}>
             <Grid item>
@@ -1108,6 +1165,7 @@ const Activities = () => {
               <KanbanBoard
                 columns={(activityStagesState.length ? activityStagesState : defaultActivityStages).map(s => ({ id: s.key, title: s.label, color: s.color }))}
                 activities={filteredActivities}
+                users={usersList}
                 onActivityClick={(activity) => {
                   setSelectedActivity(activity);
                   setDetailsOpen(true);
@@ -1154,6 +1212,7 @@ const Activities = () => {
       open={detailsOpen}
       onClose={() => setDetailsOpen(false)}
       activity={selectedActivity}
+      users={usersList}
       onEdit={(activity) => {
         setActivityToEdit(activity);
         setDetailsOpen(false);
@@ -1214,13 +1273,22 @@ const Activities = () => {
           <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
             {localStages.map((st, idx) => (
-              <div key={st.key} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
+                key={st.key}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "28px 1fr auto",
+                  alignItems: "center",
+                  columnGap: 8,
+                  rowGap: 8
+                }}
+              >
                 <input
                   type="color"
                   value={st.color || "#4B5563"}
                   onChange={(e) => updateStage(idx, "color", e.target.value)}
                   aria-label="Cor"
-                  style={{ width: 44, height: 40, padding: 0, border: "1px solid #E5E7EB", borderRadius: 6, background: "transparent" }}
+                  style={{ width: 28, height: 28, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
                 />
                 <TextField
                   label="Rótulo"
@@ -1229,14 +1297,8 @@ const Activities = () => {
                   fullWidth
                   value={st.label}
                   onChange={(e) => updateStage(idx, "label", e.target.value)}
-                />
-                <TextField
-                  label="Chave (status)"
-                  variant="outlined"
-                  size="small"
-                  value={st.key}
-                  onChange={(e) => updateStage(idx, "key", e.target.value.toLowerCase().replace(/\s+/g, "_"))}
-                  style={{ width: 160 }}
+                  InputLabelProps={{ style: { fontSize: 13 } }}
+                  inputProps={{ style: { fontSize: 14 } }}
                 />
                 <Button onClick={() => removeStage(st.key)}>Remover</Button>
               </div>

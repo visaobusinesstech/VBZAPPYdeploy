@@ -6,6 +6,7 @@ interface Request {
   description?: string;
   status?: string;
   value?: number;
+  pipelineId?: number | null;
   companyName?: string;
   phone?: string;
   site?: string;
@@ -35,6 +36,7 @@ const UpdateService = async ({
   tags,
   contactId,
   responsibleId,
+  pipelineId,
   date
 }: Request): Promise<LeadSale> => {
   const record = await LeadSale.findByPk(id as any);
@@ -72,6 +74,7 @@ const UpdateService = async ({
     tags: tags ?? record.tags,
     contactId: parsedContactId ?? record.contactId,
     responsibleId: parsedResponsibleId ?? record.responsibleId,
+    pipelineId: pipelineId !== undefined ? pipelineId : (record as any).pipelineId,
     date: parsedDate ?? record.date
   } as any);
 

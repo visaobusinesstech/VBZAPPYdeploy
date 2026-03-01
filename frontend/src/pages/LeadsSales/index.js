@@ -525,13 +525,20 @@ const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, con
 
   const leadsByStatus = useMemo(() => {
     const map = {};
+    const valid = new Set((cols || []).map(c => String(c.key || "").toLowerCase()));
+    const fallback = (cols && cols[0] ? String(cols[0].key || "novo").toLowerCase() : "novo");
     (leads || []).forEach((l) => {
-      const key = String(l.status || "").toLowerCase();
+      const st = String(l.status || "").toLowerCase();
+      const isValid = valid.has(st);
+      // Remove explicit 'perdido' do quadro; outros inválidos caem na primeira coluna
+      if (/(perdido|lost|cancelado|rejeitado)/i.test(st)) return;
+      const key = st ? (isValid ? st : fallback) : fallback;
+      if (!key) return;
       if (!map[key]) map[key] = [];
-      map[key].push(l);
+      map[key].push({ ...l, status: key });
     });
     return map;
-  }, [leads]);
+  }, [leads, cols]);
 
   const getTotalValue = (arr = []) =>
     arr.reduce((sum, l) => sum + (Number(l.value) || 0), 0);
@@ -671,7 +678,14 @@ const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, con
                               title="Concluir"
                               onMouseDown={(e) => e.stopPropagation()}
                               onMouseUp={(e) => e.stopPropagation()}
-                              onClick={(e) => { e.stopPropagation(); }}
+                              onClick={(e) => { 
+                                e.stopPropagation(); 
+                                if (typeof onMove === "function") {
+                                  try {
+                                    onMove(l.id, col.key, "fechado");
+                                  } catch (_) {}
+                                }
+                              }}
                             >
                               <CheckCircleOutlineIcon style={{ fontSize: 12 }} />
                             </IconButton>
@@ -704,10 +718,11 @@ const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, con
                                 </>
                               );
                             })()}
-                            {/* valor menor (abaixo do telefone, canto esquerdo) */}
-                            <div className={`${classes.cardValue} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
-                              {currencyBRL(l.value)}
-                            </div>
+                            {Number(l.value || 0) > 0 && (
+                              <div className={`${classes.cardValue} ${classes.cardEdgeLeft}`} style={{ textAlign: "left" }}>
+                                {currencyBRL(Number(l.value || 0))}
+                              </div>
+                            )}
                             <div
                               className={`${classes.cardTagRow} ${classes.cardEdgeLeft}`}
                               style={{ textAlign: "left", cursor: "pointer" }}
@@ -753,11 +768,14 @@ const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, con
 
 const LeadsList = ({ leads }) => {
   const getStatusMeta = (key) => {
+    const cols = window.__LEADS_COLUMNS__ || [];
     const k = String(key || "").toLowerCase();
-    // Fallback genérico; a versão com colunas dinâmicas é passada pelo componente pai
-    const meta = (window.__LEADS_COLUMNS__ || []).find((c) => c.key === k);
-    return meta || { label: String(key || "").toUpperCase(), color: "#E5E7EB" };
-    };
+    const meta = cols.find((c) => c.key === k);
+    if (meta) return meta;
+    // Fallback: primeira coluna (ex.: 'novo') quando vazio/desconhecido
+    if (!k && cols[0]) return cols[0];
+    return { label: (k || "NOVO").toUpperCase(), color: "#E5E7EB" };
+  };
   return (
     <TableContainer component={Paper} style={{ height: '100%', overflow: 'auto' }}>
       <Table stickyHeader aria-label="leads table">
@@ -865,39 +883,7 @@ const LeadsSales = () => {
     fetchFilters();
   }, []);
 
-  const { leadsSales, loading, count, hasMore } = useLeadsSales({
-    pageNumber,
-    searchParam,
-    status,
-    responsibleId: responsible?.id,
-    contactId: contact?.id,
-    dateStart,
-    dateEnd
-  });
-
-  useEffect(() => {
-    setLeadsState(leadsSales || []);
-  }, [leadsSales]);
-
-  useEffect(() => {
-    let active = true;
-    async function fetchDashboard() {
-      try {
-        const data = await leadsSalesService.dashboard({
-          status,
-          responsibleId: responsible?.id,
-          contactId: contact?.id,
-          dateStart,
-          dateEnd
-        });
-        if (active) setDash(data);
-      } catch (err) {
-        // no toast noise here
-      }
-    }
-    fetchDashboard();
-    return () => { active = false; };
-  }, [status, responsible?.id, contact?.id, dateStart, dateEnd]);
+  
 
   useEffect(() => {
     if (!socket || !user || !user.companyId) return;
@@ -1008,6 +994,43 @@ const LeadsSales = () => {
   }, [pipelines, selectedPipelineId]);
 
   useEffect(() => {
+    let active = true;
+    async function fetchDashboard() {
+      try {
+        const data = await leadsSalesService.dashboard({
+          status,
+          pipelineId: selectedPipelineId,
+          responsibleId: responsible?.id,
+          contactId: contact?.id,
+          dateStart,
+          dateEnd
+        });
+        if (active) setDash(data);
+      } catch (err) {
+      }
+    }
+    fetchDashboard();
+    return () => { active = false; };
+  }, [status, selectedPipelineId, responsible?.id, contact?.id, dateStart, dateEnd]);
+
+  // Carrega leads filtrando por pipelineId no backend
+  const { leadsSales, loading, count, hasMore } = useLeadsSales({
+    pageNumber,
+    searchParam,
+    status,
+    pipelineId: selectedPipelineId,
+    responsibleId: responsible?.id,
+    contactId: contact?.id,
+    dateStart,
+    dateEnd
+  });
+
+  useEffect(() => {
+    setLeadsState(leadsSales || []);
+  }, [leadsSales]);
+  // Leads renderizam diretamente do estado já filtrado pelo backend
+
+  useEffect(() => {
     if (selectedPipelineId) {
       localStorage.setItem("leads_selected_pipeline", selectedPipelineId);
     }
@@ -1087,24 +1110,26 @@ const LeadsSales = () => {
         onClose={() => setAnchorPipeline(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div className={classes.popoverContent}>
-          <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Selecionar pipeline</Typography>
-          <Grid container spacing={1} className={classes.popoverGrid}>
+        <div className={classes.popoverContent} style={{ padding: 8, maxWidth: 260, width: 220 }}>
+          <Typography variant="subtitle2" style={{ marginBottom: 6, fontSize: 13 }}>Selecionar pipeline</Typography>
+          <Grid container spacing={0.5} className={classes.popoverGrid} style={{ width: 220 }}>
             {pipelines.map((p) => (
               <Grid item xs={12} key={p.id}>
                 <Button
                   fullWidth
+                  size="small"
                   variant={selectedPipelineId === p.id ? "contained" : "outlined"}
                   color="primary"
                   onClick={() => { setSelectedPipelineId(p.id); setAnchorPipeline(null); }}
+                  style={{ textTransform: "none", minHeight: 30 }}
                 >
                   {p.name}
                 </Button>
               </Grid>
             ))}
-            <Grid item xs={12} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-              <Button onClick={() => { setAnchorPipeline(null); setPipelineDrawerOpen(true); }}>Gerenciar</Button>
-              <Button onClick={() => setAnchorPipeline(null)}>Fechar</Button>
+            <Grid item xs={12} style={{ display: "flex", justifyContent: "space-between", gap: 6 }}>
+              <Button size="small" onClick={() => { setAnchorPipeline(null); setPipelineDrawerOpen(true); }}>Gerenciar</Button>
+              <Button size="small" onClick={() => setAnchorPipeline(null)}>Fechar</Button>
             </Grid>
           </Grid>
         </div>
@@ -1119,14 +1144,24 @@ const LeadsSales = () => {
         onClose={() => setAnchorResp(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div className={classes.popoverContent}>
+        <div className={classes.popoverContent} style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={responsible}
             options={usersList}
             onChange={(e, val) => setResponsible(val)}
             getOptionLabel={(option) => option.name}
-            renderInput={(params) => <TextField {...params} label="Responsável" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Responsável"
+                variant="outlined"
+                size="small"
+                placeholder="Selecione"
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setResponsible(null)}>Limpar</Button>
@@ -1144,14 +1179,24 @@ const LeadsSales = () => {
         onClose={() => setAnchorContact(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div className={classes.popoverContent}>
+        <div className={classes.popoverContent} style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={contact}
             options={contactsList}
             onChange={(e, val) => setContact(val)}
             getOptionLabel={(option) => option.name || option.number || String(option.id)}
-            renderInput={(params) => <TextField {...params} label="Contato/Empresa" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Contato/Empresa"
+                variant="outlined"
+                size="small"
+                placeholder="Pesquisar..."
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setContact(null)}>Limpar</Button>
@@ -1169,17 +1214,19 @@ const LeadsSales = () => {
         onClose={() => setAnchorPeriodo(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div className={classes.popoverContent}>
-          <Grid container spacing={2} className={classes.popoverGrid}>
+        <div className={classes.popoverContent} style={{ padding: 8, width: 220 }}>
+          <Grid container spacing={1} className={classes.popoverGrid}>
             <Grid item xs={6}>
               <TextField
                 label="Início"
                 type="date"
                 variant="outlined"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
                 value={dateStart}
                 onChange={(e) => setDateStart(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
               />
             </Grid>
             <Grid item xs={6}>
@@ -1188,9 +1235,11 @@ const LeadsSales = () => {
                 type="date"
                 variant="outlined"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
                 value={dateEnd}
                 onChange={(e) => setDateEnd(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
               />
             </Grid>
           </Grid>
@@ -1211,7 +1260,7 @@ const LeadsSales = () => {
         onClose={() => setAnchorTodos(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div className={classes.popoverContent}>
+        <div className={classes.popoverContent} style={{ padding: 8, width: 220 }}>
           <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Período rápido</Typography>
           <Grid container spacing={1}>
             <Grid item>
@@ -1295,11 +1344,12 @@ const LeadsSales = () => {
                 (leadsState || []).forEach((l) => {
                   const st = String(l.status || "").toLowerCase();
                   const val = Number(l.value || 0) || 0;
-                  const isWon = /(won|converted|fechado|ganho)/i.test(st);
+                  const isWon = /(won|convert|fech|fechado|fechamento|ganho)/i.test(st);
                   const isLost = /(lost|perdido)/i.test(st);
+                  // Total de Vendas: soma de todos os valores, independente de ganho/perda
+                  totalSales += val;
                   if (isWon) {
                     leadsWon += 1;
-                    totalSales += val;
                   } else if (isLost) {
                     leadsLost += 1;
                   }
@@ -1378,6 +1428,17 @@ const LeadsSales = () => {
                 };
               })();
 
+              // Fallback 1: se revenuePerDay vier vazio ou a soma for 0, mas houver dados em clientsValueByDay
+              const sumArr = (arr) => (Array.isArray(arr) ? arr.reduce((a,b) => a + (Number(b)||0), 0) : 0);
+              if ((!labelsRevenue.length || sumArr(dataRevenue) === 0) && labelsClients.length && sumArr(dataValues) > 0) {
+                labelsRevenue = labelsClients;
+                dataRevenue = dataValues;
+              }
+              // Fallback 2: se ainda estiver 0, usar totais do fromLeadsSeries (todos os leads)
+              if ((!labelsRevenue.length || sumArr(dataRevenue) === 0) && fromLeadsSeries.labels.length && sumArr(fromLeadsSeries.values) > 0) {
+                labelsRevenue = fromLeadsSeries.labels;
+                dataRevenue = fromLeadsSeries.values;
+              }
               if (!labelsRevenue.length && fromLeadsSeries.labels.length) {
                 labelsRevenue = fromLeadsSeries.labels;
                 dataRevenue = fromLeadsSeries.revenue;
@@ -1404,20 +1465,69 @@ const LeadsSales = () => {
               const rankingLabels = rankingDataArr.map(r => r.name);
               const rankingValues = rankingDataArr.map(r => r.value);
 
-              // Fallback para Funil (contagem por status) — substitui o antigo doughnut
-              const statusOrder = ["novo", "qualificacao", "proposta", "negociacao", "fechado"];
+              // Funil de Vendas (contagem por status) com normalização robusta
+              const statusOrder = (currentColumns || []).map(c => String(c.key || "").toLowerCase());
               const LABEL_BY_KEY = (currentColumns || []).reduce((acc, c) => { acc[c.key] = c.label; return acc; }, {});
-              const funnelCounts = statusOrder.map((k) => (leadsState || []).filter(l => String(l.status || "").toLowerCase() === k).length);
+              const validKeys = new Set((currentColumns || []).map(c => String(c.key || "").toLowerCase()));
+              const normalizeStatus = (s) => {
+                const raw = String(s || "").toLowerCase();
+                if (validKeys.has(raw)) return raw;
+                const byLabel = (currentColumns || []).find(c => {
+                  const lbl = String(c.label || "").toLowerCase();
+                  return lbl === raw || raw.includes(lbl) || lbl.includes(raw);
+                });
+                if (byLabel && byLabel.key) return String(byLabel.key).toLowerCase();
+                if (raw.includes("qualific") || raw.includes("contato inicial")) return "qualificacao";
+                if (raw.includes("propost")) return "proposta";
+                if (raw.includes("negoc") || raw.includes("reuni")) return "negociacao";
+                if (/(fech|won|converted|ganho|ganhos)/i.test(raw)) return "fechado";
+                if (raw.includes("novo")) return "novo";
+                return "novo";
+              };
+              const funnelCounts = statusOrder.map((k) =>
+                (leadsState || []).filter(l => normalizeStatus(l.status) === k).length
+              );
               const funnelLabels = statusOrder.map(k => LABEL_BY_KEY[k] || k.toUpperCase());
 
               const chartHeight = 180;
+              // Garante pelo menos 2 pontos na série para exibir uma "linha"
+              const toISO = (s) => {
+                try {
+                  const d = new Date(s);
+                  if (isNaN(d.getTime())) return null;
+                  return d.toISOString().slice(0,10);
+                } catch { return null; }
+              };
+              if (labelsRevenue.length === 1) {
+                const onlyDateISO = toISO(labelsRevenue[0]) || labelsRevenue[0];
+                const base = new Date(onlyDateISO);
+                const prev = new Date(base.getTime() - 24 * 60 * 60 * 1000);
+                const prevISO = prev.toISOString().slice(0,10);
+                labelsRevenue = [prevISO, onlyDateISO];
+                dataRevenue = [0, Number(dataRevenue[0] || 0)];
+              }
               const maxRevenueVal = Math.max(0, ...dataRevenue.map(v => Number(v || 0)));
+              const fmtBR = (s) => {
+                try {
+                  const d = new Date(s);
+                  if (isNaN(d.getTime())) return s;
+                  const dd = String(d.getDate()).padStart(2, "0");
+                  const mm = String(d.getMonth() + 1).padStart(2, "0");
+                  const yyyy = d.getFullYear();
+                  return `${dd}/${mm}/${yyyy}`;
+                } catch { return s; }
+              };
               const lineOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
                 layout: { padding: { top: 24, right: 8, left: 4, bottom: 8 } },
                 plugins: { 
                   legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      title: (items) => (items && items[0] ? fmtBR(items[0].label) : "")
+                    }
+                  },
                   datalabels: {
                     display: true,
                     color: labelColor,
@@ -1434,7 +1544,14 @@ const LeadsSales = () => {
                   }
                 },
                 scales: {
-                  x: { ticks: { maxRotation: 0, color: palette.sub }, grid: { display: false } },
+                  x: { 
+                    ticks: { 
+                      maxRotation: 0, 
+                      color: palette.sub, 
+                      callback: (value, index) => fmtBR(labelsRevenue[index] ?? value) 
+                    }, 
+                    grid: { display: false } 
+                  },
                   y: { ticks: { color: palette.sub }, grid: { color: "#E6F0FF" }, beginAtZero: true, grace: "15%", suggestedMax: maxRevenueVal * 1.12 }
                 }
               };
@@ -1443,10 +1560,13 @@ const LeadsSales = () => {
                 datasets: [{
                   label: "Receita",
                   data: dataRevenue,
-                  fill: true,
+                  fill: false,
                   borderColor: palette.blueDark,
                   backgroundColor: "rgba(37,99,235,0.10)",
-                  tension: 0.35
+                  tension: 0.35,
+                  borderWidth: 2,
+                  pointRadius: 3,
+                  pointHoverRadius: 4
                 }]
               };
               const barOptions = {
@@ -1868,9 +1988,11 @@ const LeadsSales = () => {
                   onDelete={async (lead) => {
                     const id = Number(lead.id);
                     try {
-                      await leadsSalesService.delete(id);
+                      // Marca como perdido em vez de excluir
+                      await leadsSalesService.update(id, { status: "perdido" });
+                      // Remove do quadro (status 'perdido' não aparece no Kanban)
                       setLeadsState(prev => prev.filter(l => Number(l.id) !== id));
-                      toast.success("Lead excluído.");
+                      toast.success("Lead marcado como perdido.");
                     } catch (err) {
                       toastError(err);
                     }
@@ -1988,6 +2110,8 @@ const LeadsSales = () => {
         open={drawerOpen}
         onClose={() => setDrawerOpen(false)}
         lead={editing}
+        pipelineId={selectedPipelineId}
+        columns={currentColumns}
         onSave={(saved) => {
           setLeadsState((prev) => {
             const id = Number(saved.id);

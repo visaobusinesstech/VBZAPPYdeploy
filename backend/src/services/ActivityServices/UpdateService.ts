@@ -9,6 +9,7 @@ interface Data {
   status?: string;
   date?: Date;
   owner?: string;
+  userId?: number;
 }
 
 const UpdateService = async (data: Data): Promise<Activity> => {

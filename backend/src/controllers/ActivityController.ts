@@ -33,8 +33,11 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const userId = +req.user.id;
-  const { title, description, type, status, date, owner } = req.body;
+  const creatorUserId = +req.user.id;
+  const { title, description, type, status, date, owner, userId: bodyUserId, responsible } = req.body;
+  const assignedUserId = typeof bodyUserId !== "undefined"
+    ? Number(bodyUserId)
+    : (typeof responsible !== "undefined" ? Number(responsible) : creatorUserId);
 
   const record = await CreateService({
     title,
@@ -44,7 +47,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
     date,
     owner,
     companyId,
-    userId
+    userId: assignedUserId
   });
 
   const io = getIO();
@@ -60,17 +63,15 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
 export const update = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
   const { id } = req.params;
-  const { title, description, type, status, date, owner } = req.body;
+  const { title, description, type, status, date, owner, userId: bodyUserId, responsible } = req.body;
+  const updateData: any = { id, title, description, type, status, date, owner };
+  if (typeof bodyUserId !== "undefined") {
+    updateData.userId = Number(bodyUserId);
+  } else if (typeof responsible !== "undefined") {
+    updateData.userId = Number(responsible);
+  }
 
-  const record = await UpdateService({
-    id,
-    title,
-    description,
-    type,
-    status,
-    date,
-    owner
-  });
+  const record = await UpdateService(updateData);
 
   const io = getIO();
 

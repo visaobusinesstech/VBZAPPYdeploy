@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import toastError from "../../errors/toastError";
 import leadsSalesService from "../../services/leadsSalesService";
 
-const useLeadsSales = ({ searchParam, pageNumber, status, responsibleId, contactId, dateStart, dateEnd }) => {
+const useLeadsSales = ({ searchParam, pageNumber, status, pipelineId, responsibleId, contactId, dateStart, dateEnd }) => {
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
   const [leadsSales, setLeadsSales] = useState([]);
@@ -17,6 +17,7 @@ const useLeadsSales = ({ searchParam, pageNumber, status, responsibleId, contact
             searchParam,
             pageNumber,
             status,
+            pipelineId,
             responsibleId,
             contactId,
             dateStart,
@@ -35,7 +36,7 @@ const useLeadsSales = ({ searchParam, pageNumber, status, responsibleId, contact
       fetchLeadsSales();
     }, 500);
     return () => clearTimeout(delayDebounceFn);
-  }, [searchParam, pageNumber, status, responsibleId, contactId, dateStart, dateEnd]);
+  }, [searchParam, pageNumber, status, pipelineId, responsibleId, contactId, dateStart, dateEnd]);
 
   return { leadsSales, loading, hasMore, count };
 };

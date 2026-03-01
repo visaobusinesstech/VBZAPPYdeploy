@@ -1,10 +1,12 @@
 import LeadSale from "../../models/LeadSale";
+import LeadPipeline from "../../models/LeadPipeline";
 
 interface Request {
   name: string;
   description?: string;
   status?: string;
   value?: number;
+  pipelineId?: number;
   companyName?: string;
   phone?: string;
   site?: string;
@@ -35,13 +37,21 @@ const CreateService = async ({
   contactId,
   responsibleId,
   date,
+  pipelineId,
   companyId
 }: Request): Promise<LeadSale> => {
+  let finalPipelineId = pipelineId;
+  if (finalPipelineId === undefined || finalPipelineId === null) {
+    const first = await LeadPipeline.findOne({ where: { companyId }, order: [["id", "ASC"]] });
+    if (first) finalPipelineId = first.id as any;
+  }
+
   const record = await LeadSale.create({
     name,
     description,
     status,
     value,
+    pipelineId: finalPipelineId as any,
     companyName,
     phone,
     site,

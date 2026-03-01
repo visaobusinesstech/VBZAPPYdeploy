@@ -20,6 +20,7 @@ import {
   TableRow,
   Chip,
   IconButton,
+  Drawer,
   Popover,
   Grid,
   TextField,
@@ -28,6 +29,7 @@ import {
 } from "@material-ui/core";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import CloseIcon from "@material-ui/icons/Close";
 
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -84,6 +86,48 @@ const useStyles = makeStyles((theme) => ({
     flexGrow: 1,
     height: "100%",
     overflow: "hidden",
+  },
+  drawerPaper: {
+    width: 420,
+    maxWidth: "100%",
+    padding: theme.spacing(2),
+    borderRadius: 16,
+    marginTop: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    height: "calc(100% - 32px)",
+    marginRight: theme.spacing(2),
+    overflow: "hidden"
+  },
+  drawerContainer: {
+    display: "flex",
+    flexDirection: "column",
+    height: "100%",
+  },
+  drawerHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    borderBottom: "1px solid #eee",
+    paddingBottom: theme.spacing(2),
+    marginBottom: theme.spacing(2)
+  },
+  drawerTitle: {
+    fontWeight: 600,
+  },
+  drawerContent: {
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing(2),
+    overflowY: "auto",
+    paddingRight: theme.spacing(1)
+  },
+  drawerActions: {
+    display: "flex",
+    justifyContent: "flex-end",
+    marginTop: theme.spacing(3),
+    gap: theme.spacing(1),
   },
 }));
 
@@ -294,6 +338,9 @@ const Projects = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const [projectToEdit, setProjectToEdit] = useState(null);
   const kanbanRef = useRef(null);
+  const [stagesDrawerOpen, setStagesDrawerOpen] = useState(false);
+  const [projectStagesState, setProjectStagesState] = useState([]);
+  const [localStages, setLocalStages] = useState([]);
   
   const { projects, loading, count, hasMore } = useProjects({
     searchParam,
@@ -303,6 +350,60 @@ const Projects = () => {
   useEffect(() => {
     setProjectsState(projects);
   }, [projects]);
+
+  // Carrega estágios do Kanban de Projetos do localStorage (frontend-only)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("project-stages");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          setProjectStagesState(parsed);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (stagesDrawerOpen) {
+      const base = (projectStagesState && projectStagesState.length)
+        ? projectStagesState
+        : [
+            { id: 'backlog', title: 'Backlog', color: '#6b7280' },
+            { id: 'pending', title: 'Pendente', color: '#f59e0b' },
+            { id: 'in_progress', title: 'Em Progresso', color: '#2563eb' },
+            { id: 'completed', title: 'Concluído', color: '#10B981' }
+          ];
+      setLocalStages(JSON.parse(JSON.stringify(base)));
+    }
+  }, [stagesDrawerOpen, projectStagesState]);
+
+  const slug = (txt) =>
+    (txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "");
+
+  const addStage = () => {
+    const idx = (localStages?.length || 0) + 1;
+    const title = `Etapa ${idx}`;
+    const id = slug(title);
+    setLocalStages(prev => [...prev, { id, title, color: "#3B82F6" }]);
+  };
+  const removeStage = (id) => setLocalStages(prev => prev.filter(s => (s.id) !== id));
+  const updateStage = (i, field, value) => {
+    setLocalStages(prev => {
+      const next = prev.slice();
+      if (field === "title") {
+        next[i] = { ...next[i], title: value, id: slug(value) };
+      } else {
+        next[i] = { ...next[i], [field]: value };
+      }
+      return next;
+    });
+  };
 
   const handleSearch = (value) => {
     setSearchParam(value);
@@ -343,11 +444,63 @@ const Projects = () => {
   }, [projectsState]);
 
   const filteredProjects = useMemo(() => {
-    if (!statusFilter) {
-      return projectsState;
+    let base = projectsState;
+
+    // Status
+    if (statusFilter) {
+      base = base.filter((p) => String(p.status || "") === String(statusFilter));
     }
-    return projectsState.filter((project) => project.status === statusFilter);
-  }, [projectsState, statusFilter]);
+
+    // Responsável
+    if (selectedResponsible && (selectedResponsible.id || selectedResponsible.name)) {
+      const rid = selectedResponsible.id;
+      const rname = (selectedResponsible.name || "").toLowerCase();
+      base = base.filter((p) => {
+        const pid = p?.userId || p?.user?.id;
+        const pname = (p?.user?.name || p?.user?.email || "").toLowerCase();
+        return (rid && String(pid) === String(rid)) || (!!rname && pname.includes(rname));
+      });
+    }
+
+    // Empresa
+    if (selectedCompany && (selectedCompany.id || selectedCompany.name)) {
+      const cid = selectedCompany.id;
+      const cname = (selectedCompany.name || "").toLowerCase();
+      base = base.filter((p) => {
+        const pid = p?.companyId || p?.company?.id;
+        const pname = (p?.company?.name || "").toLowerCase();
+        return (cid && String(pid) === String(cid)) || (!!cname && pname.includes(cname));
+      });
+    }
+
+    // Período (por data de criação)
+    const startOk = (d) => {
+      if (!dateStart) return true;
+      try {
+        const cmp = new Date(dateStart);
+        cmp.setHours(0, 0, 0, 0);
+        const dt = new Date(d);
+        return dt >= cmp;
+      } catch { return true; }
+    };
+    const endOk = (d) => {
+      if (!dateEnd) return true;
+      try {
+        const cmp = new Date(dateEnd);
+        cmp.setHours(23, 59, 59, 999);
+        const dt = new Date(d);
+        return dt <= cmp;
+      } catch { return true; }
+    };
+    if (dateStart || dateEnd) {
+      base = base.filter((p) => {
+        const when = p?.createdAt || p?.updatedAt || Date.now();
+        return startOk(when) && endOk(when);
+      });
+    }
+
+    return base;
+  }, [projectsState, statusFilter, selectedResponsible, selectedCompany, dateStart, dateEnd]);
 
   // Fullscreen logic (mesma de Activities)
   useEffect(() => {
@@ -410,7 +563,7 @@ const Projects = () => {
         color="default"
         size="small"
         style={{ color: '#6b7280', padding: 4, width: 32, height: 32 }}
-        onClick={() => {}}
+        onClick={() => setStagesDrawerOpen(true)}
       >
         <SettingsIcon style={{ fontSize: 18 }} />
       </IconButton>
@@ -429,14 +582,24 @@ const Projects = () => {
         onClose={() => setAnchorResp(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={selectedResponsible}
             options={usersList}
             onChange={(e, val) => setSelectedResponsible(val)}
             getOptionLabel={(option) => option.name || option.email || String(option.id)}
-            renderInput={(params) => <TextField {...params} label="Responsável" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Responsável"
+                variant="outlined"
+                size="small"
+                placeholder="Selecione"
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setSelectedResponsible(null)}>Limpar</Button>
@@ -454,14 +617,24 @@ const Projects = () => {
         onClose={() => setAnchorEmpresa(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Autocomplete
             fullWidth
             value={selectedCompany}
             options={contactsList}
             onChange={(e, val) => setSelectedCompany(val)}
             getOptionLabel={(option) => option.name || option.number || String(option.id)}
-            renderInput={(params) => <TextField {...params} label="Empresa" variant="outlined" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Empresa"
+                variant="outlined"
+                size="small"
+                placeholder="Pesquisar..."
+                InputProps={{ ...params.InputProps, style: { fontSize: 13 } }}
+                InputLabelProps={{ style: { fontSize: 12 } }}
+              />
+            )}
           />
           <div style={{ marginTop: 8, display: 'flex', justifyContent: 'flex-end' }}>
             <Button onClick={() => setSelectedCompany(null)}>Limpar</Button>
@@ -479,17 +652,19 @@ const Projects = () => {
         onClose={() => setAnchorPeriodo(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
-          <Grid container spacing={2}>
+        <div style={{ padding: 8, width: 220 }}>
+          <Grid container spacing={1}>
             <Grid item xs={6}>
               <TextField
                 label="Início"
                 type="date"
                 variant="outlined"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
                 value={dateStart}
                 onChange={(e) => setDateStart(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
               />
             </Grid>
             <Grid item xs={6}>
@@ -498,9 +673,11 @@ const Projects = () => {
                 type="date"
                 variant="outlined"
                 fullWidth
-                InputLabelProps={{ shrink: true }}
+                InputLabelProps={{ shrink: true, style: { fontSize: 12 } }}
                 value={dateEnd}
                 onChange={(e) => setDateEnd(e.target.value)}
+                size="small"
+                InputProps={{ style: { fontSize: 13 } }}
               />
             </Grid>
           </Grid>
@@ -521,7 +698,7 @@ const Projects = () => {
         onClose={() => setAnchorTodos(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
       >
-        <div style={{ padding: 16, width: 320 }}>
+        <div style={{ padding: 8, width: 220 }}>
           <Typography variant="subtitle2" style={{ marginBottom: 8 }}>Período rápido</Typography>
           <Grid container spacing={1}>
             <Grid item>
@@ -599,13 +776,13 @@ const Projects = () => {
             };
 
             const todayMid = new Date(); todayMid.setHours(0,0,0,0);
-            const total = projectsState.length;
-            const completed = projectsState.filter(p => String(p.status).toLowerCase() === "completed").length;
-            const inProgress = projectsState.filter(p => {
+            const total = filteredProjects.length;
+            const completed = filteredProjects.filter(p => String(p.status).toLowerCase() === "completed").length;
+            const inProgress = filteredProjects.filter(p => {
               const s = String(p.status || "").toLowerCase();
               return s === "in_progress" || s === "active";
             }).length;
-            const overdue = projectsState.filter(p => {
+            const overdue = filteredProjects.filter(p => {
               const s = String(p.status || "").toLowerCase();
               if (s === "completed") return false;
               const acts = Array.isArray(p.activities) ? p.activities : [];
@@ -629,7 +806,7 @@ const Projects = () => {
             const completedPerDay = {};
             const inProgPerDay = {};
             const overduePerDay = {};
-            projectsState.forEach(p => {
+            filteredProjects.forEach(p => {
               const k = dayKeyLocal(p.createdAt || Date.now());
               if (k) createdPerDay[k] = (createdPerDay[k] || 0) + 1;
               const s = String(p.status || "").toLowerCase();
@@ -684,7 +861,7 @@ const Projects = () => {
             };
             const createdMap = {};
             const doneMap = {};
-            projectsState.forEach(p => {
+            filteredProjects.forEach(p => {
               const key = monthKey(p.createdAt || Date.now());
               if (key) createdMap[key] = (createdMap[key] || 0) + 1;
               if (String(p.status || "").toLowerCase() === "completed") {
@@ -724,7 +901,7 @@ const Projects = () => {
               in_progress: palette.amber,
               completed: palette.green
             };
-            const stageCounts = stageOrder.map(k => projectsState.filter(p => statusKey(p.status) === k).length);
+            const stageCounts = stageOrder.map(k => filteredProjects.filter(p => statusKey(p.status) === k).length);
             const stageLabels = stageOrder.map(k => stageLabelByKey[k]);
             const stageColors = stageOrder.map(k => stageColorByKey[k]);
 
@@ -804,7 +981,7 @@ const Projects = () => {
             };
 
             const perDay = {};
-            projectsState.forEach(p => {
+            filteredProjects.forEach(p => {
               const k = dayKeyLocal(p.createdAt || Date.now());
               if (k) perDay[k] = (perDay[k] || 0) + 1;
             });
@@ -1031,7 +1208,8 @@ const Projects = () => {
           {viewMode === "calendar" && <ProjectsCalendar projects={filteredProjects} onCreate={handleCreateProject} />}
           {viewMode === "board" && (
             <div ref={kanbanRef} style={{ height: '100%', width: '100%' }}>
-              <ProjectKanbanBoard
+          <ProjectKanbanBoard
+                columns={ (projectStagesState && projectStagesState.length) ? projectStagesState : undefined }
                 projects={filteredProjects}
                 onProjectClick={(project) => {
                   setSelectedProject(project);
@@ -1110,6 +1288,79 @@ const Projects = () => {
          setProjectToEdit(null);
       }}
     />
+
+    <Drawer
+      anchor="right"
+      open={stagesDrawerOpen}
+      onClose={() => setStagesDrawerOpen(false)}
+      classes={{ paper: classes.drawerPaper }}
+    >
+      <div className={classes.drawerContainer}>
+        <div className={classes.drawerHeader}>
+          <Typography className={classes.drawerTitle}>Configure seu Kanban</Typography>
+          <IconButton onClick={() => setStagesDrawerOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </div>
+        <div className={classes.drawerContent}>
+          <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+            {localStages.map((st, idx) => (
+              <div
+                key={st.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "28px 1fr auto",
+                  alignItems: "center",
+                  columnGap: 8,
+                  rowGap: 8
+                }}
+              >
+                <input
+                  type="color"
+                  value={st.color || "#3B82F6"}
+                  onChange={(e) => updateStage(idx, "color", e.target.value)}
+                  aria-label="Cor"
+                  style={{ width: 28, height: 28, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
+                />
+                <TextField
+                  label="Rótulo"
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  value={st.title}
+                  onChange={(e) => updateStage(idx, "title", e.target.value)}
+                  InputLabelProps={{ style: { fontSize: 13 } }}
+                  inputProps={{ style: { fontSize: 14 } }}
+                />
+                <Button onClick={() => removeStage(st.id)}>Remover</Button>
+              </div>
+            ))}
+            <div>
+              <Button color="primary" variant="outlined" onClick={addStage}>Adicionar etapa</Button>
+            </div>
+          </div>
+        </div>
+        <div className={classes.drawerActions}>
+          <Button onClick={() => setStagesDrawerOpen(false)} variant="outlined">Cancelar</Button>
+          <Button
+            color="primary"
+            variant="contained"
+            onClick={async () => {
+              try {
+                setProjectStagesState(localStages);
+                localStorage.setItem("project-stages", JSON.stringify(localStages));
+                setStagesDrawerOpen(false);
+              } catch (err) {
+                // silencia
+              }
+            }}
+          >
+            Salvar
+          </Button>
+        </div>
+      </div>
+    </Drawer>
     </>
   );
 };

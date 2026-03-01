@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useContext, useEffect, useMemo, useState } from 'react';
 import {
   Drawer,
   Box,
@@ -10,11 +10,14 @@ import {
   List,
   ListItem,
   ListItemText,
-  Paper
+  Paper,
+  Avatar
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Close as CloseIcon, Edit as EditIcon, DeleteOutline as DeleteIcon } from '@material-ui/icons';
 import EditOutlinedIcon from '@material-ui/icons/EditOutlined';
+import { AuthContext } from '../../context/Auth/AuthContext';
+import { getBackendUrl } from '../../config';
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -102,21 +105,27 @@ const useStyles = makeStyles((theme) => ({
   }
 }));
 
-const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => {
+const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users = [] }) => {
   const classes = useStyles();
-  if (!activity) return null;
+  const { user: authUser } = useContext(AuthContext) || {};
+  const backendUrl = getBackendUrl && getBackendUrl();
+  const [projectName, setProjectName] = useState("");
+  const [companyName, setCompanyName] = useState("");
 
-  const progress = activity.progress || 33;
+  const progress = activity?.progress || 33;
 
   const formatDate = (value) => {
     if (!value) return '—';
     try {
       const d = new Date(value);
       if (isNaN(d.getTime())) return String(value);
+      const monthsPt = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
       const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const monthName = monthsPt[d.getMonth()] || '';
       const yyyy = d.getFullYear();
-      return `${dd}/${mm}/${yyyy}`;
+      const hh = String(d.getHours()).padStart(2, '0');
+      const mi = String(d.getMinutes()).padStart(2, '0');
+      return `${dd} de ${monthName} de ${yyyy}; ${hh}:${mi}`;
     } catch {
       return String(value);
     }
@@ -131,7 +140,39 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
     return t || '—';
   };
 
-  const companyPresent = !!(activity.company && String(activity.company).trim().length > 0);
+  const resolveUserById = (id) => {
+    if (!id || !Array.isArray(users)) return null;
+    const uid = Number(id);
+    return users.find(u => Number(u.id) === uid) || null;
+  };
+  const avatarSrcForUser = (u) => {
+    if (!u) return undefined;
+    const img = u.profileImage || u.avatar || u.picture || null;
+    if (!img) return undefined;
+    if (String(img).startsWith('http')) return img;
+    const companyId = u.companyId || (authUser && authUser.companyId);
+    if (!backendUrl || !companyId) return undefined;
+    return `${backendUrl}/public/company${companyId}/user/${img}`;
+  };
+
+  const responsibleUser = resolveUserById(activity?.userId);
+  const creatorUser = resolveUserById(activity?.createdById || activity?.creatorId) || authUser || null;
+  const responsibleName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email)) || activity?.owner;
+  const creatorName = creatorUser ? (creatorUser.name || creatorUser.fullName || creatorUser.email) : '—';
+  const companyPresent = !!(activity?.company && String(activity.company).trim().length > 0) || !!activity?.companyId;
+
+  useEffect(() => {
+    if (!activity) {
+      setCompanyName("");
+      return;
+    }
+    const c = activity.company;
+    if (c && typeof c === "object") {
+      setCompanyName(c.name || c.title || "");
+    } else {
+      setCompanyName(c || "");
+    }
+  }, [activity]);
 
   return (
     <Drawer
@@ -152,64 +193,80 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
       <div className={classes.contentScroll}>
       <Box mb={2}>
         <Typography variant="caption" className={classes.label}>Título</Typography>
-        <Typography variant="body1" className={classes.value}>{activity.title || 'Sem título'}</Typography>
+        <Typography variant="body1" className={classes.value}>{activity?.title || 'Sem título'}</Typography>
+      </Box>
+      <Box mb={2}>
+        <Typography variant="caption" className={classes.label}>Pessoas Atribuídas</Typography>
+        <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EEF2FF', padding: '6px 10px', borderRadius: 10 }}>
+            <Avatar src={avatarSrcForUser(responsibleUser)} style={{ width: 24, height: 24 }}>
+              {responsibleName ? String(responsibleName).charAt(0).toUpperCase() : 'R'}
+            </Avatar>
+            <div>
+              <Typography variant="caption" style={{ color: '#1D4ED8', fontWeight: 600 }}>RESPONSÁVEL</Typography>
+              <Typography variant="caption" style={{ display: 'block', color: '#111827' }}>{responsibleName || '—'}</Typography>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ECFDF5', padding: '6px 10px', borderRadius: 10 }}>
+            <Avatar src={avatarSrcForUser(creatorUser)} style={{ width: 24, height: 24 }}>
+              {creatorName ? String(creatorName).charAt(0).toUpperCase() : 'C'}
+            </Avatar>
+            <div>
+              <Typography variant="caption" style={{ color: '#047857', fontWeight: 600 }}>CRIADO POR</Typography>
+              <Typography variant="caption" style={{ display: 'block', color: '#111827' }}>{creatorName}</Typography>
+            </div>
+          </div>
+        </div>
       </Box>
       <Box mb={2}>
         <Typography variant="caption" className={classes.label}>Descrição</Typography>
-        <Typography variant="body2" style={{ color: '#374151' }}>
-          {activity.description || 'Sem descrição'}
-        </Typography>
+        <Paper elevation={0} style={{ background: '#F9FAFB', border: '1px solid #E5E7EB', padding: 12, borderRadius: 10, marginTop: 6 }}>
+          <Typography variant="body2" style={{ color: '#374151' }}>
+            {activity?.description || 'Sem descrição'}
+          </Typography>
+        </Paper>
       </Box>
 
       <Divider />
 
       <Typography className={classes.sectionTitle}>Informações da Atividade</Typography>
-      <div className={classes.infoRow} style={{ gridTemplateColumns: companyPresent ? '1fr 1fr' : '1fr 2fr' }}>
-        <Paper
-          className={classes.infoCardPurple}
-          elevation={0}
-          style={
-            !companyPresent
-              ? {
-                  minHeight: 48,
-                  paddingTop: 8,
-                  paddingBottom: 8,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-start'
-                }
-              : undefined
-          }
-        >
-          <Typography variant="overline" style={{ opacity: 0.9, marginBottom: companyPresent ? 6 : 0 }}>
+      <div className={classes.infoRow} style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <Paper className={classes.infoCardPurple} elevation={0}>
+          <Typography variant="overline" style={{ opacity: 0.9, marginBottom: 6 }}>
             EMPRESA/CLIENTE
           </Typography>
-          {companyPresent && (
-            <Typography variant="subtitle2">{activity.company}</Typography>
-          )}
+          {(() => {
+            const c = activity?.company;
+            const labelFromObj = c && typeof c === 'object' ? (c.name || c.title || '') : '';
+            const label = companyName || labelFromObj || (typeof c === 'string' ? c : '');
+            return (
+              <Typography variant="subtitle2">{label || '—'}</Typography>
+            );
+          })()}
         </Paper>
         <Paper className={classes.infoCardOrange} elevation={0}>
-          <Typography variant="overline" style={{ opacity: 0.9 }}>PROJETO VINCULADO</Typography>
-          <List dense disablePadding>
-            {(activity.projects && activity.projects.length > 0 ? activity.projects : ['PROJETO 4','PROJETO 5','PROJETO 2','PROJETO 3','PROJETO 1']).slice(0,5).map((p, idx) => (
-              <ListItem key={idx} disableGutters>
-                <ListItemText primaryTypographyProps={{ style: { fontSize: '0.85rem' } }} primary={p} />
-              </ListItem>
-            ))}
-          </List>
-          <Typography variant="caption" style={{ opacity: 0.7 }}>
-             {(activity.projects && activity.projects.length) || 5} projeto(s)
-          </Typography>
+          <Typography variant="overline" style={{ opacity: 0.9, marginBottom: 6 }}>PROJETO VINCULADO</Typography>
+          {(() => {
+            const p = activity?.project;
+            const labelFromObj = p && typeof p === 'object' ? (p.name || p.title || '') : '';
+            const label = activity?.projectName || labelFromObj || projectName || '';
+            return (
+              <Typography variant="subtitle2">
+                {label || (activity?.projectId ? `Projeto #${activity.projectId}` : '—')}
+              </Typography>
+            );
+          })()}
         </Paper>
       </div>
+      
 
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Tipo de Atividade</Typography>
-        <Typography variant="body2" className={classes.value}>{mapType(activity.type)}</Typography>
+        <Typography variant="body2" className={classes.value}>{mapType(activity?.type)}</Typography>
       </Box>
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Prazo</Typography>
-        <Typography variant="body2" className={classes.value}>{formatDate(activity.date)}</Typography>
+        <Typography variant="body2" className={classes.value}>{formatDate(activity?.date)}</Typography>
       </Box>
       <Box className={classes.progressRow} mb={2}>
         <Typography variant="caption" className={classes.label} style={{ minWidth: 76 }}>Progresso</Typography>
@@ -223,7 +280,7 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit }) => 
       <Typography className={classes.sectionTitle}>Informações do Sistema</Typography>
       <Box mb={1}>
         <Typography variant="caption" className={classes.label}>Criado em</Typography>
-        <Typography variant="body2" className={classes.value}>{formatDate(activity.createdAt || activity.date)}</Typography>
+        <Typography variant="body2" className={classes.value}>{formatDate(activity?.createdAt || activity?.date)}</Typography>
       </Box>
       </div>
 

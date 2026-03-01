@@ -13,6 +13,7 @@ import {
 import Company from "./Company";
 import User from "./User";
 import Contact from "./Contact";
+import LeadPipeline from "./LeadPipeline";
 
 @Table({ tableName: "leads_sales" })
 class LeadSale extends Model<LeadSale> {
@@ -70,6 +71,13 @@ class LeadSale extends Model<LeadSale> {
 
   @BelongsTo(() => User)
   responsible: User;
+
+  @ForeignKey(() => LeadPipeline)
+  @Column
+  pipelineId: number;
+
+  @BelongsTo(() => LeadPipeline)
+  pipeline: LeadPipeline;
 
   @Column
   date: Date;
