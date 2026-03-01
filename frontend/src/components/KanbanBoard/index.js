@@ -376,7 +376,7 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, col
                               <DeleteIcon style={{ fontSize: 14 }} />
                             </IconButton>
                           )}
-                          <div className={classes.cardAccent} style={{ backgroundColor: column.color }} />
+                      <div className={classes.cardAccent} style={{ backgroundColor: column.color }} />
                           <CardContent style={{ padding: 10 }}>
                             {(() => {
                               const projectObj = activity && activity.project;
@@ -405,22 +405,20 @@ const KanbanBoard = ({ activities, onActivityClick, onAdd, onMove, onDelete, col
                             
                             {(() => {
                               const responsibleUser = resolveUserById(activity.userId);
-                              const ownerName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email))
-                                || activity.owner
-                                || (activity.user && (activity.user.name || activity.user.email));
-                              if (!ownerName) return null;
+                              if (!responsibleUser) return null;
+                              const ownerName = (responsibleUser.name || responsibleUser.fullName || responsibleUser.email);
                               const initials = String(ownerName).split(" ").slice(0,2).map(p => p[0]).join("").toUpperCase();
                               const src = avatarSrcForUser(responsibleUser);
                               return (
                                 <>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, justifyContent: 'space-between' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Avatar src={src} style={{ width: 22, height: 22, fontSize: 11, background: '#E5E7EB', color: '#111827' }}>
-                                      {!src && initials}
-                                    </Avatar>
-                                    <Typography variant="caption" className={classes.cardMeta} style={{ fontSize: 12 }}>
-                                      {ownerName}
-                                    </Typography>
+                                      <Avatar src={src} style={{ width: 22, height: 22, fontSize: 11, background: '#E5E7EB', color: '#111827' }}>
+                                        {!src && initials}
+                                      </Avatar>
+                                      <Typography variant="caption" className={classes.cardMeta} style={{ fontSize: 12 }}>
+                                        {ownerName}
+                                      </Typography>
                                     </div>
                                     <div style={{ marginLeft: 8 }}>
                                       {renderTypeIcon(activity.type)}

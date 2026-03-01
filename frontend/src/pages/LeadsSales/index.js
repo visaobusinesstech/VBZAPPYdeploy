@@ -849,6 +849,19 @@ const LeadsSales = () => {
   const [dash, setDash] = useState(null);
   const [hoveredKpi, setHoveredKpi] = useState(null);
 
+  const companiesFromLeads = useMemo(() => {
+    const names = new Set();
+    const items = [];
+    (leadsState || []).forEach((l) => {
+      const nm = String(l.companyName || "").trim();
+      if (nm && !names.has(nm)) {
+        names.add(nm);
+        items.push({ id: `company:${nm}`, name: nm, __company: true });
+      }
+    });
+    return items;
+  }, [leadsState]);
+
   const [anchorResp, setAnchorResp] = useState(null);
   const [anchorContact, setAnchorContact] = useState(null);
   const [anchorPeriodo, setAnchorPeriodo] = useState(null);
@@ -997,11 +1010,12 @@ const LeadsSales = () => {
     let active = true;
     async function fetchDashboard() {
       try {
+        const selectedContactId = contact && !contact.__company ? contact.id : undefined;
         const data = await leadsSalesService.dashboard({
           status,
           pipelineId: selectedPipelineId,
           responsibleId: responsible?.id,
-          contactId: contact?.id,
+          contactId: selectedContactId,
           dateStart,
           dateEnd
         });
@@ -1020,7 +1034,7 @@ const LeadsSales = () => {
     status,
     pipelineId: selectedPipelineId,
     responsibleId: responsible?.id,
-    contactId: contact?.id,
+    contactId: (contact && !contact.__company) ? contact.id : undefined,
     dateStart,
     dateEnd
   });
@@ -1183,7 +1197,7 @@ const LeadsSales = () => {
           <Autocomplete
             fullWidth
             value={contact}
-            options={contactsList}
+            options={[...contactsList, ...companiesFromLeads]}
             onChange={(e, val) => setContact(val)}
             getOptionLabel={(option) => option.name || option.number || String(option.id)}
             renderInput={(params) => (

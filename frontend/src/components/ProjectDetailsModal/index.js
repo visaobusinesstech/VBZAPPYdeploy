@@ -144,7 +144,7 @@ const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit }) => {
         <Paper className={classes.infoCardPurple} elevation={0}>
           <Typography variant="overline" style={{ opacity: 0.9 }}>EMPRESA</Typography>
           <Typography variant="subtitle2" style={{ marginTop: 6 }}>
-            {project.companyId || 'Não informado'}
+            {(project.company && (project.company.name || project.company.title)) || (project.companyId || 'Não informado')}
           </Typography>
         </Paper>
         <Paper className={classes.infoCardOrange} elevation={0}>
@@ -156,6 +156,15 @@ const ProjectDetailsModal = ({ open, onClose, project, onDelete, onEdit }) => {
                 color={project.status === 'active' ? 'primary' : 'default'}
              />
           </Box>
+        </Paper>
+      </div>
+      
+      <div className={classes.infoRow}>
+        <Paper className={classes.infoCardPurple} elevation={0}>
+          <Typography variant="overline" style={{ opacity: 0.9 }}>RESPONSÁVEL</Typography>
+          <Typography variant="subtitle2" style={{ marginTop: 6 }}>
+            {(project.user && (project.user.name || project.user.email)) || (project.userId ? `Usuário #${project.userId}` : 'Sem responsável')}
+          </Typography>
         </Paper>
       </div>
 

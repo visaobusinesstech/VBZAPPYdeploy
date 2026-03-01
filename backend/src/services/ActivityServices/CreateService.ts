@@ -10,7 +10,7 @@ interface Data {
   date: Date;
   owner?: string;
   companyId: number;
-  userId: number;
+  userId?: number;
 }
 
 const CreateService = async (data: Data): Promise<Activity> => {
@@ -28,10 +28,18 @@ const CreateService = async (data: Data): Promise<Activity> => {
     throw new AppError(err.message);
   }
 
-  const payload = {
-    ...data,
-    status: data.status || "pending"
+  const payload: any = {
+    title: data.title,
+    description: data.description,
+    type: data.type,
+    status: data.status || "pending",
+    date: data.date,
+    owner: data.owner,
+    companyId: data.companyId
   };
+  if (typeof data.userId !== "undefined") {
+    payload.userId = data.userId;
+  }
 
   const record = await Activity.create(payload);
 

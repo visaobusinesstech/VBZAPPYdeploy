@@ -46,6 +46,8 @@ import useProjects from "../../hooks/useProjects"; // Novo hook
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import projectsService from "../../services/projectsService"; // Novo serviço
+import convertedLeadsService from "../../services/convertedLeadsService";
+import api from "../../services/api";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -113,7 +115,15 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(2)
   },
   drawerTitle: {
-    fontWeight: 600,
+    fontWeight: 400,
+    color: "#111827",
+    opacity: 0.92,
+    fontSize: "1.2rem",
+  },
+  drawerCloseButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
   },
   drawerContent: {
     flex: 1,
@@ -435,13 +445,13 @@ const Projects = () => {
   ];
 
   const headerStats = useMemo(() => {
-    const total = projectsState.length;
-    const completed = projectsState.filter(p => p.status === 'completed').length;
+    const total = filteredProjects.length;
+    const completed = filteredProjects.filter(p => p.status === 'completed').length;
     return [
       { label: "Total", value: total, color: "#2563eb" },
       { label: "Concluídos", value: completed, color: "#22c55e" }
     ];
-  }, [projectsState]);
+  }, [filteredProjects]);
 
   const filteredProjects = useMemo(() => {
     let base = projectsState;
@@ -462,14 +472,15 @@ const Projects = () => {
       });
     }
 
-    // Empresa
-    if (selectedCompany && (selectedCompany.id || selectedCompany.name)) {
-      const cid = selectedCompany.id;
-      const cname = (selectedCompany.name || "").toLowerCase();
+    // Empresa (usa nome da empresa selecionada para filtrar nome/descrição/empresa associada)
+    if (selectedCompany && selectedCompany.name) {
+      const cname = String(selectedCompany.name || "").toLowerCase();
       base = base.filter((p) => {
-        const pid = p?.companyId || p?.company?.id;
-        const pname = (p?.company?.name || "").toLowerCase();
-        return (cid && String(pid) === String(cid)) || (!!cname && pname.includes(cname));
+        const byName =
+          String(p?.name || "").toLowerCase().includes(cname) ||
+          String(p?.description || "").toLowerCase().includes(cname) ||
+          String(p?.company?.name || "").toLowerCase().includes(cname);
+        return byName;
       });
     }
 
@@ -507,12 +518,13 @@ const Projects = () => {
     // carregar opções de filtros (Responsável/Empresa)
     async function fetchFilters() {
       try {
-        const { data: usersResp } = await projectsService.getUsers ? await projectsService.getUsers() : { data: [] };
-        if (Array.isArray(usersResp)) setUsersList(usersResp);
+        const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
+        setUsersList(usersResp?.users || []);
       } catch (_) {}
       try {
-        // não existe um service específico de contatos aqui; manter vazio por ora
-        setContactsList([]);
+        const data = await convertedLeadsService.list({ pageNumber: 1 });
+        const list = Array.isArray(data?.leads) ? data.leads : [];
+        setContactsList(list);
       } catch (_) {}
     }
     fetchFilters();
@@ -917,7 +929,7 @@ const Projects = () => {
               return clampPct((done / total) * 100);
             };
             const respMap = {};
-            projectsState.forEach(p => {
+            filteredProjects.forEach(p => {
               const respName =
                 (p?.user && (p.user.name || p.user.email)) ||
                 (p?.userId ? `Usuário ${p.userId}` : "Sem responsável");
@@ -1211,6 +1223,7 @@ const Projects = () => {
           <ProjectKanbanBoard
                 columns={ (projectStagesState && projectStagesState.length) ? projectStagesState : undefined }
                 projects={filteredProjects}
+                users={usersList}
                 onProjectClick={(project) => {
                   setSelectedProject(project);
                   setDetailsOpen(true);
@@ -1298,22 +1311,22 @@ const Projects = () => {
       <div className={classes.drawerContainer}>
         <div className={classes.drawerHeader}>
           <Typography className={classes.drawerTitle}>Configure seu Kanban</Typography>
-          <IconButton onClick={() => setStagesDrawerOpen(false)}>
+          <IconButton onClick={() => setStagesDrawerOpen(false)} className={classes.drawerCloseButton}>
             <CloseIcon />
           </IconButton>
         </div>
         <div className={classes.drawerContent}>
-          <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <Typography variant="subtitle2" style={{ color: "#374151", fontSize: 16, fontWeight: 600 }}>Configure suas Etapas</Typography>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 10 }}>
             {localStages.map((st, idx) => (
               <div
                 key={st.id}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "28px 1fr auto",
+                  gridTemplateColumns: "36px 1fr auto",
                   alignItems: "center",
-                  columnGap: 8,
-                  rowGap: 8
+                  columnGap: 14,
+                  rowGap: 18
                 }}
               >
                 <input
@@ -1321,22 +1334,21 @@ const Projects = () => {
                   value={st.color || "#3B82F6"}
                   onChange={(e) => updateStage(idx, "color", e.target.value)}
                   aria-label="Cor"
-                  style={{ width: 28, height: 28, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
+                  style={{ width: 34, height: 34, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
                 />
                 <TextField
                   label="Rótulo"
                   variant="outlined"
-                  size="small"
                   fullWidth
                   value={st.title}
                   onChange={(e) => updateStage(idx, "title", e.target.value)}
-                  InputLabelProps={{ style: { fontSize: 13 } }}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  InputLabelProps={{ style: { fontSize: 14 } }}
+                  inputProps={{ style: { fontSize: 16, padding: "12px 14px" } }}
                 />
                 <Button onClick={() => removeStage(st.id)}>Remover</Button>
               </div>
             ))}
-            <div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button color="primary" variant="outlined" onClick={addStage}>Adicionar etapa</Button>
             </div>
           </div>

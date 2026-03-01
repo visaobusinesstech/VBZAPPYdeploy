@@ -53,6 +53,7 @@ import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import activitiesService from "../../services/activitiesService";
 import activityStagesService from "../../services/activityStagesService";
+import convertedLeadsService from "../../services/convertedLeadsService";
 
 // Charts (igual ao Dashboard de Leads/Vendas)
 import {
@@ -429,8 +430,9 @@ const Activities = () => {
   useEffect(() => {
     async function fetchFilters() {
       try {
-        const { data: contactsData } = await api.get("/contacts/list");
-        setContactsList(contactsData || []);
+        const resp = await convertedLeadsService.list({ searchParam: "", pageNumber: 1 });
+        const list = (resp && resp.leads) ? resp.leads : [];
+        setContactsList(list);
         const { data: usersResp } = await api.get("/users", { params: { searchParam: "" } });
         setUsersList(usersResp?.users || []);
       } catch (err) {
@@ -473,16 +475,16 @@ const Activities = () => {
     }
   ];
 
-  // Calculate quick stats for the header (exclui eventos)
+  // Calculate quick stats for the header (respeita filtros)
   const headerStats = useMemo(() => {
-    const base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");
+    const base = filteredActivities;
     const total = base.length;
     const completed = base.filter(a => a.status === 'completed' || a.status === 'Concluído').length;
     return [
       { label: "Total", value: total, color: "#2563eb" },
       { label: "Concluídas", value: completed, color: "#22c55e" }
     ];
-  }, [activitiesState]);
+  }, [filteredActivities]);
 
   const filteredActivities = useMemo(() => {
     let base = activitiesState.filter(a => String(a.type || "").toLowerCase() !== "event");

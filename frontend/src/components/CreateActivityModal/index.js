@@ -138,8 +138,13 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!formValues.title || !formValues.date) {
+    const titleTrim = String(formValues.title || "").trim();
+    if (!titleTrim || !formValues.date) {
       toast.error("Preencha título e data da atividade.");
+      return;
+    }
+    if (titleTrim.length < 3) {
+      toast.error("O título deve ter pelo menos 3 caracteres.");
       return;
     }
 
@@ -149,11 +154,22 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
       const selectedCompany = Array.isArray(companiesConverted)
         ? companiesConverted.find(c => String(c.id) === String(formValues.companyId))
         : null;
-      const payload = {
-        ...formValues,
-        userId: selectedUser ? selectedUser.id : undefined,
-        owner: selectedUser ? (selectedUser.name || selectedUser.fullName || selectedUser.email || `Usuário ${selectedUser.id}`) : (formValues.owner || undefined)
+      const payloadBase = {
+        title: titleTrim,
+        description: formValues.description || undefined,
+        type: formValues.type || "task",
+        status: formValues.status || "pending",
+        date: (() => {
+          try {
+            const d = new Date(formValues.date);
+            if (!isNaN(d.getTime())) return d.toISOString();
+          } catch {}
+          return formValues.date;
+        })(),
+        owner: selectedUser ? (selectedUser.name || selectedUser.fullName || selectedUser.email || `Usuário ${selectedUser.id}`) : (formValues.owner || undefined),
+        userId: selectedUser ? selectedUser.id : undefined
       };
+      const payload = Object.fromEntries(Object.entries(payloadBase).filter(([_, v]) => v !== undefined && v !== ""));
       // Here you would call the service. For now, we simulate or call the prop.
       // Assuming onSave handles the API call or we do it here.
       // If we do it here:
@@ -180,6 +196,10 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
       onClose();
     } catch (err) {
       toastError(err);
+      const status = err?.response?.status;
+      if (!status || status >= 500) {
+        toast.error("Erro ao salvar atividade. Tente novamente.");
+      }
     } finally {
       setLoading(false);
     }

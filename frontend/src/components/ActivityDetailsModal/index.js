@@ -156,7 +156,7 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users
 
   const responsibleUser = resolveUserById(activity?.userId);
   const creatorUser = resolveUserById(activity?.createdById || activity?.creatorId) || authUser || null;
-  const responsibleName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email)) || activity?.owner;
+  const responsibleName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email)) || '';
   const creatorName = creatorUser ? (creatorUser.name || creatorUser.fullName || creatorUser.email) : '—';
   // Empresa/Cliente removido do modal a pedido do usuário
 
@@ -184,15 +184,17 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users
       <Box mb={2}>
         <Typography variant="caption" className={classes.label}>Pessoas Atribuídas</Typography>
         <div style={{ display: 'flex', gap: 12, marginTop: 6, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EEF2FF', padding: '6px 10px', borderRadius: 10 }}>
-            <Avatar src={avatarSrcForUser(responsibleUser)} style={{ width: 24, height: 24 }}>
-              {responsibleName ? String(responsibleName).charAt(0).toUpperCase() : 'R'}
-            </Avatar>
-            <div>
-              <Typography variant="caption" style={{ color: '#1D4ED8', fontWeight: 600 }}>RESPONSÁVEL</Typography>
-              <Typography variant="caption" style={{ display: 'block', color: '#111827' }}>{responsibleName || '—'}</Typography>
+          {responsibleUser && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#EEF2FF', padding: '6px 10px', borderRadius: 10 }}>
+              <Avatar src={avatarSrcForUser(responsibleUser)} style={{ width: 24, height: 24 }}>
+                {responsibleName ? String(responsibleName).charAt(0).toUpperCase() : 'R'}
+              </Avatar>
+              <div>
+                <Typography variant="caption" style={{ color: '#1D4ED8', fontWeight: 600 }}>RESPONSÁVEL</Typography>
+                <Typography variant="caption" style={{ display: 'block', color: '#111827' }}>{responsibleName}</Typography>
+              </div>
             </div>
-          </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#ECFDF5', padding: '6px 10px', borderRadius: 10 }}>
             <Avatar src={avatarSrcForUser(creatorUser)} style={{ width: 24, height: 24 }}>
               {creatorName ? String(creatorName).charAt(0).toUpperCase() : 'C'}

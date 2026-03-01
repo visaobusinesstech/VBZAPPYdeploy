@@ -33,22 +33,25 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
-  const creatorUserId = +req.user.id;
   const { title, description, type, status, date, owner, userId: bodyUserId, responsible } = req.body;
   const assignedUserId = typeof bodyUserId !== "undefined"
     ? Number(bodyUserId)
-    : (typeof responsible !== "undefined" ? Number(responsible) : creatorUserId);
+    : (typeof responsible !== "undefined" ? Number(responsible) : undefined);
 
-  const record = await CreateService({
+  const data: any = {
     title,
     description,
     type,
     status,
     date,
     owner,
-    companyId,
-    userId: assignedUserId
-  });
+    companyId
+  };
+  if (typeof assignedUserId !== "undefined") {
+    data.userId = assignedUserId;
+  }
+
+  const record = await CreateService(data);
 
   const io = getIO();
 

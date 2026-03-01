@@ -37,7 +37,7 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
 };
 
 export const store = async (req: Request, res: Response): Promise<Response> => {
-  const { companyId, id: userId } = req.user;
+  const { companyId, id: currentUserId } = req.user;
   const data = req.body;
 
   const schema = Yup.object().shape({
@@ -53,7 +53,7 @@ export const store = async (req: Request, res: Response): Promise<Response> => {
   const project = await Project.create({
     ...data,
     companyId,
-    userId
+    userId: data.userId || currentUserId
   });
 
   // Se houver atividades para vincular

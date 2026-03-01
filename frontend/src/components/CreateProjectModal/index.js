@@ -103,7 +103,7 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
           description: project.description || "",
           status: project.status || "active",
           companyId: project.companyId || "",
-          responsible: project.responsible || "",
+          responsible: (project.userId || (project.user && project.user.id)) || "",
           activityIds: project.activities ? project.activities.map(a => a.id) : []
         });
       } else {
@@ -153,7 +153,9 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
       setLoading(true);
       const payload = {
         ...formValues,
+        userId: formValues.responsible || null
       };
+      delete payload.responsible;
 
       let savedProject;
       if (project && project.id) {
