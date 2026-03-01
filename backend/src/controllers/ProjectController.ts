@@ -3,6 +3,7 @@ import * as Yup from "yup";
 import Project from "../models/Project";
 import Activity from "../models/Activity";
 import AppError from "../errors/AppError";
+import User from "../models/User";
 
 export const index = async (req: Request, res: Response): Promise<Response> => {
   const { companyId } = req.user;
@@ -25,7 +26,8 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
     offset,
     order: [["createdAt", "DESC"]],
     include: [
-      { model: Activity, as: "activities" }
+      { model: Activity, as: "activities" },
+      { model: User, as: "user", attributes: ["id", "name", "email"] }
     ]
   });
 
@@ -95,7 +97,10 @@ export const update = async (req: Request, res: Response): Promise<Response> => 
   }
 
   await project.reload({
-      include: [{ model: Activity, as: "activities" }]
+      include: [
+        { model: Activity, as: "activities" },
+        { model: User, as: "user", attributes: ["id", "name", "email"] }
+      ]
   });
 
   return res.status(200).json(project);

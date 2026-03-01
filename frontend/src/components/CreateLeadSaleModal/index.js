@@ -32,6 +32,10 @@ import { EditMessageProvider } from "../../context/EditingMessage/EditingMessage
 import { QueueSelectedProvider, QueueSelectedContext } from "../../context/QueuesSelected/QueuesSelectedContext";
 import NumberFormat from "react-number-format";
 import inventoryService from "../../services/inventoryService";
+import TicketHeader from "../TicketHeader";
+import TicketInfo from "../TicketInfo";
+import TicketActionButtons from "../TicketActionButtonsCustom";
+import ContactDrawer from "../ContactDrawer";
 
 const NumberFormatCustom = (props) => {
   const { inputRef, onChange, thousandSeparator, decimalSeparator, prefix, ...other } = props;
@@ -273,6 +277,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
   const [priority, setPriority] = useState("Média");
   const [currency, setCurrency] = useState("BRL");
   const [inventoryItems, setInventoryItems] = useState([]);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
     description: "",
@@ -943,16 +948,37 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
           </Grid>
 
           <Grid item xs={12} md={8} className={classes.rightPane}>
-            <div className={classes.chatHeader}>
-              <Avatar src={avatarUrl || ticket?.contact?.profilePicUrl || ticket?.contact?.urlPicture || selectedContact?.profilePicUrl || selectedContact?.urlPicture || ""}>
-                {(selectedContact?.name || ticket?.contact?.name || "L")[0]}
-              </Avatar>
-              <div className={classes.chatHeaderTitle}>
-                <Typography variant="subtitle2">{selectedContact?.name || ticket?.contact?.name || lead?.name || "Contato"}</Typography>
-                <Typography variant="caption" color="textSecondary">{selectedContact?.number || ticket?.contact?.number || phone || ""}</Typography>
+            <TicketHeader loading={ticketLoading}>
+              <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+                {(ticket?.contact || selectedContact) && (
+                  <div id="TicketHeader" style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
+                    <TicketInfo
+                      contact={ticket?.contact || selectedContact}
+                      ticket={ticket || {}}
+                      onClick={() => setDrawerOpen(true)}
+                    />
+                  </div>
+                )}
+                {ticket && (
+                  <div style={{ flex: "none", marginLeft: "auto" }}>
+                    <TicketActionButtons
+                      ticket={ticket}
+                      contact={ticket?.contact}
+                      onQuickMessageSelect={(quickMessage) => {
+                        try {
+                          if (quickMessage?.message) {
+                            const event = new CustomEvent('insertQuickMessage', {
+                              detail: { message: quickMessage.message }
+                            });
+                            window.dispatchEvent(event);
+                          }
+                        } catch (e) {}
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-              <Chip className={classes.chatStatus} size="small" label="Conectado" color="primary" />
-            </div>
+            </TicketHeader>
             <div className={classes.chatBody}>
               {ticketLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -995,6 +1021,13 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
             </div>
           </Grid>
         </Grid>
+        <ContactDrawer
+          open={drawerOpen}
+          handleDrawerClose={() => setDrawerOpen(false)}
+          contact={ticket?.contact || selectedContact || {}}
+          loading={ticketLoading}
+          ticket={ticket || {}}
+        />
       </Drawer>
     );
   }

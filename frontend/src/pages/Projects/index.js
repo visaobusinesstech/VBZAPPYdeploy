@@ -44,6 +44,38 @@ import useProjects from "../../hooks/useProjects"; // Novo hook
 import { toast } from "react-toastify";
 import toastError from "../../errors/toastError";
 import projectsService from "../../services/projectsService"; // Novo serviço
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title as ChartTitle,
+  Tooltip,
+  Legend,
+  Filler
+} from "chart.js";
+import { Line, Bar, Doughnut } from "react-chartjs-2";
+import ChartDataLabels from "chartjs-plugin-datalabels";
+import InsertChartOutlinedIcon from "@material-ui/icons/InsertChartOutlined";
+import CheckCircleOutlineIcon from "@material-ui/icons/CheckCircleOutline";
+import ScheduleIcon from "@material-ui/icons/Schedule";
+import ErrorOutlineIcon from "@material-ui/icons/ErrorOutline";
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  ChartTitle,
+  Tooltip,
+  Legend,
+  Filler,
+  ChartDataLabels
+);
 
 const localizer = momentLocalizer(moment);
 
@@ -243,6 +275,7 @@ const Projects = () => {
   const [viewMode, setViewMode] = useState("board");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [searchParam, setSearchParam] = useState("");
+  const [hoveredKpi, setHoveredKpi] = useState(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [statusFilter, setStatusFilter] = useState("");
   const [dateStart, setDateStart] = useState("");
@@ -542,35 +575,458 @@ const Projects = () => {
       currentViewMode={viewMode}
       onViewModeChange={setViewMode}
       rightFilters={rightFilters}
+      scrollContent={viewMode !== "dashboard" && viewMode !== "calendar"}
     >
       {loading ? (
         <div style={{ padding: 20, textAlign: "center" }}>Carregando...</div>
       ) : (
         <>
-          {viewMode === "dashboard" && (
-            <Grid container spacing={2} style={{ height: '100%', margin: 0 }}>
-              {(() => {
-                const total = projectsState.length;
-                const completed = projectsState.filter(p => String(p.status).toLowerCase() === 'completed').length;
-                const active = projectsState.filter(p => String(p.status).toLowerCase() === 'active').length;
-                const archived = projectsState.filter(p => String(p.status).toLowerCase() === 'archived').length;
-                const cards = [
-                  { label: 'Total', value: total, color: '#2563eb' },
-                  { label: 'Ativos', value: active, color: '#3b82f6' },
-                  { label: 'Concluídos', value: completed, color: '#10b981' },
-                  { label: 'Arquivados', value: archived, color: '#6b7280' },
-                ];
-                return cards.map((c) => (
-                  <Grid item xs={12} sm={6} md={3} key={c.label}>
-                    <Paper style={{ padding: 16, textAlign: 'center', borderRadius: 12 }}>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: c.color }}>{c.value}</div>
-                      <div style={{ color: '#6b7280' }}>{c.label}</div>
-                    </Paper>
-                  </Grid>
-                ));
-              })()}
-            </Grid>
-          )}
+          {viewMode === "dashboard" && (() => {
+            const palette = {
+              bg: "#F8FAFC",
+              card: "#FFFFFF",
+              text: "#0F172A",
+              sub: "#64748B",
+              border: "#E2E8F0",
+              shadow: "0 2px 8px rgba(2,6,23,0.06)",
+              blue: "#3B82F6",
+              blueDark: "#2563EB",
+              blueLight: "#60A5FA",
+              green: "#10B981",
+              red: "#EF4444",
+              amber: "#F59E0B",
+              gray: "#6B7280"
+            };
+
+            const todayMid = new Date(); todayMid.setHours(0,0,0,0);
+            const total = projectsState.length;
+            const completed = projectsState.filter(p => String(p.status).toLowerCase() === "completed").length;
+            const inProgress = projectsState.filter(p => {
+              const s = String(p.status || "").toLowerCase();
+              return s === "in_progress" || s === "active";
+            }).length;
+            const overdue = projectsState.filter(p => {
+              const s = String(p.status || "").toLowerCase();
+              if (s === "completed") return false;
+              const acts = Array.isArray(p.activities) ? p.activities : [];
+              return acts.some(a => {
+                const st = String(a.status || "").toLowerCase();
+                if (st === "completed") return false;
+                if (!a?.date) return false;
+                const d = new Date(a.date);
+                return d < todayMid;
+              });
+            }).length;
+
+            const dayKeyLocal = (d) => {
+              try {
+                const dt = new Date(d);
+                if (isNaN(dt.getTime())) return null;
+                return dt.toISOString().slice(0,10);
+              } catch { return null; }
+            };
+            const createdPerDay = {};
+            const completedPerDay = {};
+            const inProgPerDay = {};
+            const overduePerDay = {};
+            projectsState.forEach(p => {
+              const k = dayKeyLocal(p.createdAt || Date.now());
+              if (k) createdPerDay[k] = (createdPerDay[k] || 0) + 1;
+              const s = String(p.status || "").toLowerCase();
+              if (s === "completed") {
+                const kc = dayKeyLocal(p.updatedAt || p.createdAt || Date.now());
+                if (kc) completedPerDay[kc] = (completedPerDay[kc] || 0) + 1;
+              }
+              if (s === "in_progress" || s === "active") {
+                const ki = dayKeyLocal(p.updatedAt || p.createdAt || Date.now());
+                if (ki) inProgPerDay[ki] = (inProgPerDay[ki] || 0) + 1;
+              }
+              const hasOver = (Array.isArray(p.activities) ? p.activities : []).some(a => {
+                const st = String(a.status || "").toLowerCase();
+                if (st === "completed") return false;
+                const d = a?.date ? new Date(a.date) : null;
+                return !!d && d < todayMid;
+              });
+              if (hasOver) {
+                const ko = dayKeyLocal(p.updatedAt || p.createdAt || Date.now());
+                if (ko) overduePerDay[ko] = (overduePerDay[ko] || 0) + 1;
+              }
+            });
+            const sortKeys = (obj) => Object.keys(obj || {}).sort();
+            const seriesFrom = (obj) => sortKeys(obj).map(k => obj[k]);
+            const createdSeries = seriesFrom(createdPerDay);
+            const completedSeries = seriesFrom(completedPerDay);
+            const inProgSeries = seriesFrom(inProgPerDay);
+            const overdueSeries = seriesFrom(overduePerDay);
+            const computeDelta = (arr) => {
+              if (!Array.isArray(arr) || arr.length < 2) return 0;
+              const last = Number(arr[arr.length - 1] || 0);
+              const prev = Number(arr[arr.length - 2] || 0);
+              if (prev === 0) return 0;
+              return ((last - prev) / prev) * 100;
+            };
+
+            const kpis = [
+              { label: "Total de Projetos", value: total, color: palette.blueDark, badgeBg: `${palette.blueDark}18`, delta: computeDelta(createdSeries), icon: <InsertChartOutlinedIcon style={{ color: palette.blueDark }} />, spark: createdSeries },
+              { label: "Concluídos", value: completed, color: palette.green, badgeBg: `${palette.green}18`, delta: computeDelta(completedSeries), icon: <CheckCircleOutlineIcon style={{ color: palette.green }} />, spark: completedSeries },
+              { label: "Em Progresso", value: inProgress, color: palette.amber, badgeBg: `${palette.amber}18`, delta: computeDelta(inProgSeries), icon: <ScheduleIcon style={{ color: palette.amber }} />, spark: inProgSeries },
+              { label: "Atrasados", value: overdue, color: palette.red, badgeBg: `${palette.red}18`, delta: computeDelta(overdueSeries), icon: <ErrorOutlineIcon style={{ color: palette.red }} />, spark: overdueSeries }
+            ];
+
+            const monthKey = (d) => {
+              try {
+                const dt = new Date(d);
+                if (isNaN(dt.getTime())) return null;
+                const y = dt.getFullYear();
+                const m = String(dt.getMonth() + 1).padStart(2, "0");
+                return `${y}-${m}`;
+              } catch { return null; }
+            };
+            const createdMap = {};
+            const doneMap = {};
+            projectsState.forEach(p => {
+              const key = monthKey(p.createdAt || Date.now());
+              if (key) createdMap[key] = (createdMap[key] || 0) + 1;
+              if (String(p.status || "").toLowerCase() === "completed") {
+                const kd = monthKey(p.updatedAt || p.createdAt || Date.now());
+                if (kd) doneMap[kd] = (doneMap[kd] || 0) + 1;
+              }
+            });
+            const months = Array.from(new Set([...Object.keys(createdMap), ...Object.keys(doneMap)])).sort();
+            const labelFromKey = (k) => {
+              const [yy, mm] = k.split("-");
+              const d = new Date(Number(yy), Number(mm) - 1, 1);
+              return d.toLocaleDateString("pt-BR", { month: "short" });
+            };
+            const labelsCreatedDone = months.map(labelFromKey);
+            const dataCreated = months.map(k => createdMap[k] || 0);
+            const dataDone = months.map(k => doneMap[k] || 0);
+
+            const statusKey = (s) => {
+              const v = String(s || "").toLowerCase();
+              if (["backlog"].includes(v)) return "backlog";
+              if (["pending","pendente"].includes(v)) return "pending";
+              if (["in_progress","em progresso","active","ativo"].includes(v)) return "in_progress";
+              if (["completed","concluído","concluido"].includes(v)) return "completed";
+              if (["archived","arquivado"].includes(v)) return "archived";
+              return "backlog";
+            };
+            const stageOrder = ["backlog","pending","in_progress","completed"];
+            const stageLabelByKey = {
+              backlog: "Backlog",
+              pending: "Pendente",
+              in_progress: "Em Progresso",
+              completed: "Concluído"
+            };
+            const stageColorByKey = {
+              backlog: palette.gray,
+              pending: palette.gray,
+              in_progress: palette.amber,
+              completed: palette.green
+            };
+            const stageCounts = stageOrder.map(k => projectsState.filter(p => statusKey(p.status) === k).length);
+            const stageLabels = stageOrder.map(k => stageLabelByKey[k]);
+            const stageColors = stageOrder.map(k => stageColorByKey[k]);
+
+            // Ranking por Responsável (média de progresso)
+            const clampPct = (v) => Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
+            const deriveProgress = (p) => {
+              const val = Number(p?.progress);
+              if (Number.isFinite(val)) return clampPct(val);
+              const acts = Array.isArray(p?.activities) ? p.activities : [];
+              if (!acts.length) return 0;
+              const total = acts.length;
+              const done = acts.filter(a => String(a.status || "").toLowerCase() === "completed").length;
+              return clampPct((done / total) * 100);
+            };
+            const respMap = {};
+            projectsState.forEach(p => {
+              const respName =
+                (p?.user && (p.user.name || p.user.email)) ||
+                (p?.userId ? `Usuário ${p.userId}` : "Sem responsável");
+              const prog = deriveProgress(p);
+              if (!respMap[respName]) respMap[respName] = { sum: 0, count: 0 };
+              respMap[respName].sum += prog;
+              respMap[respName].count += 1;
+            });
+            const ranking = Object.entries(respMap).map(([name, v]) => ({
+              name,
+              avg: v.count ? v.sum / v.count : 0,
+              count: v.count
+            })).sort((a, b) => b.avg - a.avg).slice(0, 6);
+            const rankLabels = ranking.map(r => r.name);
+            const rankValues = ranking.map(r => Number(r.avg.toFixed(1)));
+            const rankCounts = ranking.map(r => r.count);
+            const barRankOptions = {
+              responsive: true,
+              indexAxis: 'y',
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => {
+                      const i = ctx.dataIndex;
+                      return `${rankValues[i]}% • ${rankCounts[i]} proj`;
+                    }
+                  }
+                },
+                datalabels: {
+                  color: palette.text,
+                  anchor: "end",
+                  align: "right",
+                  formatter: (v, ctx) => {
+                    const i = ctx.dataIndex;
+                    return `${v}%  (${rankCounts[i]})`;
+                  },
+                  font: { weight: "600", size: 10 }
+                }
+              },
+              scales: {
+                x: {
+                  grid: { color: "#E6F0FF" },
+                  ticks: {
+                    color: palette.sub,
+                    callback: (val) => `${val}%`,
+                    max: 100,
+                    min: 0
+                  },
+                  suggestedMax: 100
+                },
+                y: { grid: { display: false }, ticks: { color: palette.sub } }
+              }
+            };
+            const barRankData = {
+              labels: rankLabels,
+              datasets: [
+                { label: "Média de progresso", data: rankValues, backgroundColor: palette.blueDark, borderRadius: 6, barThickness: 18, maxBarThickness: 22 }
+              ]
+            };
+
+            const perDay = {};
+            projectsState.forEach(p => {
+              const k = dayKeyLocal(p.createdAt || Date.now());
+              if (k) perDay[k] = (perDay[k] || 0) + 1;
+            });
+            const dayKeys = Object.keys(perDay).sort();
+            const dayLabels = dayKeys;
+            const dayValues = dayKeys.map(k => perDay[k]);
+
+            const cardStyle = {
+              borderRadius: 12,
+              padding: 12,
+              border: `1px solid ${palette.border}`,
+              boxShadow: palette.shadow,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              gap: 6,
+              minHeight: 110,
+              background: `linear-gradient(180deg, rgba(99,102,241,0.06) 0%, rgba(255,255,255,0.88) 100%)`,
+              overflow: "hidden"
+            };
+            const chartCardStyle = {
+              borderRadius: 12,
+              padding: 12,
+              border: `1px solid ${palette.border}`,
+              boxShadow: palette.shadow,
+              background: palette.card,
+              minHeight: 280
+            };
+
+            const sparkOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { enabled: false }, datalabels: { display: false } },
+              scales: { x: { display: false }, y: { display: false } },
+              elements: { point: { radius: 0 }, line: { tension: 0.35 } },
+              layout: { padding: 0 }
+            };
+
+            const barOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: { padding: { top: 18, right: 12, left: 4, bottom: 8 } },
+              plugins: {
+                legend: { position: "bottom" },
+                datalabels: {
+                  display: true,
+                  color: palette.text,
+                  anchor: "end",
+                  align: "top",
+                  offset: 4,
+                  clamp: true,
+                  clip: false,
+                  formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                  font: { weight: "600", size: 10 }
+                }
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: palette.sub } },
+                y: { grid: { color: "#E6F0FF" }, ticks: { color: palette.sub } }
+              }
+            };
+            const barCreatedDone = {
+              labels: labelsCreatedDone,
+              datasets: [
+                { label: "Concluídos", data: dataDone, backgroundColor: palette.blueLight, borderRadius: 6, maxBarThickness: 22 },
+                { label: "Criados", data: dataCreated, backgroundColor: palette.blueDark, borderRadius: 6, maxBarThickness: 22 }
+              ]
+            };
+
+            const donutOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { position: "right", labels: { color: palette.text } },
+                datalabels: {
+                  color: "#fff",
+                  textStrokeColor: "rgba(0,0,0,0.25)",
+                  textStrokeWidth: 2,
+                  formatter: (v) => (v > 0 ? v : ""),
+                  font: { weight: "700", size: 10 }
+                }
+              },
+              cutout: "55%"
+            };
+            // Compat: variáveis neutras para possíveis referências residuais em builds em cache
+            const compLabels = [];
+            const compValues = [];
+            const compColors = [];
+            const donutStages = {
+              labels: stageLabels,
+              datasets: [{ data: stageCounts, backgroundColor: stageColors, borderWidth: 0 }]
+            };
+
+            const singlePoint = (dayValues || []).length <= 1;
+            const maxVal = Math.max(0, ...(dayValues || []));
+            const suggestedMax = maxVal <= 1 ? 1.2 : maxVal * 1.1;
+            const lineOptions = {
+              responsive: true,
+              maintainAspectRatio: false,
+              layout: { padding: { top: 18, right: 12, left: 4, bottom: 8 } },
+              plugins: {
+                legend: { display: false },
+                datalabels: {
+                  display: singlePoint,
+                  color: palette.text,
+                  anchor: "center",
+                  align: "top",
+                  offset: 6,
+                  clamp: true,
+                  clip: false,
+                  formatter: (v) => (typeof v === "number" ? v.toLocaleString("pt-BR") : v),
+                  font: { weight: "600", size: 10 }
+                }
+              },
+              elements: { point: { radius: singlePoint ? 6 : 2 } },
+              spanGaps: true,
+              scales: {
+                x: { grid: { display: false }, ticks: { color: palette.sub } },
+                y: { grid: { color: "#E6F0FF" }, ticks: { color: palette.sub }, beginAtZero: true, suggestedMax, grace: "10%" }
+              }
+            };
+            const linePerDay = {
+              labels: dayLabels,
+              datasets: [{
+                label: "Projetos",
+                data: dayValues,
+                fill: true,
+                borderColor: palette.blueDark,
+                backgroundColor: "rgba(37,99,235,0.10)",
+                tension: 0.35
+              }]
+            };
+
+            return (
+              <div style={{ padding: 4, overflowX: "hidden", overflowY: "visible", width: "100%", height: "auto" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 16, margin: 0 }}>
+                  {kpis.map((c, idx) => {
+                    const delta = Math.round(c.delta || 0);
+                    const deltaColor = delta > 0 ? "#065F46" : delta < 0 ? "#B91C1C" : palette.sub;
+                    const deltaPrefix = delta > 0 ? "+" : "";
+                    return (
+                      <Paper
+                        key={c.label}
+                        onMouseEnter={() => setHoveredKpi(c.label)}
+                        onMouseLeave={() => setHoveredKpi(null)}
+                        style={{
+                          ...cardStyle,
+                          boxShadow: hoveredKpi === c.label ? "0 12px 24px rgba(2,6,23,0.16)" : palette.shadow,
+                          transform: hoveredKpi === c.label ? "translateY(-4px) scale(1.01)" : "none",
+                          transition: "transform 150ms ease, box-shadow 150ms ease",
+                          transformStyle: "preserve-3d"
+                        }}
+                      >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                          <div style={{ fontSize: 13, color: palette.text, whiteSpace: "nowrap", fontWeight: 400 }}>{c.label}</div>
+                          <div style={{ width: 28, height: 28, borderRadius: 10, background: c.badgeBg, display: "grid", placeItems: "center" }}>
+                            <div style={{ transform: "scale(0.9)" }}>{c.icon}</div>
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ fontWeight: 700, fontSize: 20, color: palette.text, whiteSpace: "nowrap" }}>{c.value}</div>
+                          <div style={{ width: 64, height: 22 }}>
+                            <Line
+                              data={{
+                                labels: (c.spark || []).map((_, i) => i + 1),
+                                datasets: [{ data: c.spark || [], borderColor: c.color, backgroundColor: `${c.color}22`, fill: true }]
+                              }}
+                              options={sparkOptions}
+                            />
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 11, color: palette.sub, minHeight: 16, display: "flex", justifyContent: "space-between" }}>
+                          <span />
+                          <span style={{ color: deltaColor }}>{`${deltaPrefix}${delta}%`}</span>
+                        </div>
+                      </Paper>
+                    );
+                  })}
+                </div>
+
+                <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Criados vs Concluídos</div>
+                    <div style={{ height: 220 }}>
+                      <Bar options={barOptions} data={barCreatedDone} />
+                    </div>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 8 }}>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: palette.sub, fontSize: 12 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: palette.blueLight, display: "inline-block" }} />
+                        Concluídos
+                      </span>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, color: palette.sub, fontSize: 12 }}>
+                        <span style={{ width: 10, height: 10, borderRadius: 3, background: palette.blueDark, display: "inline-block" }} />
+                        Criados
+                      </span>
+                    </div>
+                  </Paper>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Projetos por Status</div>
+                    <div style={{ height: 240 }}>
+                      <Doughnut data={donutStages} options={donutOptions} />
+                    </div>
+                  </Paper>
+                </div>
+
+                <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Ranking por Responsável (média de progresso)</div>
+                    <div style={{ height: 240 }}>
+                      <Bar data={barRankData} options={barRankOptions} />
+                    </div>
+                  </Paper>
+                  <Paper style={chartCardStyle}>
+                    <div style={{ fontSize: 13, fontWeight: 400, color: palette.text, marginBottom: 8 }}>Projetos por Dia</div>
+                    <div style={{ height: 220 }}>
+                      <Line data={linePerDay} options={lineOptions} />
+                    </div>
+                  </Paper>
+                </div>
+              </div>
+            );
+          })()}
           {viewMode === "list" && <ProjectsList projects={filteredProjects} />}
           {viewMode === "calendar" && <ProjectsCalendar projects={filteredProjects} onCreate={handleCreateProject} />}
           {viewMode === "board" && (
