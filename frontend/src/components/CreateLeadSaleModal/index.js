@@ -5,6 +5,7 @@ import {
   Typography,
   IconButton,
   Button,
+  Card,
   TextField,
   FormControl,
   InputLabel,
@@ -32,10 +33,10 @@ import { EditMessageProvider } from "../../context/EditingMessage/EditingMessage
 import { QueueSelectedProvider, QueueSelectedContext } from "../../context/QueuesSelected/QueuesSelectedContext";
 import NumberFormat from "react-number-format";
 import inventoryService from "../../services/inventoryService";
-import TicketHeader from "../TicketHeader";
 import TicketInfo from "../TicketInfo";
 import TicketActionButtons from "../TicketActionButtonsCustom";
 import ContactDrawer from "../ContactDrawer";
+import ArrowBackIos from "@material-ui/icons/ArrowBackIos";
 
 const NumberFormatCustom = (props) => {
   const { inputRef, onChange, thousandSeparator, decimalSeparator, prefix, ...other } = props;
@@ -222,6 +223,21 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden'
+  },
+  ticketHeader: {
+    display: "flex",
+    background: theme.palette.total,
+    flex: "none",
+    borderBottom: "1px solid rgba(0, 0, 0, 0.12)",
+    height: 65,
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "space-between",
+    overflow: "hidden",
+    [theme.breakpoints.down("sm")]: {
+      flexWrap: "wrap",
+      height: "max-content"
+    }
   },
   tagInputRow: {
     display: 'flex',
@@ -948,7 +964,10 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
           </Grid>
 
           <Grid item xs={12} md={8} className={classes.rightPane}>
-            <TicketHeader loading={ticketLoading}>
+            <Card square className={classes.ticketHeader}>
+              <Button color="primary" onClick={onClose}>
+                <ArrowBackIos />
+              </Button>
               <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
                 {(ticket?.contact || selectedContact) && (
                   <div id="TicketHeader" style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden" }}>
@@ -978,7 +997,7 @@ export default function CreateLeadSaleModal({ open, onClose, lead, onSave }) {
                   </div>
                 )}
               </div>
-            </TicketHeader>
+            </Card>
             <div className={classes.chatBody}>
               {ticketLoading ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
