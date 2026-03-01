@@ -139,7 +139,15 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(2),
   },
   drawerTitle: {
-    fontWeight: 600,
+    fontWeight: 400,
+    color: "#111827",
+    opacity: 0.92,
+    fontSize: "1.2rem",
+  },
+  drawerCloseButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
   },
   drawerContent: {
     flex: 1,
@@ -1265,22 +1273,19 @@ const Activities = () => {
       <div className={classes.drawerContainer}>
         <div className={classes.drawerHeader}>
           <Typography className={classes.drawerTitle}>Configure seu Kanban</Typography>
-          <IconButton onClick={() => setStagesDrawerOpen(false)}>
-            <CloseIcon />
-          </IconButton>
         </div>
         <div className={classes.drawerContent}>
-          <Typography variant="caption" style={{ color: "#374151" }}>Etapas</Typography>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+          <Typography variant="subtitle2" style={{ color: "#374151", fontSize: 16, fontWeight: 600 }}>Configure suas Etapas</Typography>
+          <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 10 }}>
             {localStages.map((st, idx) => (
               <div
                 key={st.key}
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "28px 1fr auto",
+                  gridTemplateColumns: "36px 1fr auto",
                   alignItems: "center",
-                  columnGap: 8,
-                  rowGap: 8
+                  columnGap: 14,
+                  rowGap: 18
                 }}
               >
                 <input
@@ -1288,22 +1293,21 @@ const Activities = () => {
                   value={st.color || "#4B5563"}
                   onChange={(e) => updateStage(idx, "color", e.target.value)}
                   aria-label="Cor"
-                  style={{ width: 28, height: 28, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
+                  style={{ width: 34, height: 34, padding: 0, border: "1px solid #E5E7EB", borderRadius: "50%", background: "transparent" }}
                 />
                 <TextField
                   label="Rótulo"
                   variant="outlined"
-                  size="small"
                   fullWidth
                   value={st.label}
                   onChange={(e) => updateStage(idx, "label", e.target.value)}
-                  InputLabelProps={{ style: { fontSize: 13 } }}
-                  inputProps={{ style: { fontSize: 14 } }}
+                  InputLabelProps={{ style: { fontSize: 14 } }}
+                  inputProps={{ style: { fontSize: 16, padding: "12px 14px" } }}
                 />
                 <Button onClick={() => removeStage(st.key)}>Remover</Button>
               </div>
             ))}
-            <div>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
               <Button color="primary" variant="outlined" onClick={addStage}>Adicionar etapa</Button>
             </div>
           </div>

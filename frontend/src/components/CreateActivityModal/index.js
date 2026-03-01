@@ -146,6 +146,9 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
     try {
       setLoading(true);
       const selectedUser = Array.isArray(activeUsers) ? activeUsers.find(u => String(u.id) === String(formValues.responsible)) : null;
+      const selectedCompany = Array.isArray(companiesConverted)
+        ? companiesConverted.find(c => String(c.id) === String(formValues.companyId))
+        : null;
       const payload = {
         ...formValues,
         userId: selectedUser ? selectedUser.id : undefined,
@@ -161,6 +164,15 @@ const CreateActivityModal = ({ open, onClose, onSave, activity }) => {
       } else {
         savedActivity = await activitiesService.create(payload);
         toast.success("Atividade criada com sucesso.");
+      }
+      
+      // Enriquecer o objeto salvo com as informações de Empresa selecionada (não persistido no backend ainda)
+      if (selectedCompany) {
+        savedActivity = {
+          ...savedActivity,
+          companyId: selectedCompany.id,
+          company: { id: selectedCompany.id, name: selectedCompany.name }
+        };
       }
       
       if (onSave) onSave(savedActivity);

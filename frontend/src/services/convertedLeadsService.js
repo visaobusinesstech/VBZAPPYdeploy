@@ -5,6 +5,10 @@ const convertedLeadsService = {
     const { data } = await api.get("/converted-leads", { params });
     return data;
   },
+  async show(id) {
+    const { data } = await api.get(`/converted-leads/${id}`);
+    return data;
+  },
   async create(payload) {
     const { data } = await api.post("/converted-leads", payload);
     return data;

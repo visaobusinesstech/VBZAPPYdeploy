@@ -110,7 +110,6 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users
   const { user: authUser } = useContext(AuthContext) || {};
   const backendUrl = getBackendUrl && getBackendUrl();
   const [projectName, setProjectName] = useState("");
-  const [companyName, setCompanyName] = useState("");
 
   const progress = activity?.progress || 33;
 
@@ -159,20 +158,7 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users
   const creatorUser = resolveUserById(activity?.createdById || activity?.creatorId) || authUser || null;
   const responsibleName = (responsibleUser && (responsibleUser.name || responsibleUser.fullName || responsibleUser.email)) || activity?.owner;
   const creatorName = creatorUser ? (creatorUser.name || creatorUser.fullName || creatorUser.email) : '—';
-  const companyPresent = !!(activity?.company && String(activity.company).trim().length > 0) || !!activity?.companyId;
-
-  useEffect(() => {
-    if (!activity) {
-      setCompanyName("");
-      return;
-    }
-    const c = activity.company;
-    if (c && typeof c === "object") {
-      setCompanyName(c.name || c.title || "");
-    } else {
-      setCompanyName(c || "");
-    }
-  }, [activity]);
+  // Empresa/Cliente removido do modal a pedido do usuário
 
   return (
     <Drawer
@@ -230,20 +216,7 @@ const ActivityDetailsModal = ({ open, onClose, activity, onDelete, onEdit, users
       <Divider />
 
       <Typography className={classes.sectionTitle}>Informações da Atividade</Typography>
-      <div className={classes.infoRow} style={{ gridTemplateColumns: '1fr 1fr' }}>
-        <Paper className={classes.infoCardPurple} elevation={0}>
-          <Typography variant="overline" style={{ opacity: 0.9, marginBottom: 6 }}>
-            EMPRESA/CLIENTE
-          </Typography>
-          {(() => {
-            const c = activity?.company;
-            const labelFromObj = c && typeof c === 'object' ? (c.name || c.title || '') : '';
-            const label = companyName || labelFromObj || (typeof c === 'string' ? c : '');
-            return (
-              <Typography variant="subtitle2">{label || '—'}</Typography>
-            );
-          })()}
-        </Paper>
+      <div className={classes.infoRow}>
         <Paper className={classes.infoCardOrange} elevation={0}>
           <Typography variant="overline" style={{ opacity: 0.9, marginBottom: 6 }}>PROJETO VINCULADO</Typography>
           {(() => {
