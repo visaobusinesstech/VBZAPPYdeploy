@@ -66,17 +66,21 @@ const useStyles = makeStyles((theme) => ({
   actionButtons: {
     marginRight: 6,
     maxWidth: "100%",
-    flex: "none",
+    flex: "0 1 auto",
     alignSelf: "center",
     marginLeft: "auto",
     // flexBasis: "50%",
     display: "flex",
     whiteSpace: "nowrap",
-    overflow: "hidden",
+    overflow: "visible",
+    flexWrap: "wrap",
+    justifyContent: "flex-end",
     "& > *": {
       margin: theme.spacing(0.5),
     },
     "@media (max-width: 600px)": {
+      flexWrap: "wrap",
+      rowGap: theme.spacing(0.5),
       "& > *": {
         margin: theme.spacing(0.25),
       },
@@ -86,7 +90,7 @@ const useStyles = makeStyles((theme) => ({
       padding: "2px 6px",
       fontSize: "0.66rem",
       lineHeight: 1.0,
-      maxWidth: 110
+      maxWidth: 140
     },
     "& .MuiButton-label": {
       whiteSpace: "nowrap",
@@ -103,7 +107,7 @@ const useStyles = makeStyles((theme) => ({
       "& .MuiButton-root": {
         padding: "2px 4px",
         fontSize: "0.6rem",
-        maxWidth: 90
+        maxWidth: 110
       }
     }
   },

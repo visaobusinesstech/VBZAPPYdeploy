@@ -17,10 +17,13 @@ const useStyles = makeStyles(theme => ({
 		width: "100%",
 		alignItems: "center",
 		justifyContent: "space-between",
-		overflow: "hidden",
+		overflow: "visible",
+		boxSizing: "border-box",
+		paddingLeft: theme.spacing(1),
+		paddingRight: theme.spacing(1),
 		[theme.breakpoints.down("sm")]: {
 			flexWrap: "wrap",
-			height: 'max-content'
+			height: "auto"
 		},
 	},
 }));

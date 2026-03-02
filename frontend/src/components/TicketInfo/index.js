@@ -103,9 +103,9 @@ const TicketInfo = ({ contact, ticket, onClick }) => {
 
     return (
         <React.Fragment>
-            <Grid container alignItems="center" spacing={10}>
+            <Grid container alignItems="center" spacing={1}>
                 {/* Conteúdo do contato à esquerda */}
-                <Grid item xs={6}>
+                <Grid item xs={12}>
                     {renderCardReader()}
                 </Grid>
             </Grid>
