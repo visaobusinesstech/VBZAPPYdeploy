@@ -5,11 +5,11 @@ const getBaseUrl = (input) => {
   if (!url) {
     if (typeof window !== "undefined" && window.location && window.location.origin) {
       const port = String(window.location.port || "");
-      // Ambiente local: preferir 3000 (backend padrão do projeto)
-      if (port) return "http://localhost:3000";
-      return "http://localhost:3000";
+      // Ambiente local: preferir 8081 (backend padrão local)
+      if (port) return "http://localhost:8081";
+      return "http://localhost:8081";
     }
-    return "http://localhost:3000";
+    return "http://localhost:8081";
   }
   if (/^https?:\/\//i.test(url)) {
     return url.replace(/\/+$/, "");
@@ -25,10 +25,10 @@ const getBaseUrl = (input) => {
   }
   // Fallback: try to construct URL relative to current origin
   try {
-    const abs = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost:8080");
+    const abs = new URL(url, typeof window !== "undefined" ? window.location.origin : "http://localhost:8081");
     return abs.origin.replace(/\/+$/, "");
   } catch {
-    return "http://localhost:8080";
+    return "http://localhost:8081";
   }
 };
 

@@ -1016,7 +1016,7 @@ const Dashboard = () => {
               const palette = ["#dbeafe", "#dcfce7", "#EDE9FE"];
               const bg = palette[idx % palette.length];
               const color =
-                e.type === "schedule" ? "#3b82f6" : e.type === "activity" ? "#10b981" : "#8b5cf6";
+                e.type === "schedule" ? "#359C26" : e.type === "activity" ? "#10b981" : "#8b5cf6";
               return (
                 <div
                   key={`${e.type}-${idx}`}
@@ -1057,7 +1057,7 @@ const Dashboard = () => {
         <ul className={classes.blockList}>
           {recentActivities.map((a, idx) => {
             const status = (a.status || "").toLowerCase();
-            let color = "#3b82f6"; // em andamento
+            let color = "#359C26";
             let label = "Em andamento";
             if (status.includes("done") || status.includes("concl")) {
               color = "#10b981"; label = "Concluído";
@@ -1118,7 +1118,7 @@ const Dashboard = () => {
         <ul className={classes.blockList}>
           {recentProjects.map((p) => {
             const status = (p.status || "").toLowerCase();
-            let color = "#3b82f6";
+            let color = "#359C26";
             if (status.includes("done") || status.includes("concl")) color = "#10b981";
             if (status.includes("pend")) color = "#f59e0b";
             return (

@@ -12,14 +12,14 @@ const Route = ({ component: Component, isPrivate = false, title, allowWhenAuth =
 
 	useEffect(() => {
 		// Título base sempre presente
-		const baseTitle = "VBSolution";
+		const baseTitle = "VBZappy";
 		
 		if (title) {
-			// Se houver título da página: "Título - VBSolution"
+			// Se houver título da página: "Título - VBZappy"
 			document.title = `${title} - ${baseTitle}`;
 			setPageTitle(title);
 		} else {
-			// Se não houver, apenas "VBSolution"
+			// Se não houver, apenas "VBZappy"
 			document.title = baseTitle;
 			setPageTitle(baseTitle);
 		}

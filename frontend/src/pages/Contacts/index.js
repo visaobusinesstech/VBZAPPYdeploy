@@ -447,7 +447,7 @@ const Contacts = () => {
             params: {
               searchParam,
               pageNumber,
-              contactTag: JSON.stringify(selectedTags),
+              contactTag: selectedTags,
             },
           });
           dispatch({ type: "LOAD_CONTACTS", payload: data.contacts || [] });

@@ -39,7 +39,7 @@ const buildWhereCondition = async ({
     companyId
   });
 
-  const DirectTicketsToWallets = settings.DirectTicketsToWallets;
+  const DirectTicketsToWallets = (settings as any)?.DirectTicketsToWallets || false;
 
   let whereCondition: Filterable["where"] = { companyId };
 

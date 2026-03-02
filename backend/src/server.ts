@@ -16,28 +16,33 @@ const preferredPort = Number(process.env.PORT) || 8080;
 
 function startServer(portToUse: number) {
   const server = app.listen(portToUse, async () => {
-    await ensureDatabase();
-    const companies = await Company.findAll({
-      where: { status: true },
-      attributes: ["id"],
-    });
-
-    const allPromises: any[] = [];
-    companies.map(async (c) => {
-      const promise = StartAllWhatsAppsSessions(c.id);
-      allPromises.push(promise);
-    });
-
-    Promise.all(allPromises).then(async () => {
-      logger.info("Fila de processamento iniciando após sessões do WhatsApp");
-      await startQueueProcess();
-    });
-
-    if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
-      BullQueue.process();
+    const skipBootstrap = String(process.env.SKIP_DB_BOOTSTRAP || "").toLowerCase() === "true";
+    if (!skipBootstrap) {
+      await ensureDatabase();
+      const companies = await Company.findAll({
+        where: { status: true },
+        attributes: ["id"],
+      });
+  
+      const allPromises: any[] = [];
+      companies.map(async (c) => {
+        const promise = StartAllWhatsAppsSessions(c.id);
+        allPromises.push(promise);
+      });
+  
+      Promise.all(allPromises).then(async () => {
+        logger.info("Fila de processamento iniciando após sessões do WhatsApp");
+        await startQueueProcess();
+      });
+  
+      if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
+        BullQueue.process();
+      }
+  
+      startLidSyncJob();
+    } else {
+      logger.warn("SKIP_DB_BOOTSTRAP=true: pulando acesso ao banco e inicialização de filas.");
     }
-
-    startLidSyncJob();
     logger.info(`Servidor iniciado na porta ${portToUse}`);
     initIO(server);
     gracefulShutdown(server);

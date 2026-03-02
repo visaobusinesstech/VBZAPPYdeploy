@@ -993,7 +993,7 @@ const Register = () => {
           <div className={classes.brand}>
             <img
               className={classes.logo}
-              alt="VB Solution"
+              alt="VBZappy"
               src={theme.mode === "light" ? theme.calculatedLogoLight() : theme.calculatedLogoDark()}
             />
           </div>

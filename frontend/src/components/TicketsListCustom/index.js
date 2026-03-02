@@ -236,11 +236,11 @@ const TicketsListCustom = (props) => {
         status,
         showAll,
         searchOnMessages: searchOnMessages ? "true" : "false",
-        tags: JSON.stringify(tags),
-        users: JSON.stringify(users),
-        queueIds: JSON.stringify(selectedQueueIds),
-        whatsappIds: JSON.stringify(whatsappIds),
-        statusFilter: JSON.stringify(statusFilter),
+        tags,
+        users,
+        queueIds: selectedQueueIds,
+        whatsappIds,
+        statusFilter,
         userFilter,
         sortTickets
     });

@@ -11,9 +11,9 @@ import { PageTitleProvider } from "./context/PageTitleContext";
 import Favicon from "react-favicon";
 import { getBackendUrl } from "./config";
 import Routes from "./routes";
-import defaultLogoLight from "./assets/LOGO VB PRETO.png";
-import defaultLogoDark from "./assets/LOGO VB-PNG.png";
-import defaultLogoFavicon from "./assets/favicon.ico";
+import defaultLogoLight from "./assets/vbzappy logo.png";
+import defaultLogoDark from "./assets/vbzappy logo.png";
+import defaultLogoFavicon from "./assets/vbzappy logo.png";
 import useSettings from "./hooks/useSettings";
 
 import "./styles/animations.css";
@@ -29,7 +29,7 @@ const App = () => {
   
   const getSafeColor = (color) => {
     if (color && isValidHex(color)) return color;
-    return "#131B2D";
+    return "#359C26";
   };
 
   const appColorLocalStorage = getSafeColor(
@@ -407,14 +407,14 @@ const App = () => {
   useEffect(() => {
     getPublicSetting("primaryColorLight")
       .then((color) => {
-        setPrimaryColorLight(color || "#131B2D");
+        setPrimaryColorLight(color || "#359C26");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
       });
     getPublicSetting("primaryColorDark")
       .then((color) => {
-        setPrimaryColorDark(color || "#131B2D");
+        setPrimaryColorDark(color || "#359C26");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
@@ -455,12 +455,11 @@ const App = () => {
       });
     getPublicSetting("appName")
       .then((name) => {
-        // Força VBSolution independentemente do que vier do backend
-        setAppName("VBSolution");
+        setAppName("VBZappy");
       })
       .catch((error) => {
         console.log("Error reading setting", error);
-        setAppName("VBSolution");
+        setAppName("VBZappy");
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

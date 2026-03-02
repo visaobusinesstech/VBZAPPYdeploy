@@ -23,7 +23,8 @@ contactRoutes.post("/contacts", isAuth, ContactController.store);
 contactRoutes.put("/contacts/:contactId", isAuth, ContactController.update);
 contactRoutes.delete("/contacts/:contactId", isAuth, ContactController.remove);
 contactRoutes.put("/contacts/toggleAcceptAudio/:contactId", isAuth, ContactController.toggleAcceptAudio);
-contactRoutes.get("/contacts", isAuth, ContactController.getContactVcard);
+// Evitar conflito com GET /contacts da listagem: mover vCard para rota dedicada
+contactRoutes.get("/contacts/vcard", isAuth, ContactController.getContactVcard);
 contactRoutes.get("/contacts/profile/:number", isAuth, ContactController.getContactProfileURL);
 
 contactRoutes.put("/contacts/block/:contactId", isAuth, ContactController.blockUnblock);

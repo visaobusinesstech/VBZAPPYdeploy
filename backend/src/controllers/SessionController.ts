@@ -61,11 +61,15 @@ export const update = async (
 };
 
 export const me = async (req: Request, res: Response): Promise<Response> => {
-  const token: string = req.cookies.jrt;
-  const user = await FindUserFromToken(token);
-  if (!token) {
+  let token: string | undefined = req.cookies?.jrt;
+  if (!token && req.headers?.authorization) {
+    const parts = String(req.headers.authorization).split(" ");
+    token = parts.length === 2 ? parts[1] : undefined;
+  }
+  if (!token || typeof token !== "string") {
     throw new AppError("ERR_SESSION_EXPIRED", 401);
   }
+  const user = await FindUserFromToken(token);
   const serializedUser = await SerializeUser(user);
   return res.json({ user: serializedUser });
 };

@@ -614,8 +614,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
           />
 
           <ListItemLink to="/leads-sales" primary="Leads e Vendas" icon={<MonetizationOnOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-          <ListItemLink to="/activities" primary="Atividades" icon={<AssignmentOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-          <ListItemLink to="/projects" primary="Projetos" icon={<WorkOutlineIcon />} tooltip={collapsed} collapsed={collapsed} />
+          
           {showSchedules && (
             <ListItemLink
               to="/schedules"
@@ -625,7 +624,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               collapsed={collapsed}
             />
           )}
-          <ListItemLink to="/leads-convertidos" primary="Empresas" icon={<BusinessIcon />} tooltip={collapsed} collapsed={collapsed} />
+          
           {user.showContacts === "enabled" && (
             <ListItemLink
               to="/contacts"
@@ -661,9 +660,37 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
           </ListItem>
           <Collapse in={openMoreSubmenu} timeout="auto" unmountOnExit className={`${classes.submenuContainer} ${classes.moreCollapse}`}>
             <ListItemLink
-              to="/inventory"
-              primary="Inventário"
-              icon={<StoreOutlinedIcon />}
+              to="/Kanban"
+              primary="Kanban"
+              icon={<ViewKanban />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            <ListItemLink
+              to="/tags"
+              primary="Tags"
+              icon={<LocalOfferIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            <ListItemLink
+              to="/announcements"
+              primary="Informativos"
+              icon={<AnnouncementIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            <ListItemLink
+              to="/moments"
+              primary="Painel Moments"
+              icon={<HistoryToggleOffIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            <ListItemLink
+              to="/birthday-settings"
+              primary="Aniversário"
+              icon={<CakeIcon />}
               tooltip={collapsed}
               collapsed={collapsed}
             />
@@ -675,21 +702,6 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               tooltip={collapsed}
               collapsed={collapsed}
             />
-
-            {showInternalChat && (
-            <ListItemLink
-              to="/chats"
-              primary="Chat"
-              icon={
-                <Badge color="secondary" variant="dot" invisible={invisible}>
-                  <ForumOutlinedIcon />
-                </Badge>
-              }
-              tooltip={collapsed}
-              collapsed={collapsed}
-            />
-          )}
-
             <ListItemLink to="/api" primary="API" icon={<CodeOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
             
 

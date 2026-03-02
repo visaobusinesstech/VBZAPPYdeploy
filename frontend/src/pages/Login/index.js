@@ -26,6 +26,7 @@ import ARFlag from "../../assets/arabe.png";
 import clsx from "clsx";
 import { getBackendUrl } from "../../config";
 import packageJson from "../../../package.json";
+import defaultLogo from "../../assets/vbzappy logo.png";
 
 const languageOptions = [
     { value: "pt-BR", label: "Português", icon: BRFlag },
@@ -162,7 +163,7 @@ const useStyles = makeStyles((theme) => {
 
     avatar: {
         margin: theme.spacing(1),
-        backgroundColor: "#3b82f6",
+        backgroundColor: "#359C26",
     },
 
     form: {
@@ -238,16 +239,16 @@ const useStyles = makeStyles((theme) => {
             },
             "&.Mui-focused": {
                 backgroundColor: "rgba(255, 255, 255, 1)",
-                boxShadow: "0 0 0 3px rgba(59, 130, 246, 0.1)",
+                boxShadow: "0 0 0 3px rgba(53, 156, 38, 0.1)",
             },
             "& fieldset": {
-                borderColor: "rgba(59, 130, 246, 0.2)",
+                borderColor: "rgba(53, 156, 38, 0.2)",
             },
             "&:hover fieldset": {
-                borderColor: "rgba(59, 130, 246, 0.4)",
+                borderColor: "rgba(53, 156, 38, 0.4)",
             },
             "&.Mui-focused fieldset": {
-                borderColor: "#3b82f6",
+                borderColor: "#359C26",
                 borderWidth: "2px",
             },
         },
@@ -255,7 +256,7 @@ const useStyles = makeStyles((theme) => {
             color: "#6b7280",
             fontWeight: 500,
             "&.Mui-focused": {
-                color: "#3b82f6",
+                color: "#359C26",
             },
         },
     },
@@ -273,12 +274,12 @@ const useStyles = makeStyles((theme) => {
     },
 
     registerLink: {
-        color: "#3b82f6",
+        color: "#359C26",
         textDecoration: "none",
         fontWeight: 600,
         transition: "all 0.3s ease",
         "&:hover": {
-            color: "#2563eb",
+            color: "#2d7a21",
             textDecoration: "underline",
         },
     },
@@ -330,8 +331,8 @@ const useStyles = makeStyles((theme) => {
         cursor: "pointer",
         transition: "all 0.2s ease",
         "&:hover": {
-            background: "rgba(59, 130, 246, 0.1)",
-            color: "#3b82f6",
+            background: "rgba(53, 156, 38, 0.1)",
+            color: "#359C26",
         },
     },
 
@@ -498,8 +499,7 @@ const Login = () => {
     return (
         <>
             <Helmet>
-                <title>VBSolution - Login</title>
-                <link rel="icon" href="/favicon.png" />
+                <title>VBZappy - Login</title>
             </Helmet>
 
             <div 
@@ -574,7 +574,18 @@ const Login = () => {
                         </IconButton>
 
                         <div>
-                            <img className={classes.logoImg} alt="logo" />
+                            <img
+                                className={classes.logoImg}
+                                alt="logo"
+                                src={
+                                    theme.mode === "light"
+                                        ? (typeof theme.calculatedLogoLight === "function" ? theme.calculatedLogoLight() : defaultLogo)
+                                        : (typeof theme.calculatedLogoDark === "function" ? theme.calculatedLogoDark() : defaultLogo)
+                                }
+                                onError={(e) => {
+                                    e.currentTarget.src = defaultLogo;
+                                }}
+                            />
                         </div>
 
                         <form className={classes.form} noValidate onSubmit={handlSubmit}>

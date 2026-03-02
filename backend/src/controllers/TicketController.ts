@@ -100,24 +100,37 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let whatsappIds: number[] = [];
   let statusFilters: string[] = [];
 
-  if (queueIdsStringified) {
-    queueIds = JSON.parse(queueIdsStringified);
+  const toArray = (v: any): any[] => {
+    if (Array.isArray(v)) return v.map(x => (typeof x === "string" && /^\d+$/.test(x) ? Number(x) : x));
+    if (typeof v === "string") {
+      try {
+        const p = JSON.parse(v);
+        if (Array.isArray(p)) return p;
+      } catch {}
+      if (v.trim() === "") return [];
+      return [/^\d+$/.test(v) ? Number(v) : v];
+    }
+    return [];
+  };
+
+  if (queueIdsStringified !== undefined) {
+    queueIds = toArray(queueIdsStringified) as number[];
   }
 
-  if (tagIdsStringified) {
-    tagsIds = JSON.parse(tagIdsStringified);
+  if (tagIdsStringified !== undefined) {
+    tagsIds = toArray(tagIdsStringified) as number[];
   }
 
-  if (userIdsStringified) {
-    usersIds = JSON.parse(userIdsStringified);
+  if (userIdsStringified !== undefined) {
+    usersIds = toArray(userIdsStringified) as number[];
   }
 
-  if (whatsappIdsStringified) {
-    whatsappIds = JSON.parse(whatsappIdsStringified);
+  if (whatsappIdsStringified !== undefined) {
+    whatsappIds = toArray(whatsappIdsStringified) as number[];
   }
 
-  if (statusStringfied) {
-    statusFilters = JSON.parse(statusStringfied);
+  if (statusStringfied !== undefined) {
+    statusFilters = toArray(statusStringfied) as string[];
   }
 
   const { tickets, count, hasMore } = await ListTicketsService({
@@ -171,24 +184,37 @@ export const indexReport = async (
   let usersIds: number[] = [];
   let status: string[] = [];
 
-  if (queueIdsStringified) {
-    queueIds = JSON.parse(queueIdsStringified);
+  const toArray2 = (v: any): any[] => {
+    if (Array.isArray(v)) return v.map(x => (typeof x === "string" && /^\d+$/.test(x) ? Number(x) : x));
+    if (typeof v === "string") {
+      try {
+        const p = JSON.parse(v);
+        if (Array.isArray(p)) return p;
+      } catch {}
+      if (v.trim() === "") return [];
+      return [/^\d+$/.test(v) ? Number(v) : v];
+    }
+    return [];
+  };
+
+  if (queueIdsStringified !== undefined) {
+    queueIds = toArray2(queueIdsStringified) as number[];
   }
 
-  if (whatsappIdsStringified) {
-    whatsappIds = JSON.parse(whatsappIdsStringified);
+  if (whatsappIdsStringified !== undefined) {
+    whatsappIds = toArray2(whatsappIdsStringified) as string[];
   }
 
-  if (tagIdsStringified) {
-    tagsIds = JSON.parse(tagIdsStringified);
+  if (tagIdsStringified !== undefined) {
+    tagsIds = toArray2(tagIdsStringified) as number[];
   }
 
-  if (userIdsStringified) {
-    usersIds = JSON.parse(userIdsStringified);
+  if (userIdsStringified !== undefined) {
+    usersIds = toArray2(userIdsStringified) as number[];
   }
 
-  if (statusStringified) {
-    status = JSON.parse(statusStringified);
+  if (statusStringified !== undefined) {
+    status = toArray2(statusStringified) as string[];
   }
 
   const { tickets, totalTickets } = await ListTicketsServiceReport(

@@ -242,9 +242,15 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   const {id: userId, companyId} = req.user;
 
   let tagsIds: number[] = [];
-
-  if (tagIdsStringified) {
-    tagsIds = JSON.parse(tagIdsStringified);
+  if (typeof tagIdsStringified !== "undefined" && tagIdsStringified !== null) {
+    try {
+      const parsed: any = typeof tagIdsStringified === "string" ? JSON.parse(tagIdsStringified) : tagIdsStringified;
+      if (Array.isArray(parsed)) {
+        tagsIds = parsed.map((n: any) => Number(n)).filter((n: any) => Number.isFinite(n));
+      }
+    } catch (e) {
+      tagsIds = [];
+    }
   }
 
   const {contacts, count, hasMore} = await ListContactsService({

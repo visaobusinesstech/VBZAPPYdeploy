@@ -2,10 +2,10 @@ require("../bootstrap");
 
 const host = process.env.DB_HOST || "localhost";
 const isLocalHost = /^(localhost|127\.0\.0\.1)$/i.test(host || "");
-const hasDatabaseUrl = !!process.env.DATABASE_URL;
 const sslFlag = String(process.env.DB_SSL || "").toLowerCase() === "true";
+const pgSslModeRequire = String(process.env.PGSSLMODE || "").toLowerCase() === "require";
 const isProd = String(process.env.NODE_ENV || "").toLowerCase() === "production";
-const sslRequired = sslFlag || isProd || hasDatabaseUrl || !isLocalHost;
+const sslRequired = sslFlag || pgSslModeRequire;
 
 
 // são paulo timezone

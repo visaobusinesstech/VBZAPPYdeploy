@@ -921,7 +921,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
           <div className={classes.toolbarIcon}>
             <img
               src={theme.mode === "light" ? theme.calculatedLogoDark() : theme.calculatedLogoLight()}
-              alt="VBSolution"
+              alt="VBZappy"
               className={clsx(classes.logo, !drawerOpen && classes.hideLogo)}
               onClick={() => setDrawerOpen(!drawerOpen)}
             />
@@ -1088,7 +1088,7 @@ const LoggedInLayout = ({ children, themeToggle, hideMenu = false }) => {
                   onClick={handleMenu}
                 >
                   <Avatar
-                    alt="VBSolution"
+                    alt="VBZappy"
                     className={classes.avatar2}
                     src={profileUrl}
                   />

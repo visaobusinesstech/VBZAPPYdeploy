@@ -474,7 +474,7 @@ const Prompts = () => {
     "gpt-4.1-mini": { title: "GPT‑4.1 Mini", desc: "Ótimo custo/benefício.", capability: "Texto", context: "128K", output: "16K", speed: "Muito rápido", quality: "Boa", cost: "Baixo", iconColor: "#0ea5a4" },
     "o3": { title: "o3", desc: "Raciocínio avançado.", capability: "Texto", context: "200K", output: "??", speed: "Médio", quality: "Alta", cost: "Alto", iconColor: "#0284c7" },
     "o3-mini": { title: "o3-mini", desc: "Raciocínio econômico.", capability: "Texto", context: "128K", output: "??", speed: "Rápido", quality: "Boa", cost: "Baixo", iconColor: "#22c55e" },
-    "gpt-4o-realtime-preview-2024-12-17": { title: "GPT‑4o Realtime Preview", desc: "Experimentos de voz/tempo real.", capability: "Voz/Tempo real", context: "-", output: "-", speed: "Muito rápido", quality: "Boa", cost: "Médio", iconColor: "#3b82f6" },
+    "gpt-4o-realtime-preview-2024-12-17": { title: "GPT‑4o Realtime Preview", desc: "Experimentos de voz/tempo real.", capability: "Voz/Tempo real", context: "-", output: "-", speed: "Muito rápido", quality: "Boa", cost: "Médio", iconColor: "#359C26" },
     "gpt-4o-audio-preview-2024-12-17": { title: "GPT‑4o Audio Preview", desc: "Geração/entendimento de áudio.", capability: "Áudio", context: "-", output: "-", speed: "Rápido", quality: "Boa", cost: "Médio", iconColor: "#8b5cf6" },
     "gpt-4o-mini-tts": { title: "GPT‑4o Mini TTS", desc: "Texto para fala (TTS).", capability: "TTS", context: "-", output: "-", speed: "Rápido", quality: "Boa", cost: "Baixo", iconColor: "#0ea5a4" },
     "text-embedding-3-large": { title: "Embeddings 3 Large", desc: "Vetores de alta qualidade.", capability: "Embeddings", context: "-", output: "-", speed: "Rápido", quality: "Alta", cost: "Médio", iconColor: "#64748b" },

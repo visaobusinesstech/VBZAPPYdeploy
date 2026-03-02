@@ -340,7 +340,7 @@ export default function Whitelabel(props) {
   }
 
   const handleResetColors = async () => {
-    const DEFAULT = "#131B2D";
+    const DEFAULT = "#359C26";
     await handleSaveSetting("primaryColorLight", DEFAULT);
     await handleSaveSetting("primaryColorDark", DEFAULT);
     colorMode.setPrimaryColorLight(DEFAULT);
@@ -448,7 +448,7 @@ export default function Whitelabel(props) {
                       }}
                       onBlur={async (_) => {
                         await handleSaveSetting("appName", appName);
-                        colorMode.setAppName(appName || "VBSolution");
+                        colorMode.setAppName(appName || "VBZappy");
                       }}
                       size="small"
                     />
