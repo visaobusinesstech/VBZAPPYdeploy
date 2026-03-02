@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { i18n } from '../../translate/i18n';
 import { useHistory } from 'react-router-dom';
 import { setKanbanLaneOrder, getKanbanLaneOrder } from '../../services/companyKanbanService';
-import { Button, TextField, Paper, FormControl, InputLabel, Select } from '@material-ui/core';
+import { Button, TextField, Paper, FormControl, InputLabel, Select, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemIcon, ListItemText, IconButton } from '@material-ui/core';
 import { format } from 'date-fns';
 import { Can } from '../../components/Can';
 import MainContainer from '../../components/MainContainer';
@@ -14,6 +14,9 @@ import MainHeader from '../../components/MainHeader';
 import MainHeaderButtonsWrapper from '../../components/MainHeaderButtonsWrapper';
 import Title from '../../components/Title';
 import KanbanBoard from './KanbanBoard';
+import DragIndicatorIcon from '@material-ui/icons/DragIndicator';
+import CloseIcon from '@material-ui/icons/Close';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 const useStyles = makeStyles(theme => ({
   mainPaper: {
@@ -61,6 +64,8 @@ const Kanban = () => {
 
   const [laneOrder, setLaneOrder] = useState(null);
   const [loadingLaneOrder, setLoadingLaneOrder] = useState(true);
+  const [pipelineModalOpen, setPipelineModalOpen] = useState(false);
+  const [pipelineItems, setPipelineItems] = useState([]);
 
   useEffect(() => {
     localStorage.setItem('sortOrder', sortOrder);
@@ -233,6 +238,52 @@ const Kanban = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tags, tickets, sortOrder, laneOrder, loadingLaneOrder]);
 
+  const openPipelineModal = () => {
+    // Montar lista local com {id, title}
+    const items = lanes.map(l => ({ id: l.id, title: l.title }));
+    setPipelineItems(items);
+    setPipelineModalOpen(true);
+  };
+
+  const closePipelineModal = () => setPipelineModalOpen(false);
+
+  const handlePipelineDragEnd = (result) => {
+    if (!result.destination) return;
+    const src = result.source.index;
+    const dst = result.destination.index;
+    if (src === dst) return;
+    const next = Array.from(pipelineItems);
+    const [moved] = next.splice(src, 1);
+    next.splice(dst, 0, moved);
+    setPipelineItems(next);
+  };
+
+  const handleSavePipelineOrder = () => {
+    const newOrder = pipelineItems.map(i => i.id);
+    // Otimista: aplica imediatamente e fecha modal; salva em background
+    setLaneOrder(newOrder);
+    const laneMap = new Map(lanes.map(l => [l.id, l]));
+    const newLanes = [];
+    newOrder.forEach(id => {
+      if (laneMap.has(id)) {
+        newLanes.push(laneMap.get(id));
+        laneMap.delete(id);
+      }
+    });
+    laneMap.forEach(l => newLanes.push(l));
+    setLanes(newLanes);
+    closePipelineModal();
+    // Salvar no backend sem bloquear a UI
+    setKanbanLaneOrder(newOrder)
+      .then(() => {
+        toast.success('Ordem da pipeline salva');
+      })
+      .catch((e) => {
+        console.error(e);
+        toast.error('Erro ao salvar a ordem da pipeline');
+      });
+  };
+
   const handleCardMove = async (ticketId, targetLaneId) => {
     ticketId = parseInt(ticketId, 10);
     try {
@@ -343,6 +394,16 @@ const Kanban = () => {
           >
             Buscar
           </Button>
+          {user.profile === 'admin' && (
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={openPipelineModal}
+              className={classes.button}
+            >
+              Configurar Pipeline
+            </Button>
+          )}
           <Can
             role={user.profile}
             perform="dashboard:view"
@@ -368,6 +429,58 @@ const Kanban = () => {
           isAdmin={user.profile === 'admin'}
         />
       </Paper>
+
+      {/* Modal de Configuração da Pipeline (reordenar etapas) */}
+      <Dialog open={pipelineModalOpen} onClose={closePipelineModal} maxWidth="xs" fullWidth>
+        <DialogTitle style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          Configure sua Pipeline
+          <IconButton onClick={closePipelineModal} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <div style={{ color: '#666', fontSize: 12, marginBottom: 8 }}>
+            Arraste o ícone para reordenar as etapas (colunas).
+          </div>
+          <DragDropContext onDragEnd={handlePipelineDragEnd}>
+            <Droppable droppableId="pipeline-list" type="ROW">
+              {(provided) => (
+                <List ref={provided.innerRef} {...provided.droppableProps} dense>
+                  {pipelineItems.map((item, index) => (
+                    <Draggable draggableId={String(item.id)} index={index} key={String(item.id)}>
+                      {(prov, snapshot) => (
+                        <ListItem
+                          ref={prov.innerRef}
+                          {...prov.draggableProps}
+                          style={{
+                            ...prov.draggableProps.style,
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 8,
+                            marginBottom: 8,
+                            background: snapshot.isDragging ? '#f5f5f5' : '#fff'
+                          }}
+                        >
+                          <ListItemIcon {...prov.dragHandleProps}>
+                            <DragIndicatorIcon style={{ cursor: 'grab' }} />
+                          </ListItemIcon>
+                          <ListItemText primary={item.title} />
+                        </ListItem>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </List>
+              )}
+            </Droppable>
+          </DragDropContext>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closePipelineModal}>Cancelar</Button>
+          <Button color="primary" variant="contained" onClick={handleSavePipelineOrder}>
+            Salvar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </MainContainer>
   );
 };

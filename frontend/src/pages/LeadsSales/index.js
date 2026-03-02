@@ -519,7 +519,7 @@ const currencyBRL = (v) => {
   }
 };
 
-const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, contacts, onOpenTagCreator }) => {
+const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, contacts, onOpenTagCreator, onOpenPipelineConfig }) => {
   const classes = useStyles();
   const cols = Array.isArray(columns) && columns.length ? columns : DEFAULT_STAGES;
 
@@ -639,7 +639,14 @@ const LeadsKanbanBoard = ({ columns, leads, onEdit, onAdd, onMove, onDelete, con
                 </div>
                 <div className={classes.columnRight}>
                   <span className={classes.columnCount}>{list.length}</span>
-                  <IconButton size="small" className={classes.columnMenuBtn}>
+                  <IconButton
+                    size="small"
+                    className={classes.columnMenuBtn}
+                    onClick={() => {
+                      if (typeof onOpenPipelineConfig === "function") onOpenPipelineConfig();
+                    }}
+                    title="Configurar pipeline"
+                  >
                     <MoreHorizIcon fontSize="small" />
                   </IconButton>
                 </div>
@@ -855,8 +862,18 @@ const LeadsSales = () => {
       const target = String(contact.name || "").trim().toLowerCase();
       arr = arr.filter(l => String(l.companyName || "").trim().toLowerCase() === target);
     }
+    if (searchParam) {
+      const term = String(searchParam || "").trim().toLowerCase();
+      if (term) {
+        arr = arr.filter((l) => {
+          const n = String(l.name || "").trim().toLowerCase();
+          const c = String(l.companyName || "").trim().toLowerCase();
+          return n.includes(term) || c.includes(term);
+        });
+      }
+    }
     return arr;
-  }, [leadsState, contact]);
+  }, [leadsState, contact, searchParam]);
 
   const companiesFromLeads = useMemo(() => {
     const names = new Set();
@@ -1992,6 +2009,7 @@ const LeadsSales = () => {
                   contacts={contactsList}
                   onEdit={(lead) => { setEditing(lead); setDrawerOpen(true); }}
                   onOpenTagCreator={openTagCreator}
+                  onOpenPipelineConfig={() => setPipelineDrawerOpen(true)}
                   onAdd={(statusKey) => {
                     setEditing({ status: statusKey });
                     setDrawerOpen(true);
@@ -2151,16 +2169,20 @@ const LeadsSales = () => {
         title="Configurar Pipelines"
         pipelines={pipelines}
         selectedId={selectedPipelineId}
-        onSave={async (pipes, selId) => {
-          try {
-            const saved = await leadPipelinesService.bulkSave(pipes);
-            setPipelines(saved);
-            if (selId) setSelectedPipelineId(selId);
-            else if (saved?.length) setSelectedPipelineId(saved[0].id);
-            setPipelineDrawerOpen(false);
-          } catch (err) {
-            toastError(err);
-          }
+        onSave={(pipes, selId) => {
+          // Otimista: aplica e fecha imediatamente
+          setPipelines(pipes);
+          if (selId) setSelectedPipelineId(selId);
+          else if (pipes?.length) setSelectedPipelineId(pipes[0].id);
+          setPipelineDrawerOpen(false);
+          // Salva em background
+          leadPipelinesService.bulkSave(pipes)
+            .then((saved) => {
+              setPipelines(saved);
+            })
+            .catch((err) => {
+              toastError(err);
+            });
         }}
       />
     </>

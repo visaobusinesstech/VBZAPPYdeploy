@@ -1030,122 +1030,85 @@ const WhatsappDashboard = () => {
 
                 {tab === "NPS" && (
                   <Grid2 className={classes.container}>
-                      <Grid2 container width="100%" spacing={2}>
-
-                        <Grid2 xs={12} sm={6} md={3}>
-                          <Paper elevation={3} >
+                    <Grid2 container width="100%" spacing={2}>
+                      <Grid2 xs={12} sm={6} md={3}>
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
                             <ChartDonut
-                              data={[`{'name': 'Promotores', 'value': ${counters.npsPromotersPerc | 100}}`,
-                              `{'name': 'Detratores', 'value': ${counters.npsDetractorsPerc | 0}}`,
-                              `{'name': 'Neutros', 'value': ${counters.npsPassivePerc | 0}}`
-                              ]}
+                              data={[`{'name': 'Promotores', 'value': ${counters.npsPromotersPerc | 100}}`, `{'name': 'Detratores', 'value': ${counters.npsDetractorsPerc | 0}}`, `{'name': 'Neutros', 'value': ${counters.npsPassivePerc | 0}}`]}
                               value={counters.npsScore | 0}
                               title="Score"
                               color={(parseInt(counters.npsPromotersPerc | 0) + parseInt(counters.npsDetractorsPerc | 0) + parseInt(counters.npsPassivePerc | 0)) === 0 ? ["#918F94"] : ["#2EA85A", "#F73A2C", "#F7EC2C"]}
                             />
-                          </Paper>
-                        </Grid2>
-
-                        <Grid2 xs={12} sm={6} md={3}>
-                          <Paper elevation={3}>
-                            <ChartDonut
-                              title={i18n.t("dashboard.assessments.prosecutors")}
-                              value={counters.npsPromotersPerc | 0}
-                              data={[`{'name': 'Promotores', 'value': 100}`]}
-                              color={["#2EA85A"]}
-                            />
-                          </Paper>
-                        </Grid2>
-
-                        <Grid2 xs={12} sm={6} md={3}>
-                          <Paper elevation={3} >
-                            <ChartDonut
-                              data={[`{'name': 'Neutros', 'value': 100}`]}
-                              title={i18n.t("dashboard.assessments.neutral")}
-                              value={counters.npsPassivePerc | 0}
-                              color={["#F7EC2C"]}
-                            />
-                          </Paper>
-                        </Grid2>
-
-                        <Grid2 xs={12} sm={6} md={3}>
-                          <Paper elevation={3}>
-                            <ChartDonut
-                              data={[`{'name': 'Detratores', 'value': 100}`]}
-                              title={i18n.t("dashboard.assessments.detractors")}
-                              value={counters.npsDetractorsPerc | 0}
-                              color={["#F73A2C"]}
-                            />
-                          </Paper>
-                        </Grid2>
-
-                        <Grid2 xs={12} sm={6} md={12}>
-                          <Paper elevation={3}>
-                            <Typography
-                              component="h3"
-                              variant="h6"
-                              paragraph
-                              style={{ marginLeft: "10px" }}
-                            >
-                              {i18n.t("dashboard.assessments.totalCalls")}: {counters.tickets} <br></br>
-                              {i18n.t("dashboard.assessments.callsWaitRating")}: {counters.waitRating} <br></br>
-                              {i18n.t("dashboard.assessments.callsWithoutRating")}: {counters.withoutRating} <br></br>
-                              {i18n.t("dashboard.assessments.ratedCalls")}: {counters.withRating} <br></br>
-                              {i18n.t("dashboard.assessments.evaluationIndex")}: {Number(counters.percRating / 100).toLocaleString(undefined, { style: 'percent' })} <br></br>
-                            </Typography>
-                          </Paper>
-                        </Grid2>
-
+                          </CardContent>
+                        </Card>
                       </Grid2>
+                      <Grid2 xs={12} sm={6} md={3}>
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <ChartDonut title={i18n.t("dashboard.assessments.prosecutors")} value={counters.npsPromotersPerc | 0} data={[`{'name': 'Promotores', 'value': 100}`]} color={["#2EA85A"]} />
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                      <Grid2 xs={12} sm={6} md={3}>
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <ChartDonut data={[`{'name': 'Neutros', 'value': 100}`]} title={i18n.t("dashboard.assessments.neutral")} value={counters.npsPassivePerc | 0} color={["#F7EC2C"]} />
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                      <Grid2 xs={12} sm={6} md={3}>
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <ChartDonut data={[`{'name': 'Detratores', 'value': 100}`]} title={i18n.t("dashboard.assessments.detractors")} value={counters.npsDetractorsPerc | 0} color={["#F73A2C"]} />
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                      <Grid2 xs={12} sm={6} md={12}>
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <Typography component="h3" variant="h6" paragraph style={{ marginLeft: "10px" }}>
+                              {i18n.t("dashboard.assessments.totalCalls")}: {counters.tickets} <br />
+                              {i18n.t("dashboard.assessments.callsWaitRating")}: {counters.waitRating} <br />
+                              {i18n.t("dashboard.assessments.callsWithoutRating")}: {counters.withoutRating} <br />
+                              {i18n.t("dashboard.assessments.ratedCalls")}: {counters.withRating} <br />
+                              {i18n.t("dashboard.assessments.evaluationIndex")}: {Number(counters.percRating / 100).toLocaleString(undefined, { style: "percent" })} <br />
+                            </Typography>
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                    </Grid2>
                   </Grid2>
                 )}
 
                 {tab === "Atendentes" && (
                   <Container width="100%" className={classes.container}>
-
-                      <IconButton onClick={exportarGridParaExcel} aria-label="Exportar para Excel">
-                        <SaveAlt />
-                      </IconButton>
-
-                      <Grid2 container width="100%">
-                        {/* CARD DE GRAFICO */}
-                        {/* <Grid2 item xs={12}>
-                  <Paper
-                    elevation={6}
-                    className={classes.fixedHeightPaper}
-                  >
-                    <Chart
-                      dateStartTicket={dateStartTicket}
-                      dateEndTicket={dateEndTicket}
-                      queueTicket={queueTicket}
-                    />
-                  </Paper>
-                </Grid2>  */}
-
-                        {/* INFO DOS USUARIOS */}
-                        <Grid2 xs={12} id="grid-attendants">
-                          {attendants.length ? (
-                            <TableAttendantsStatus
-                              attendants={attendants}
-                              loading={loading}
-                            />
-                          ) : null}
-                        </Grid2>
-
-                        {/* TOTAL DE ATENDIMENTOS POR USUARIO */}
-                        <Grid2 xs={12} id="grid-attendants">
-                          <Paper className={classes.fixedHeightPaper2}>
-                            <ChatsUser />
-                          </Paper>
-                        </Grid2>
-
-                        {/* TOTAL DE ATENDIMENTOS */}
-                        <Grid2 xs={12} id="grid-attendants">
-                          <Paper className={classes.fixedHeightPaper2}>
-                            <ChartsDate />
-                          </Paper>
-                        </Grid2>
+                    <IconButton onClick={exportarGridParaExcel} aria-label="Exportar para Excel">
+                      <SaveAlt />
+                    </IconButton>
+                    <Grid2 container width="100%" spacing={2}>
+                      <Grid2 xs={12} id="grid-attendants">
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            {attendants.length ? <TableAttendantsStatus attendants={attendants} loading={loading} /> : null}
+                          </CardContent>
+                        </Card>
                       </Grid2>
+                      <Grid2 xs={12} id="grid-attendants">
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <ChatsUser />
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                      <Grid2 xs={12} id="grid-attendants">
+                        <Card sx={{ backgroundColor: "#fff", boxShadow: "0 2px 8px rgba(0,0,0,0.08)", border: "1px solid #E5E7EB", borderRadius: 2 }}>
+                          <CardContent>
+                            <ChartsDate />
+                          </CardContent>
+                        </Card>
+                      </Grid2>
+                    </Grid2>
                   </Container>
                 )}
               </ActivitiesStyleLayout>

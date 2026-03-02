@@ -12,6 +12,8 @@ import {
   Settings as SettingsIcon,
   ZoomOutMap as ZoomOutMapIcon,
   ExpandMore as ExpandMoreIcon,
+  ArrowUpward as ArrowUpwardIcon,
+  ArrowDownward as ArrowDownwardIcon,
   EventNote as EventNoteIcon
 } from "@material-ui/icons";
 import {
@@ -489,9 +491,41 @@ const Activities = () => {
         return idMatch || nameMatch;
       });
     }
-    // Empresa: sem persistência de contactId ainda; manter base
+    // Empresa: filtra por correspondência de ID ou nome em campos conhecidos
+    if (selectedCompany && (selectedCompany.id || selectedCompany.name)) {
+      const cid = selectedCompany.id ? String(selectedCompany.id) : null;
+      const cname = String(selectedCompany.name || "").toLowerCase().trim();
+      base = base.filter(a => {
+        const compId = a?.companyId || a?.company?.id || a?.project?.company?.id;
+        const compName = (a?.company?.name || a?.project?.company?.name || a?.project?.name || a?.title || a?.description || "").toLowerCase();
+        const byId = cid ? String(compId || "") === cid : false;
+        const byName = cname ? compName.includes(cname) : false;
+        return byId || byName;
+      });
+    }
+    // Período: usa a data principal da atividade (date) com fallback para createdAt/updatedAt
+    const startOk = (d) => {
+      if (!dateStart) return true;
+      try {
+        const cmp = new Date(dateStart); cmp.setHours(0,0,0,0);
+        const dt = new Date(d); return dt >= cmp;
+      } catch { return true; }
+    };
+    const endOk = (d) => {
+      if (!dateEnd) return true;
+      try {
+        const cmp = new Date(dateEnd); cmp.setHours(23,59,59,999);
+        const dt = new Date(d); return dt <= cmp;
+      } catch { return true; }
+    };
+    if (dateStart || dateEnd) {
+      base = base.filter(a => {
+        const when = a?.date || a?.createdAt || a?.updatedAt || Date.now();
+        return startOk(when) && endOk(when);
+      });
+    }
     return base;
-  }, [activitiesState, statusFilter, selectedResponsible]);
+  }, [activitiesState, statusFilter, selectedResponsible, selectedCompany, dateStart, dateEnd]);
 
   // Calculate quick stats for the header (respeita filtros)
   const headerStats = useMemo(() => {
@@ -568,6 +602,26 @@ const Activities = () => {
       } else {
         next[i] = { ...next[i], [field]: value };
       }
+      return next;
+    });
+  };
+  const moveStageUp = (i) => {
+    setLocalStages(prev => {
+      if (i <= 0) return prev;
+      const next = prev.slice();
+      const tmp = next[i - 1];
+      next[i - 1] = next[i];
+      next[i] = tmp;
+      return next;
+    });
+  };
+  const moveStageDown = (i) => {
+    setLocalStages(prev => {
+      if (i >= prev.length - 1) return prev;
+      const next = prev.slice();
+      const tmp = next[i + 1];
+      next[i + 1] = next[i];
+      next[i] = tmp;
       return next;
     });
   };
@@ -1282,7 +1336,7 @@ const Activities = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 10 }}>
             {localStages.map((st, idx) => (
               <div
-                key={st.key}
+                key={idx}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "36px 1fr auto",
@@ -1307,7 +1361,15 @@ const Activities = () => {
                   InputLabelProps={{ style: { fontSize: 14 } }}
                   inputProps={{ style: { fontSize: 16, padding: "12px 14px" } }}
                 />
-                <Button onClick={() => removeStage(st.key)}>Remover</Button>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <IconButton size="small" onClick={() => moveStageUp(idx)} title="Mover para cima">
+                    <ArrowUpwardIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => moveStageDown(idx)} title="Mover para baixo">
+                    <ArrowDownwardIcon fontSize="small" />
+                  </IconButton>
+                  <Button onClick={() => removeStage(st.key)}>Remover</Button>
+                </div>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>

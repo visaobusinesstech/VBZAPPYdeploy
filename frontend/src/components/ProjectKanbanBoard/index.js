@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef, useEffect, useState } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import {
   Grid,
@@ -19,26 +19,22 @@ import { getBackendUrl } from '../../config';
 const useStyles = makeStyles((theme) => ({
   root: {
     height: '100%',
-    display: 'flex',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
+    display: 'grid',
+    gridAutoFlow: 'column',
+    gridAutoColumns: 'minmax(0, 1fr)',
     alignItems: 'flex-start',
-    overflowX: 'hidden',
+    overflowX: 'auto',
     padding: theme.spacing(2),
     gap: theme.spacing(2),
     backgroundColor: 'transparent',
+    scrollbarWidth: 'none',
+    msOverflowStyle: 'none',
     '&::-webkit-scrollbar': {
-      height: 0,
-    },
-    '&::-webkit-scrollbar-thumb': {
-      backgroundColor: 'transparent',
-      borderRadius: 0,
-    },
+      display: 'none'
+    }
   },
   column: {
-    flex: '1 1 240px',
-    maxWidth: '25%',
-    minWidth: 220,
+    width: '100%',
     backgroundColor: 'transparent',
     borderRadius: 0,
     border: 'none',
@@ -194,6 +190,11 @@ const ProjectKanbanBoard = ({ projects, columns: columnsProp, onProjectClick, on
   const classes = useStyles();
   const { user: authUser } = useContext(AuthContext) || {};
   const backendUrl = getBackendUrl && getBackendUrl();
+  const boardRef = useRef(null);
+  const isPanningRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const [colPx, setColPx] = useState(0);
 
   const columns = Array.isArray(columnsProp) && columnsProp.length
     ? columnsProp
@@ -260,9 +261,61 @@ const ProjectKanbanBoard = ({ projects, columns: columnsProp, onProjectClick, on
     }
   };
 
+  useEffect(() => {
+    const calc = () => {
+      const el = boardRef.current;
+      if (!el) return;
+      const style = window.getComputedStyle(el);
+      const paddingLeft = parseFloat(style.paddingLeft || '16') || 16;
+      const paddingRight = parseFloat(style.paddingRight || '16') || 16;
+      const gap = parseFloat(style.columnGap || style.gap || '16') || 16;
+      const totalGap = gap * 3;
+      const inner = el.clientWidth - paddingLeft - paddingRight - totalGap;
+      const w = inner > 0 ? Math.floor(inner / 4) : 240;
+      setColPx(w);
+    };
+    calc();
+    const ro = new ResizeObserver(calc);
+    if (boardRef.current) ro.observe(boardRef.current);
+    window.addEventListener('resize', calc);
+    return () => {
+      window.removeEventListener('resize', calc);
+      ro.disconnect();
+    };
+  }, []);
+
+  const onMouseDown = (e) => {
+    if ((columns || []).length <= 4) return;
+    isPanningRef.current = true;
+    startXRef.current = e.pageX - (boardRef.current?.offsetLeft || 0);
+    scrollLeftRef.current = boardRef.current?.scrollLeft || 0;
+  };
+  const onMouseLeave = () => { isPanningRef.current = false; };
+  const onMouseUp = () => { isPanningRef.current = false; };
+  const onMouseMove = (e) => {
+    if (!isPanningRef.current || !boardRef.current) return;
+    const x = e.pageX - boardRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * -1;
+    boardRef.current.scrollLeft = scrollLeftRef.current + walk;
+  };
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
-      <div className={classes.root} data-kanban-scroll="true">
+      <div
+        className={classes.root}
+        data-kanban-scroll="true"
+        ref={boardRef}
+        onMouseDown={onMouseDown}
+        onMouseLeave={onMouseLeave}
+        onMouseUp={onMouseUp}
+        onMouseMove={onMouseMove}
+        style={{
+          gridTemplateColumns: colPx ? `repeat(4, ${colPx}px)` : undefined,
+          gridAutoColumns: colPx ? `${colPx}px` : undefined,
+          cursor: (columns || []).length > 4 ? (isPanningRef.current ? 'grabbing' : 'grab') : 'default',
+          userSelect: isPanningRef.current ? 'none' : 'auto'
+        }}
+      >
         {columns.map((column) => (
           <div key={column.id} className={classes.column}>
             <div className={classes.columnHeaderRow}>

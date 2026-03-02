@@ -11,6 +11,8 @@ import {
 } from "@material-ui/core";
 import { makeStyles } from "@material-ui/core/styles";
 import { Close as CloseIcon, Add as AddIcon, DeleteOutline as DeleteOutlineIcon } from "@material-ui/icons";
+import DragIndicatorIcon from "@material-ui/icons/DragIndicator";
+import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 
 const useStyles = makeStyles((theme) => ({
   drawerPaper: {
@@ -55,10 +57,17 @@ const useStyles = makeStyles((theme) => ({
   },
   stageRow: {
     display: "grid",
-    gridTemplateColumns: "28px 1fr auto",
+    gridTemplateColumns: "28px 28px 1fr auto",
     alignItems: "center",
     columnGap: theme.spacing(1),
     rowGap: theme.spacing(1),
+  },
+  handleBox: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "grab",
+    color: "#6B7280"
   },
   colorInput: {
     width: 28,
@@ -169,6 +178,17 @@ export default function PipelineDrawer({
     }
   };
 
+  const handleDragEnd = (result) => {
+    if (!result.destination || !current) return;
+    const src = result.source.index;
+    const dst = result.destination.index;
+    if (src === dst) return;
+    const next = Array.from(current.stages);
+    const [moved] = next.splice(src, 1);
+    next.splice(dst, 0, moved);
+    updateCurrent({ stages: next });
+  };
+
   return (
     <Drawer
       anchor="right"
@@ -243,28 +263,49 @@ export default function PipelineDrawer({
         <Box>
           <Typography variant="caption" style={{ color: "#374151" }}>Escolha suas Etapas</Typography>
           <Box style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-            {(current?.stages || []).map((st, idx) => (
-              <div key={st.uid || st.id || st.key} className={classes.stageRow}>
-                <input
-                  type="color"
-                  className={classes.colorInput}
-                  value={st.color || "#3B82F6"}
-                  onChange={(e) => handleStageChange(idx, "color", e.target.value)}
-                  aria-label="Cor"
-                />
-                <TextField
-                  label="Rótulo"
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  value={st.label}
-                  onChange={(e) => handleStageChange(idx, "label", e.target.value)}
-                  InputLabelProps={{ style: { fontSize: 13 } }}
-                  inputProps={{ style: { fontSize: 14 } }}
-                />
-                <Button size="small" onClick={() => handleRemoveStage(st.uid || st.key)}>Remover</Button>
-              </div>
-            ))}
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="pipeline-stages">
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {(current?.stages || []).map((st, idx) => (
+                      <Draggable key={st.uid || st.id || st.key} draggableId={String(st.uid || st.id || st.key)} index={idx}>
+                        {(prov) => (
+                          <div
+                            ref={prov.innerRef}
+                            {...prov.draggableProps}
+                            className={classes.stageRow}
+                            style={{ ...prov.draggableProps.style }}
+                          >
+                            <div {...prov.dragHandleProps} className={classes.handleBox} title="Arraste para reordenar">
+                              <DragIndicatorIcon fontSize="small" />
+                            </div>
+                            <input
+                              type="color"
+                              className={classes.colorInput}
+                              value={st.color || "#3B82F6"}
+                              onChange={(e) => handleStageChange(idx, "color", e.target.value)}
+                              aria-label="Cor"
+                            />
+                            <TextField
+                              label="Rótulo"
+                              variant="outlined"
+                              size="small"
+                              fullWidth
+                              value={st.label}
+                              onChange={(e) => handleStageChange(idx, "label", e.target.value)}
+                              InputLabelProps={{ style: { fontSize: 13 } }}
+                              inputProps={{ style: { fontSize: 14 } }}
+                            />
+                            <Button size="small" onClick={() => handleRemoveStage(st.uid || st.key)}>Remover</Button>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
             <div>
               <Button size="small" color="primary" variant="outlined" onClick={handleAddStage}>Adicionar etapa</Button>
             </div>
@@ -278,4 +319,3 @@ export default function PipelineDrawer({
     </Drawer>
   );
 }
-

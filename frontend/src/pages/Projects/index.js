@@ -30,6 +30,8 @@ import {
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import CloseIcon from "@material-ui/icons/Close";
+import ArrowUpwardIcon from "@material-ui/icons/ArrowUpward";
+import ArrowDownwardIcon from "@material-ui/icons/ArrowDownward";
 
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
@@ -414,6 +416,26 @@ const Projects = () => {
       return next;
     });
   };
+  const moveStageUp = (i) => {
+    setLocalStages(prev => {
+      if (i <= 0) return prev;
+      const next = prev.slice();
+      const tmp = next[i - 1];
+      next[i - 1] = next[i];
+      next[i] = tmp;
+      return next;
+    });
+  };
+  const moveStageDown = (i) => {
+    setLocalStages(prev => {
+      if (i >= prev.length - 1) return prev;
+      const next = prev.slice();
+      const tmp = next[i + 1];
+      next[i + 1] = next[i];
+      next[i] = tmp;
+      return next;
+    });
+  };
 
   const handleSearch = (value) => {
     setSearchParam(value);
@@ -446,6 +468,19 @@ const Projects = () => {
 
   const filteredProjects = useMemo(() => {
     let base = projectsState;
+
+    // Busca geral por termo (nome, descrição, empresa)
+    if (searchParam) {
+      const term = String(searchParam || "").trim().toLowerCase();
+      if (term) {
+        base = base.filter((p) => {
+          const n = String(p?.name || "").toLowerCase();
+          const d = String(p?.description || "").toLowerCase();
+          const c = String(p?.company?.name || "").toLowerCase();
+          return n.includes(term) || d.includes(term) || c.includes(term);
+        });
+      }
+    }
 
     // Status
     if (statusFilter) {
@@ -508,7 +543,7 @@ const Projects = () => {
     }
 
     return base;
-  }, [projectsState, statusFilter, selectedResponsible, selectedCompany, dateStart, dateEnd]);
+  }, [projectsState, searchParam, statusFilter, selectedResponsible, selectedCompany, dateStart, dateEnd]);
 
   const headerStats = useMemo(() => {
     const total = filteredProjects.length;
@@ -926,13 +961,19 @@ const Projects = () => {
             // Ranking por Responsável (média de progresso)
             const clampPct = (v) => Math.max(0, Math.min(100, Number.isFinite(v) ? v : 0));
             const deriveProgress = (p) => {
+              const stKey = statusKey(p?.status);
+              if (stKey === "completed") return 100;
               const val = Number(p?.progress);
               if (Number.isFinite(val)) return clampPct(val);
               const acts = Array.isArray(p?.activities) ? p.activities : [];
-              if (!acts.length) return 0;
-              const total = acts.length;
-              const done = acts.filter(a => String(a.status || "").toLowerCase() === "completed").length;
-              return clampPct((done / total) * 100);
+              if (acts.length > 0) {
+                const total = acts.length;
+                const done = acts.filter(a => String(a.status || "").toLowerCase() === "completed").length;
+                return clampPct((done / total) * 100);
+              }
+              const idx = Math.max(0, stageOrder.findIndex(k => k === stKey));
+              const denom = Math.max(1, stageOrder.length - 1);
+              return Math.round((idx / denom) * 100);
             };
             const respMap = {};
             filteredProjects.forEach(p => {
@@ -956,6 +997,7 @@ const Projects = () => {
               responsive: true,
               indexAxis: 'y',
               maintainAspectRatio: false,
+              layout: { padding: { top: 18, right: 24, left: 4, bottom: 8 } },
               plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -970,6 +1012,9 @@ const Projects = () => {
                   color: palette.text,
                   anchor: "end",
                   align: "right",
+                  clamp: true,
+                  clip: false,
+                  offset: 2,
                   formatter: (v, ctx) => {
                     const i = ctx.dataIndex;
                     return `${v}%  (${rankCounts[i]})`;
@@ -983,10 +1028,10 @@ const Projects = () => {
                   ticks: {
                     color: palette.sub,
                     callback: (val) => `${val}%`,
-                    max: 100,
+                    max: 105,
                     min: 0
                   },
-                  suggestedMax: 100
+                  suggestedMax: 105
                 },
                 y: { grid: { display: false }, ticks: { color: palette.sub } }
               }
@@ -1333,7 +1378,7 @@ const Projects = () => {
           <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 10 }}>
             {localStages.map((st, idx) => (
               <div
-                key={st.id}
+                key={idx}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "36px 1fr auto",
@@ -1358,7 +1403,15 @@ const Projects = () => {
                   InputLabelProps={{ style: { fontSize: 14 } }}
                   inputProps={{ style: { fontSize: 16, padding: "12px 14px" } }}
                 />
-                <Button onClick={() => removeStage(st.id)}>Remover</Button>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <IconButton size="small" onClick={() => moveStageUp(idx)} title="Mover para cima">
+                    <ArrowUpwardIcon fontSize="small" />
+                  </IconButton>
+                  <IconButton size="small" onClick={() => moveStageDown(idx)} title="Mover para baixo">
+                    <ArrowDownwardIcon fontSize="small" />
+                  </IconButton>
+                  <Button onClick={() => removeStage(st.id)}>Remover</Button>
+                </div>
               </div>
             ))}
             <div style={{ display: "flex", justifyContent: "flex-end" }}>

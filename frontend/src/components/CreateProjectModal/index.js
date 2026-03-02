@@ -214,18 +214,7 @@ const CreateProjectModal = ({ open, onClose, onSave, project }) => {
           size="small"
         />
 
-        <FormControl variant="outlined" fullWidth size="small">
-          <InputLabel>Status</InputLabel>
-          <Select
-            value={formValues.status}
-            onChange={handleChange("status")}
-            label="Status"
-          >
-            <MenuItem value="active">Ativo</MenuItem>
-            <MenuItem value="completed">Concluído</MenuItem>
-            <MenuItem value="archived">Arquivado</MenuItem>
-          </Select>
-        </FormControl>
+        {/* Campo Status removido a pedido: status padrão permanece 'active' ou do próprio projeto em edição */}
 
         <FormControl variant="outlined" fullWidth size="small">
           <InputLabel>Atividades Vinculadas</InputLabel>

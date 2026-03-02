@@ -55,10 +55,12 @@ import html2pdf from "html2pdf.js";
 import FinalizacaoVendaModal from "../FinalizacaoVendaModal";
 import QuickMessageModal from "../QuickMessageModal";
 import { Phone } from "@material-ui/icons";
+import { Person } from "@material-ui/icons";
 import TagModal from "../TagModal";
 import CreateLeadSaleModal from "../CreateLeadSaleModal";
 import CreateActivityModal from "../CreateActivityModal";
 import CompanyModal from "../CompaniesModal";
+import useMediaQuery from "@material-ui/core/useMediaQuery";
 
 const useStyles = makeStyles((theme) => ({
   actionButtons: {
@@ -74,12 +76,36 @@ const useStyles = makeStyles((theme) => ({
     "& > *": {
       margin: theme.spacing(0.5),
     },
+    "@media (max-width: 600px)": {
+      "& > *": {
+        margin: theme.spacing(0.25),
+      },
+    },
+    "& .MuiButton-root": {
+      minWidth: "auto",
+      padding: "2px 6px",
+      fontSize: "0.66rem",
+      lineHeight: 1.0,
+      maxWidth: 110
+    },
+    "& .MuiButton-label": {
+      whiteSpace: "nowrap",
+      overflow: "hidden",
+      textOverflow: "ellipsis"
+    },
     "& .MuiIconButton-root": {
       padding: 4,
     },
     "& .MuiSvgIcon-root": {
       fontSize: 18,
     },
+    "@media (max-width: 480px)": {
+      "& .MuiButton-root": {
+        padding: "2px 4px",
+        fontSize: "0.6rem",
+        maxWidth: 90
+      }
+    }
   },
   bottomButtonVisibilityIcon: {
     padding: 2,
@@ -109,6 +135,9 @@ const TicketActionButtonsCustom = ({
 }) => {
   const classes = useStyles();
   const theme = useTheme();
+  const smallScreen = useMediaQuery("(max-width:600px)");
+  const xsmallScreen = useMediaQuery("(max-width:420px)");
+  const tinyScreen = useMediaQuery("(max-width:360px)");
   const history = useHistory();
   const isMounted = useRef(true);
   const [loading, setLoading] = useState(false);
@@ -866,16 +895,7 @@ const TicketActionButtonsCustom = ({
                                 </Tooltip>
                             </IconButton> */}
 
-              {/* Ícone para copiar telefone */}
-              <IconButton
-                className={classes.bottomButtonVisibilityIcon}
-                onClick={handleCopyPhone}
-                disabled={!contact?.number}
-              >
-                <Tooltip title={getCopyPhoneTooltip()}>
-                  <FileCopyIcon />
-                </Tooltip>
-              </IconButton>
+              {/* Ícone de copiar telefone removido a pedido do usuário */}
 
               {/* Ícone para respostas rápidas */}
               <IconButton
@@ -1003,20 +1023,40 @@ const TicketActionButtonsCustom = ({
           </ButtonWithSpinner>
         )}
         {ticket.status === "open" && ticket.isBot === true && (
-          <ButtonWithSpinner
-            loading={loading}
-            size="small"
-            variant="contained"
-            onClick={async () => {
-              await handleUpdateTicketStatusWithData(
-                { status: "open", userId: user?.id, isBot: false },
-                false,
-                null
-              );
-            }}
-          >
-            Assumir Humano
-          </ButtonWithSpinner>
+          xsmallScreen ? (
+            <Tooltip title="Assumir Humano">
+              <span>
+                <ButtonWithSpinner
+                  loading={loading}
+                  size="small"
+                  variant="contained"
+                  onClick={async () => {
+                    await handleUpdateTicketStatusWithData(
+                      { status: "open", userId: user?.id, isBot: false },
+                      false,
+                      null
+                    );
+                  }}
+                  startIcon={<Person style={{ fontSize: 16 }} />}
+                />
+              </span>
+            </Tooltip>
+          ) : (
+            <ButtonWithSpinner
+              loading={loading}
+              size="small"
+              variant="contained"
+              onClick={async () => {
+                await handleUpdateTicketStatusWithData(
+                  { status: "open", userId: user?.id, isBot: false },
+                  false,
+                  null
+                );
+              }}
+            >
+              {smallScreen ? "Ass." : "Assumir Humano"}
+            </ButtonWithSpinner>
+          )
         )}
         <IconButton
           aria-label="account of current user"
@@ -1024,9 +1064,9 @@ const TicketActionButtonsCustom = ({
           aria-haspopup="true"
           onClick={handleMenu}
           color="inherit"
-          style={{ padding: 6 }}
+          style={{ padding: 4 }}
         >
-          <MoreVert style={{ fontSize: 16, padding: 0 }} />
+          <MoreVert style={{ fontSize: 14, padding: 0 }} />
         </IconButton>
         <Menu
           id="menu-appbar"
