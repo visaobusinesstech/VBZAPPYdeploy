@@ -124,7 +124,9 @@ const useStyles = makeStyles((theme) => ({
   },
 
   listItemActive: {
-    backgroundColor: theme.mode === "light" ? "#f3f4f6" : "rgba(255,255,255,0.1)",
+    backgroundColor: theme.mode === "light"
+      ? `${theme.palette.primary.main}20`
+      : `${theme.palette.primary.main}30`,
   },
 
   listItemText: {
@@ -605,10 +607,20 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
     <div onClick={drawerClose}>
       {section === "main" && (
         <>
+          {/* Início agora aponta para o Dashboard WhatsApp */}
           <ListItemLink
-            to="/"
-            primary={i18n.t("mainDrawer.listItems.start")}
-            icon={<HomeOutlinedIcon style={{ fontSize: "1.2rem" }} />}
+            to="/whatsapp-dashboard"
+            primary={"Início"}
+            icon={<DashboardOutlinedIcon style={{ fontSize: "1.2rem" }} />}
+            tooltip={collapsed}
+            collapsed={collapsed}
+          />
+
+          {/* Atendimentos (antes WhatsApp/Tickets) fora da aba Mais */}
+          <ListItemLink
+            to="/tickets"
+            primary={"Atendimentos"}
+            icon={<WhatsAppIcon />}
             tooltip={collapsed}
             collapsed={collapsed}
           />
@@ -618,7 +630,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
           {showSchedules && (
             <ListItemLink
               to="/schedules"
-              primary={i18n.t("mainDrawer.listItems.schedules")}
+              primary={"Calendário"}
               icon={<EventAvailableIcon />}
               tooltip={collapsed}
               collapsed={collapsed}
@@ -666,6 +678,30 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
               tooltip={collapsed}
               collapsed={collapsed}
             />
+            <ListItemLink
+              to="/queues"
+              primary={"Filas & Chatbot"}
+              icon={<AccountTreeOutlinedIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            {showCampaigns && (
+              <ListItemLink
+                to="/campaigns"
+                primary="Campanhas"
+                icon={<EventAvailableIcon />}
+                tooltip={collapsed}
+                collapsed={collapsed}
+              />
+            )}
+            <ListItemLink
+              to="/quick-messages"
+              primary="Disparo Automático"
+              icon={<FlashOnIcon />}
+              tooltip={collapsed}
+              collapsed={collapsed}
+            />
+            {/* Demais itens permanecem na Aba Mais */}
             <ListItemLink
               to="/tags"
               primary="Tags"
@@ -721,46 +757,7 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
 
       {section === "bottom" && (
         <>
-           <Tooltip title={collapsed ? "Whatsaap" : ""} placement="right">
-            <ListItem
-                button
-                onClick={handleVBZappyClick}
-                onMouseEnter={() => setVbzappyHover(true)}
-                onMouseLeave={() => setVbzappyHover(false)}
-                className={classes.listItem}
-            >
-                <ListItemIcon style={{ minWidth: 28, marginRight: collapsed ? 0 : 6, justifyContent: 'center' }}>
-                    <Avatar className={`${classes.iconHoverActive} ${location.pathname.startsWith("/tickets") || vbzappyHover ? "active" : ""}`}>
-                        <WhatsAppIcon />
-                    </Avatar>
-                </ListItemIcon>
-                {!collapsed && (
-                  <ListItemText 
-                    primary={<Typography className={classes.listItemText}>Whatsaap</Typography>} 
-                    style={{ display: collapsed ? 'none' : 'block' }}
-                  />
-                )}
-                {!collapsed && (openVBZappySubmenu ? <ExpandLessIcon /> : <ExpandMoreIcon />)}
-            </ListItem>
-           </Tooltip>
-          <Collapse in={openVBZappySubmenu} timeout="auto" unmountOnExit className={classes.submenuContainer}>
-                <ListItemLink to="/connections" primary={"Conexões"} icon={<SyncAltIcon />} tooltip={collapsed} collapsed={collapsed} />
-                <ListItemLink to="/queues" primary={"Filas & Chatbot"} icon={<AccountTreeOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-                {showCampaigns && <ListItemLink to="/campaigns" primary="Campanhas" icon={<EventAvailableIcon />} tooltip={collapsed} collapsed={collapsed} />}
-                <ListItemLink to="/quick-messages" primary="Disparo Automático" icon={<FlashOnIcon />} tooltip={collapsed} collapsed={collapsed} />
-                
-                <ListItemLink to="/whatsapp-dashboard" primary="Dashboard" icon={<DashboardOutlinedIcon />} tooltip={collapsed} collapsed={collapsed} />
-           </Collapse>
-
-           {/* Email abaixo de WhatsApp no mesmo espaço */}
-           <ListItemLink
-              to="/email"
-              primary="Email"
-              icon={<EmailOutlinedIcon />}
-              tooltip={collapsed}
-              bottom
-              collapsed={collapsed}
-           />
+           {/* Mantém apenas Agente IA, Automações e Configurações nesta área fixa */}
 
            {showOpenAi && (
              <ListItemLink
@@ -774,19 +771,14 @@ const MainListItems = ({ collapsed, drawerClose, section }) => {
            )}
 
            {user.showFlow === "enabled" && (
-             <Tooltip
-                title={collapsed ? "Automações" : ""}
-                placement="right"
-             >
-                <ListItemLink
-                    to="/flowbuilders"
-                    primary={"Automações"}
-                    icon={<AccountTreeOutlinedIcon />}
-                    tooltip={collapsed}
-                    bottom
-                    collapsed={collapsed}
-                />
-             </Tooltip>
+             <ListItemLink
+                to="/flowbuilders"
+                primary={"Automações"}
+                icon={<AccountTreeOutlinedIcon />}
+                tooltip={collapsed}
+                bottom
+                collapsed={collapsed}
+             />
            )}
 
             <ListItemLink

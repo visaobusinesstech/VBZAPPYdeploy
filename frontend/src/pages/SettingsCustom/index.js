@@ -11,14 +11,10 @@ import Options from "../../components/Settings/Options";
 import Whitelabel from "../../components/Settings/Whitelabel";
 import FinalizacaoAtendimento from "../../components/Settings/FinalizacaoAtendimento";
 import Users from "../Users";
-import AllConnections from "../AllConnections";
 import QueueIntegration from "../QueueIntegration";
 import Invoices from "../Financeiro";
-import Tags from "../Tags";
-import BirthdaySettings from "../BirthdaySettings";
-import Announcements from "../Annoucements";
+// Removidos do Settings porque possuem páginas próprias no menu lateral
 import EmailSettings from "../../components/Settings/EmailSettings";
-import Connections from "../Connections";
 
 import { i18n } from "../../translate/i18n.js";
 import { toast } from "react-toastify";
@@ -159,11 +155,8 @@ const SettingsCustom = () => {
     ...(user.profile === "admin" && user.finalizacaoComValorVendaAtiva ? [{ value: "finalizacao", label: "Finalização do Atendimento" }] : []),
     ...(isSuper() ? [{ value: "whitelabel", label: "Identidade Visual" }] : []),
     { value: "users", label: "Usuários" },
-    { value: "connections", label: "Gerenciar Conexões" },
     { value: "integrations", label: "Integrações" },
     { value: "email", label: "Email" },
-    { value: "tags", label: "Tags" },
-    { value: "announcements", label: "Informativos" },
     ...(isSpecificAdminUI() ? [{ value: "companies", label: "Assinaturas" }] : []),
   ];
   const trailingTabs = isSpecificAdminUI()
@@ -273,17 +266,7 @@ const SettingsCustom = () => {
               >
                 <QueueIntegration renderAsTab={true} />
               </TabPanel>
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"connections"}
-              >
-                {isSuper() ? (
-                  <AllConnections renderAsTab={true} />
-                ) : (
-                  <Connections />
-                )}
-              </TabPanel>
+              {/* Removido: Gerenciar Conexões (tem página no menu lateral) */}
               <TabPanel
                 className={classes.container}
                 value={tab}
@@ -300,21 +283,7 @@ const SettingsCustom = () => {
                   <Invoices renderAsTab={true} />
                 </TabPanel>
               )}
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"tags"}
-              >
-                <Tags renderAsTab={true} />
-              </TabPanel>
-              
-              <TabPanel
-                className={classes.container}
-                value={tab}
-                name={"announcements"}
-              >
-                <Announcements renderAsTab={true} />
-              </TabPanel>
+              {/* Removidos: Tags e Informativos (Announcements) */}
             </Paper>
         </ActivitiesStyleLayout>
       )}

@@ -326,11 +326,11 @@ const useStyles = makeStyles((theme) => ({
     height: 30,
     width: 30,
     border: "2px solid",
-    borderColor: "#aaa",
+    borderColor: theme.palette.primary.main,
     borderRadius: 8,
     marginRight: 8,
     "&:hover": {
-      borderColor: theme.mode === "light" ? theme.palette.primary.main : "#FFF",
+      borderColor: theme.palette.primary.dark || theme.palette.primary.main,
     },
   },
   icon: {
@@ -348,13 +348,14 @@ const useStyles = makeStyles((theme) => ({
   standardButton: {
     height: 30,
     width: 30,
-    border: "2px solid #aaa",
+    border: "2px solid",
+    borderColor: theme.palette.primary.main,
     borderRadius: 8,
     marginRight: 8,
     padding: 0,
     minWidth: 'auto',
     "&:hover": {
-      borderColor: "#555",
+      borderColor: theme.palette.primary.dark || theme.palette.primary.main,
     },
     [theme.breakpoints.down('sm')]: {
       height: 28,
@@ -369,7 +370,7 @@ const useStyles = makeStyles((theme) => ({
     },
   },
   activeButton: {
-    borderColor: "#555",
+    borderColor: theme.palette.primary.dark || theme.palette.primary.main,
     borderWidth: "3px",
   },
   standardIcon: {
