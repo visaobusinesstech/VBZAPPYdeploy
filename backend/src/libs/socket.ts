@@ -12,9 +12,26 @@ import BirthdayService from "../services/BirthdayService/BirthdayService";
 let io: SocketIO;
 
 export const initIO = (httpServer: Server): SocketIO => {
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL?.replace("https", "http"),
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175"
+  ].filter(Boolean) as string[];
+
   io = new SocketIO(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.some(o => o === origin || origin.endsWith(".vercel.app") || origin.endsWith(".railway.app"))) {
+          return callback(null, true);
+        }
+        return callback(null, true);
+      },
+      credentials: true
     }
   });
 
@@ -33,6 +50,10 @@ export const initIO = (httpServer: Server): SocketIO => {
     );
   }
 
+  // Aceita também o namespace padrão, além dos dinâmicos por empresa
+  io.on("connection", () => {
+    // conexão básica para evitar resposta 401 do engine durante o handshake
+  });
   const workspaces = io.of(/^\/\w+$/);
   workspaces.on("connection", async socket => {
 

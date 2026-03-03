@@ -27,7 +27,7 @@ const ListService = async ({
     whereCondition = {
       [Op.or]: [{
         body: where(
-          fn("LOWER", fn('unaccent', col("name"))),
+          fn("LOWER", col("name")),
           "LIKE",
           `%${sanitizedSearchParam}%`
         ),

@@ -32,24 +32,32 @@ const useTickets = ({
       const fetchTickets = async () => {
         if (userFilter === undefined || userFilter === null) {
           try {            
-            const { data } = await api.get("/tickets", {
-              params: {
-                searchParam,
-                pageNumber,
-                tags,
-                users,
-                status,
-                date,
-                updatedAt,
-                showAll,
-                queueIds,
-                withUnreadMessages,
-                whatsapps: whatsappIds,
-                statusFilter,
-                sortTickets,
-                searchOnMessages
-              },
-            });
+            const params = {
+              searchParam,
+              pageNumber,
+              tags,
+              users,
+              status,
+              date,
+              updatedAt,
+              showAll,
+              queueIds,
+              withUnreadMessages,
+              whatsapps: whatsappIds,
+              statusFilter,
+              searchOnMessages,
+              // Define um padrão seguro para ordenação no backend legado
+              sortTickets: "DESC"
+            };
+            // Normaliza direção de ordenação: true => ASC | string valida | fallback "DESC"
+            if (typeof sortTickets === "string") {
+              const dir = sortTickets.toUpperCase();
+              if (dir === "ASC" || dir === "DESC") params.sortTickets = dir;
+            } else if (sortTickets === true) {
+              params.sortTickets = "ASC";
+            }
+
+            const { data } = await api.get("/tickets", { params });
             
             let tickets = [];
             

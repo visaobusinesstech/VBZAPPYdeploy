@@ -46,7 +46,15 @@ app.set("queues", {
   sendScheduledMessages
 });
 
-const allowedOrigins = [process.env.FRONTEND_URL, process.env.FRONTEND_URL?.replace("https", "http"), "http://localhost:3000", "http://localhost:3001"];
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL?.replace("https", "http"),
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175"
+];
 
 // Configuração do BullBoard
 if (String(process.env.BULL_BOARD).toLocaleLowerCase() === 'true' && process.env.REDIS_URI_ACK !== '') {

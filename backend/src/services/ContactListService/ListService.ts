@@ -30,13 +30,7 @@ const ListService = async ({
     whereCondition = {
       ...whereCondition,
       [Op.or]: [
-        {
-          name: where(
-            fn("LOWER", fn('unaccent',col("ContactList.name"))),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        }
+        { name: where(fn("LOWER", col("ContactList.name")), "LIKE", `%${sanitizedSearchParam}%`) }
       ]
     };
   }

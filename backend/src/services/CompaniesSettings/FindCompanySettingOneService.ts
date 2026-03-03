@@ -11,9 +11,17 @@ type Params = {
 };
 
 const FindCompanySettingOneService = async ({companyId, column}:Params): Promise<any> => {
-    
-    const [results, metadata] = await sequelize.query(`SELECT "${column}" FROM "CompaniesSettings" WHERE "companyId"=${companyId}`)
+  try {
+    const safeCompanyId = Number(companyId);
+    if (!Number.isFinite(safeCompanyId)) return [];
+    const [results] = await sequelize.query(
+      `SELECT "${column}" FROM "CompaniesSettings" WHERE "companyId"=${safeCompanyId}`
+    );
     return results;
+  } catch (err) {
+    // Coluna pode não existir em bancos desatualizados; retornar vazio para fallback padrão
+    return [];
+  }
 };
 
 export default FindCompanySettingOneService;

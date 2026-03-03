@@ -24,16 +24,14 @@ function startServer(portToUse: number) {
         attributes: ["id"],
       });
   
-      const allPromises: any[] = [];
-      companies.map(async (c) => {
-        const promise = StartAllWhatsAppsSessions(c.id);
-        allPromises.push(promise);
-      });
-  
-      Promise.all(allPromises).then(async () => {
-        logger.info("Fila de processamento iniciando após sessões do WhatsApp");
-        await startQueueProcess();
-      });
+      const allPromises: Promise<any>[] = companies.map(c =>
+        StartAllWhatsAppsSessions(c.id).catch(err => {
+          logger.error({ msg: "Erro ao iniciar sessão WhatsApp", companyId: c.id, error: String(err?.message || err) });
+        })
+      );
+      await Promise.allSettled(allPromises);
+      logger.info("Fila de processamento: inicializando");
+      await startQueueProcess();
   
       if (REDIS_URI_MSG_CONN && REDIS_URI_MSG_CONN !== "") {
         BullQueue.process();

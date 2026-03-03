@@ -15,35 +15,44 @@ const ListWhatsAppsService = async ({
   isSuper
 }: Request): Promise<Whatsapp[]> => {
   const whereCondition: any = {};
-  
+
   if (!isSuper) {
     whereCondition.companyId = companyId;
   }
 
-  const options: FindOptions = {
-    where: whereCondition,
-    include: [
-      {
-        model: Queue,
-        as: "queues",
-        attributes: ["id", "name", "color", "greetingMessage"]
-      },
-      {
-        model: Prompt,
-        as: "prompt",
-      }
-    ]
+  const baseOptions: FindOptions = {
+    where: whereCondition
   };
 
-  if (session !== undefined && session == 0) {
-    options.attributes = { exclude: ["session"] };
+  // Tenta com includes opcionais; se der erro por tabela/coluna ausente, refaz sem includes
+  try {
+    const options: FindOptions = {
+      ...baseOptions,
+      include: [
+        {
+          model: Queue,
+          as: "queues",
+          attributes: ["id", "name", "color", "greetingMessage"]
+        },
+        {
+          model: Prompt,
+          as: "prompt"
+        }
+      ]
+    };
+    if (session !== undefined && session == 0) {
+      options.attributes = { exclude: ["session"] };
+    }
+    return await Whatsapp.findAll(options);
+  } catch (_err) {
+    const fallbackOptions: FindOptions = { ...baseOptions };
+    if (session !== undefined && session == 0) {
+      fallbackOptions.attributes = { exclude: ["session"] };
+    }
+    return await Whatsapp.findAll(fallbackOptions);
   }
-
-  const whatsapps = await Whatsapp.findAll(options);
-
-  return whatsapps;
 };
 
-
-
 export default ListWhatsAppsService;
+
+

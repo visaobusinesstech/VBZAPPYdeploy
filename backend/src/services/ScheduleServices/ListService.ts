@@ -41,7 +41,7 @@ const ListService = async ({
         },
         {
           "$Contact.name$": where(
-            fn("LOWER", fn("unaccent", col("contact.name"))),
+            fn("LOWER", col("contact.name")),
             "LIKE",
             `%${searchParam.toLowerCase()}%`
           )

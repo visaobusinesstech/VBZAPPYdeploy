@@ -101,36 +101,48 @@ export const index = async (req: Request, res: Response): Promise<Response> => {
   let statusFilters: string[] = [];
 
   const toArray = (v: any): any[] => {
-    if (Array.isArray(v)) return v.map(x => (typeof x === "string" && /^\d+$/.test(x) ? Number(x) : x));
+    // Normaliza valores vindos como string ou array; remove "undefined"/"null" e vazios
+    if (Array.isArray(v)) {
+      return v
+        .map(x => (typeof x === "string" && /^\d+$/.test(x) ? Number(x) : x))
+        .filter(x => x !== undefined && x !== null && x !== "" && x !== "undefined" && x !== "null");
+    }
     if (typeof v === "string") {
+      const trimmed = v.trim();
+      if (trimmed === "" || trimmed.toLowerCase() === "undefined" || trimmed.toLowerCase() === "null" || trimmed === "[]") {
+        return [];
+      }
       try {
-        const p = JSON.parse(v);
-        if (Array.isArray(p)) return p;
+        const p = JSON.parse(trimmed);
+        if (Array.isArray(p)) {
+          return p
+            .map(x => (typeof x === "string" && /^\d+$/.test(x) ? Number(x) : x))
+            .filter(x => x !== undefined && x !== null && x !== "" && x !== "undefined" && x !== "null");
+        }
       } catch {}
-      if (v.trim() === "") return [];
-      return [/^\d+$/.test(v) ? Number(v) : v];
+      return [/^\d+$/.test(trimmed) ? Number(trimmed) : trimmed];
     }
     return [];
   };
 
   if (queueIdsStringified !== undefined) {
-    queueIds = toArray(queueIdsStringified) as number[];
+    queueIds = (toArray(queueIdsStringified) as any[]).filter(x => typeof x === "number" && !isNaN(x)) as number[];
   }
 
   if (tagIdsStringified !== undefined) {
-    tagsIds = toArray(tagIdsStringified) as number[];
+    tagsIds = (toArray(tagIdsStringified) as any[]).filter(x => typeof x === "number" && !isNaN(x)) as number[];
   }
 
   if (userIdsStringified !== undefined) {
-    usersIds = toArray(userIdsStringified) as number[];
+    usersIds = (toArray(userIdsStringified) as any[]).filter(x => typeof x === "number" && !isNaN(x)) as number[];
   }
 
   if (whatsappIdsStringified !== undefined) {
-    whatsappIds = toArray(whatsappIdsStringified) as number[];
+    whatsappIds = (toArray(whatsappIdsStringified) as any[]).filter(x => typeof x === "number" && !isNaN(x)) as number[];
   }
 
   if (statusStringfied !== undefined) {
-    statusFilters = toArray(statusStringfied) as string[];
+    statusFilters = (toArray(statusStringfied) as any[]).map(x => String(x)).filter(s => s.length > 0) as string[];
   }
 
   const { tickets, count, hasMore } = await ListTicketsService({

@@ -48,13 +48,7 @@ const buildWhereCondition = async ({
     whereCondition = {
       ...whereCondition,
       [Op.or]: [
-        {
-          name: where(
-            fn("LOWER", fn("unaccent", col("Contact.name"))),
-            "LIKE",
-            `%${sanitizedSearchParam}%`
-          )
-        },
+        { name: where(fn("LOWER", col("Contact.name")), "LIKE", `%${sanitizedSearchParam}%`) },
         { number: { [Op.like]: `%${sanitizedSearchParam}%` } }
       ]
     };
@@ -127,7 +121,6 @@ const ListContactsService = async ({
       "name",
       "number",
       "email",
-      "birthDate",
       "isGroup",
       "urlPicture",
       "profilePicUrl",

@@ -84,6 +84,14 @@ const ListTicketsService = async ({
       : false;
     let whereCondition: Filterable["where"];
 
+  // Garanta que nunca geramos "IN ()" — se não tiver filtro vindo da UI,
+  // caímos nas filas do usuário; se nem o usuário tiver filas, usamos [-1] (nenhuma)
+  const userQueueIds = user.queues.map(queue => queue.id);
+  const safeQueueIds: number[] =
+    Array.isArray(queueIds) && queueIds.length > 0
+      ? queueIds
+      : (userQueueIds.length > 0 ? userQueueIds : [-1]);
+
   // Regra: A aba Aguardando deve sempre listar todas as conversas pendentes,
   // independente de filtros de fila/usuário. Para os demais status, mantém filtros.
   if (status === "pending") {
@@ -94,7 +102,7 @@ const ListTicketsService = async ({
   } else {
     whereCondition = {
       [Op.or]: [{ userId }, { status: "pending" }],
-      queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: queueIds }, null] } : { [Op.in]: queueIds },
+      queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: safeQueueIds }, null] } : { [Op.in]: safeQueueIds },
       companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
     };
   }
@@ -144,10 +152,10 @@ const ListTicketsService = async ({
     },
   ];
 
-  const userQueueIds = user.queues.map(queue => queue.id);
+  // userQueueIds já definido acima
 
   if (status === "open") {
-    whereCondition = {
+    const baseCondition: any = {
       companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
       status: "open",
       [Op.or]: [
@@ -155,14 +163,21 @@ const ListTicketsService = async ({
         { userId: null },                   // tickets abertos ainda sem atendente
         { isBot: true },                    // tickets sob Agente IA
         { useIntegration: true }            // tickets em integração ativa
-      ],
-      queueId: { [Op.or]: [{ [Op.in]: queueIds }, null] } // Atendendo deve exibir SEM FILA também
+      ]
     };
+    // Evita gerar "IN ()" quando não há filas selecionadas
+    if (Array.isArray(safeQueueIds) && safeQueueIds.length > 0) {
+      baseCondition.queueId = { [Op.or]: [{ [Op.in]: safeQueueIds }, null] };
+    } else {
+      // Sem filtro de fila: permite qualquer fila ou sem fila
+      // Nenhuma cláusula de queueId para não quebrar o SQL
+    }
+    whereCondition = baseCondition;
   } else
     if (status === "group" && user.allowGroup && user.whatsappId) {
       whereCondition = {
         companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
-        queueId: { [Op.or]: [{ [Op.in]: queueIds }, null] },
+        queueId: { [Op.or]: [{ [Op.in]: safeQueueIds }, null] },
         whatsappId: user.whatsappId
       };
     }
@@ -170,7 +185,7 @@ const ListTicketsService = async ({
       if (status === "group" && (user.allowGroup) && !user.whatsappId) {
         whereCondition = {
           companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
-          queueId: { [Op.or]: [{ [Op.in]: queueIds }, null] },
+          queueId: { [Op.or]: [{ [Op.in]: safeQueueIds }, null] },
         };
       }
       else
@@ -182,14 +197,14 @@ const ListTicketsService = async ({
             whereCondition = {
               companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
               status: "chatbot",
-              queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: queueIds }, null] } : { [Op.in]: queueIds }
+              queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: safeQueueIds }, null] } : { [Op.in]: safeQueueIds }
             };
           } else {
             whereCondition = {
               companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] },
               status: "chatbot",
               [Op.or]: [{ userId }, { userId: null }],
-              queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: queueIds }, null] } : { [Op.in]: queueIds }
+              queueId: showTicketWithoutQueue ? { [Op.or]: [{ [Op.in]: safeQueueIds }, null] } : { [Op.in]: safeQueueIds }
             };
           }
         }
@@ -203,7 +218,7 @@ const ListTicketsService = async ({
               ticketsIds = await Ticket.findAll({
                 where: {
                   userId: { [Op.or]: [user.id, null] },
-                  queueId: { [Op.or]: [queueIds, null] },
+                  queueId: { [Op.or]: [safeQueueIds, null] },
                   status: "pending",
                   companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }
                 },
@@ -242,7 +257,7 @@ const ListTicketsService = async ({
                     userId:
                       { [Op.or]: [user.id, null] },
                     status: "pending",
-                    queueId: { [Op.in]: queueIds }
+                  queueId: { [Op.in]: safeQueueIds }
                   },
                 });
               } else {
@@ -289,9 +304,9 @@ const ListTicketsService = async ({
      } else if (user.allHistoric === "enabled" && !showTicketWithoutQueue) {
        whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.ne]: null } };
      } else if (user.allHistoric === "disabled" && showTicketWithoutQueue) {
-       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.or]: [queueIds, null] } };
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.or]: [safeQueueIds, null] } };
      } else if (user.allHistoric === "disabled" && !showTicketWithoutQueue) {
-       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: queueIds };
+       whereCondition = { companyId: !user.super ? companyId : { [Op.or]: [companyId, { [Op.ne]: null }] }, queueId: { [Op.in]: safeQueueIds } };
      }
   }
 
@@ -380,8 +395,8 @@ const ListTicketsService = async ({
         latestTickets = await Ticket.findAll({
           attributes: ['companyId', 'contactId', 'whatsappId', [literal('MAX("id")'), 'id']],
           where: {
-            [Op.or]: [{ userId }, { status: ["pending", "closed", "group", "chatbot"] }], // INCLUINDO CHATBOT NA BUSCA
-            queueId: showAll === "true" || showTicketWithoutQueue ? { [Op.or]: [queueIds, null] } : queueIds,
+            [Op.or]: [{ userId }, { status: ["pending", "closed", "group", "chatbot"] }],
+            queueId: showAll === "true" || showTicketWithoutQueue ? { [Op.or]: [safeQueueIds, null] } : { [Op.in]: safeQueueIds },
             companyId
           },
           group: ['companyId', 'contactId', 'whatsappId'],
@@ -389,19 +404,19 @@ const ListTicketsService = async ({
       } else {
         let whereCondition2: Filterable["where"] = {
           companyId,
-          [Op.or]: [{ userId }, { status: ["pending", "closed", "group", "chatbot"] }] // INCLUINDO CHATBOT NA BUSCA
+          [Op.or]: [{ userId }, { status: ["pending", "closed", "group", "chatbot"] }]
         }
 
         if (showAll === "false" && user.profile === "admin") {
           whereCondition2 = {
             ...whereCondition2,
-            queueId: { [Op.in]: queueIds },
+            queueId: { [Op.in]: safeQueueIds },
           }
 
         } else if (showAll === "true" && user.profile === "admin") {
           whereCondition2 = {
             companyId,
-            queueId: { [Op.or]: [{ [Op.in]: queueIds }, null] },
+            queueId: { [Op.or]: [{ [Op.in]: safeQueueIds }, null] },
           }
         }
 
@@ -431,7 +446,7 @@ const ListTicketsService = async ({
               attributes: ["id", "body"],
               where: {
                 body: where(
-                  fn("LOWER", fn('unaccent', col("body"))),
+                  fn("LOWER", col("messages.body")),
                   "LIKE",
                   `%${sanitizedSearchParam}%`
                 ),
@@ -444,19 +459,11 @@ const ListTicketsService = async ({
             ...whereCondition,
             [Op.or]: [
               {
-                "$contact.name$": where(
-                  fn("LOWER", fn("unaccent", col("contact.name"))),
-                  "LIKE",
-                  `%${sanitizedSearchParam}%`
-                )
+                "$contact.name$": where(fn("LOWER", col("contact.name")), "LIKE", `%${sanitizedSearchParam}%`)
               },
               { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } },
               {
-                "$message.body$": where(
-                  fn("LOWER", fn("unaccent", col("body"))),
-                  "LIKE",
-                  `%${sanitizedSearchParam}%`
-                )
+                "$messages.body$": where(fn("LOWER", col("messages.body")), "LIKE", `%${sanitizedSearchParam}%`)
               }
             ]
           };
@@ -465,11 +472,7 @@ const ListTicketsService = async ({
             ...whereCondition,
             [Op.or]: [
               {
-                "$contact.name$": where(
-                  fn("LOWER", fn("unaccent", col("contact.name"))),
-                  "LIKE",
-                  `%${sanitizedSearchParam}%`
-                )
+                "$contact.name$": where(fn("LOWER", col("contact.name")), "LIKE", `%${sanitizedSearchParam}%`)
               },
               { "$contact.number$": { [Op.like]: `%${sanitizedSearchParam}%` } },
             ]
@@ -562,7 +565,10 @@ const ListTicketsService = async ({
     distinct: true,
     limit,
     offset,
-    order: [["updatedAt", sortTickets]],
+    order: [["updatedAt", ((): "ASC" | "DESC" => {
+      const dir = (sortTickets || "").toString().toUpperCase();
+      return dir === "ASC" || dir === "DESC" ? (dir as "ASC" | "DESC") : "DESC";
+    })()]],
     subQuery: false
   });
 
